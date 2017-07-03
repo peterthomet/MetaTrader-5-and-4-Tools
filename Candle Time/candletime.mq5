@@ -3,6 +3,7 @@
 //|                   Francesco Danti Copyright 2011, OracolTech.com |
 //|                                       http://blog.oracoltech.com |
 //|                                      email:     fdanti@gmail.com |
+//|                               Optimizations by www.getyournet.ch |
 //+------------------------------------------------------------------+
 #property copyright "Francesco Danti Copyright 2011, OracolTech.com"
 #property link      "http://blog.oracoltech.com"
@@ -15,22 +16,35 @@
 
 string idxLabel="lblNextCandle";
 
-input color lblColor=clrMediumSeaGreen;                    // Color of the label
-input int fontSize=10;                                // Size of the label font
+input color lblColor=clrMediumSeaGreen; // Color of the label
+input int fontSize=10; // Size of the label font
 input ENUM_ANCHOR_POINT pAnchor = ANCHOR_LEFT_LOWER; // Anchor of the label a sort of align
-input bool nextToPriceOrAnchor = true;               // Position near the price close or to Corner
-input ENUM_BASE_CORNER pCorner = CORNER_LEFT_LOWER;  // Corner position of the label
-input string fontFamily = "Arial";                  // Font family of the label
-input bool clocktime = true;                  // Show clock time
+input bool nextToPrice = true; // Position near the price close (else to anchor)
+input ENUM_BASE_CORNER pCorner = CORNER_LEFT_LOWER; // Corner position of the label
+input string fontFamily = "Arial"; // Font family of the label
+input bool clocktime = true; // Show clock time
 
 datetime time0 = NULL;
 double close0 = NULL;
 
 
-int OnInit()
+void OnInit()
 {
-   EventSetTimer(1);
-   return(0);
+   if(nextToPrice)
+   {
+      ObjectCreate(0,idxLabel,OBJ_TEXT,0,0,0);
+      ObjectSetInteger(0,idxLabel,OBJPROP_ANCHOR,pAnchor);
+   }
+   else
+   {
+      ObjectCreate(0,idxLabel,OBJ_LABEL,0,0,0);
+      ObjectSetInteger(0,idxLabel,OBJPROP_ANCHOR,pAnchor);
+      ObjectSetInteger(0,idxLabel,OBJPROP_CORNER,pCorner);
+   }
+   ObjectSetInteger(0,idxLabel,OBJPROP_COLOR,lblColor);
+   ObjectSetInteger(0,idxLabel,OBJPROP_FONTSIZE,fontSize);
+   ObjectSetString(0,idxLabel,OBJPROP_FONT,fontFamily);
+   EventSetMillisecondTimer(1000);
 }
 
 
@@ -66,7 +80,7 @@ int OnCalculate(const int rates_total,
    time0 = time[0];
    close0 = close[0];
 
-   Calculate();
+   MoveLabel();
 
    return(rates_total);
 }
@@ -77,7 +91,7 @@ void Calculate()
    int tS,iS,iM,iH;
    string sS,sM,sH;
 
-   tS=(int) time0+PeriodSeconds() -(int) TimeCurrent();
+   tS=(int) time0+PeriodSeconds() -(int) TimeTradeServer();
 
    iS=tS%60;
 
@@ -105,23 +119,16 @@ void Calculate()
    if(clocktime)
       cmt += " - " + TimeToString(time0+PeriodSeconds(),TIME_MINUTES);
 
-   if(nextToPriceOrAnchor)
-   {
-      if(ObjectGetInteger(0,idxLabel,OBJPROP_TYPE)==OBJ_LABEL) ObjectDelete(0,idxLabel);
-      ObjectCreate(0,idxLabel,OBJ_TEXT,0,time0+PeriodSeconds()*2,close0);
-      ObjectSetInteger(0,idxLabel,OBJPROP_ANCHOR,pAnchor);
-   }
-   else
-   {
-      if(ObjectGetInteger(0,idxLabel,OBJPROP_TYPE)==OBJ_TEXT) ObjectDelete(0,idxLabel);
-      ObjectCreate(0,idxLabel,OBJ_LABEL,0,0,0);
-      ObjectSetInteger(0,idxLabel,OBJPROP_ANCHOR,pAnchor);
-      ObjectSetInteger(0,idxLabel,OBJPROP_CORNER,pCorner);
-   }
-
-   ObjectSetInteger(0,idxLabel,OBJPROP_COLOR,lblColor);
    ObjectSetString(0,idxLabel,OBJPROP_TEXT,cmt);
-   ObjectSetInteger(0,idxLabel,OBJPROP_FONTSIZE,fontSize);
-   ObjectSetString(0,idxLabel,OBJPROP_FONT,fontFamily);
+   ChartRedraw();
+}
 
+
+void MoveLabel()
+{
+   if(nextToPrice)
+   {
+      ObjectSetInteger(0,idxLabel,OBJPROP_TIME,time0+PeriodSeconds()*2);
+      ObjectSetDouble(0,idxLabel,OBJPROP_PRICE,close0);
+   }
 }
