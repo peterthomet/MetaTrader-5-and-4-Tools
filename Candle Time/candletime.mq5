@@ -22,24 +22,33 @@ input bool nextToPriceOrAnchor = true;               // Position near the price 
 input ENUM_BASE_CORNER pCorner = CORNER_LEFT_LOWER;  // Corner position of the label
 input string fontFamily = "Arial";                  // Font family of the label
 input bool clocktime = true;                  // Show clock time
-//+------------------------------------------------------------------+
-//| Custom indicator initialization function                         |
-//+------------------------------------------------------------------+
+
+datetime time0 = NULL;
+double close0 = NULL;
+
+
 int OnInit()
-  {
+{
+   EventSetTimer(1);
    return(0);
-  }
-//+------------------------------------------------------------------+
-//| Custom indicator deinitialization function                       |
-//+------------------------------------------------------------------+
+}
+
+
 void OnDeinit(const int r)
-  {
+{
+   EventKillTimer();
    Comment("");
    ObjectDelete(0,idxLabel);
-  }
-//+------------------------------------------------------------------+
-//| Custom indicator iteration function                              |
-//+------------------------------------------------------------------+
+}
+
+
+void OnTimer()
+{
+   if(time0!=NULL && close0!=NULL)
+      Calculate();
+}
+
+
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
                 const datetime &time[],
@@ -50,16 +59,25 @@ int OnCalculate(const int rates_total,
                 const long &tick_volume[],
                 const long &volume[],
                 const int &spread[])
-  {
+{
    ArraySetAsSeries(time,true);
    ArraySetAsSeries(close,true);
 
-   int idxLastBar=rates_total-1;
+   time0 = time[0];
+   close0 = close[0];
 
+   Calculate();
+
+   return(rates_total);
+}
+
+
+void Calculate()
+{
    int tS,iS,iM,iH;
    string sS,sM,sH;
 
-   tS=(int) time[0]+PeriodSeconds() -(int) TimeCurrent();
+   tS=(int) time0+PeriodSeconds() -(int) TimeCurrent();
 
    iS=tS%60;
 
@@ -85,27 +103,25 @@ int OnCalculate(const int rates_total,
    }
    
    if(clocktime)
-      cmt += " - " + TimeToString(time[0]+PeriodSeconds(),TIME_MINUTES);
+      cmt += " - " + TimeToString(time0+PeriodSeconds(),TIME_MINUTES);
 
    if(nextToPriceOrAnchor)
-     {
+   {
       if(ObjectGetInteger(0,idxLabel,OBJPROP_TYPE)==OBJ_LABEL) ObjectDelete(0,idxLabel);
-      ObjectCreate(0,idxLabel,OBJ_TEXT,0,time[0]+PeriodSeconds()*2,close[0]);
+      ObjectCreate(0,idxLabel,OBJ_TEXT,0,time0+PeriodSeconds()*2,close0);
       ObjectSetInteger(0,idxLabel,OBJPROP_ANCHOR,pAnchor);
-     }
+   }
    else
-     {
+   {
       if(ObjectGetInteger(0,idxLabel,OBJPROP_TYPE)==OBJ_TEXT) ObjectDelete(0,idxLabel);
       ObjectCreate(0,idxLabel,OBJ_LABEL,0,0,0);
       ObjectSetInteger(0,idxLabel,OBJPROP_ANCHOR,pAnchor);
       ObjectSetInteger(0,idxLabel,OBJPROP_CORNER,pCorner);
-     }
+   }
 
    ObjectSetInteger(0,idxLabel,OBJPROP_COLOR,lblColor);
    ObjectSetString(0,idxLabel,OBJPROP_TEXT,cmt);
    ObjectSetInteger(0,idxLabel,OBJPROP_FONTSIZE,fontSize);
    ObjectSetString(0,idxLabel,OBJPROP_FONT,fontFamily);
 
-   return(rates_total);
-  }
-//+------------------------------------------------------------------+
+}
