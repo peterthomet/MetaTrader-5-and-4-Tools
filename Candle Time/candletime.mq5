@@ -26,6 +26,7 @@ input bool clocktime = true; // Show clock time
 
 datetime time0 = NULL;
 double close0 = NULL;
+int lastseconds = 0;
 
 
 void OnInit()
@@ -44,7 +45,8 @@ void OnInit()
    ObjectSetInteger(0,idxLabel,OBJPROP_COLOR,lblColor);
    ObjectSetInteger(0,idxLabel,OBJPROP_FONTSIZE,fontSize);
    ObjectSetString(0,idxLabel,OBJPROP_FONT,fontFamily);
-   EventSetMillisecondTimer(1000);
+   ObjectSetString(0,idxLabel,OBJPROP_TEXT," ");
+   EventSetMillisecondTimer(100);
 }
 
 
@@ -92,6 +94,11 @@ void Calculate()
    string sS,sM,sH;
 
    tS=(int) time0+PeriodSeconds() -(int) TimeTradeServer();
+
+   if(lastseconds==tS)
+      return;
+
+   lastseconds = tS;
 
    iS=tS%60;
 
