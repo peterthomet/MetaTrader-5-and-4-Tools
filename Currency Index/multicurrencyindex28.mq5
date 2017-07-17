@@ -225,6 +225,7 @@ int OnCalculate(const int     rates_total, // size of incoming time series
 {
    int i,ii;
    int limit=shiftbars;
+   int notcalc=rates_total-shiftbars;
 
    if(prev_calculated>0)
      {limit=1;}
@@ -392,6 +393,8 @@ int OnCalculate(const int     rates_total, // size of incoming time series
       //NZDplot[i]=f_RSI(NZDx,rsi_period,i);
    }
    int period=ma_period, smoothing=ma_smoothing, malimit=rates_total-shiftbars;
+   if(limit==1)
+      malimit=rates_total-1;
 
    //SimpleMAOnBuffer
    //ExponentialMAOnBuffer
