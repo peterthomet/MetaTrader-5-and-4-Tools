@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                         MultiCurrencyIndex28.mq5 |
-//|                                                                  |
+//|     Price and RSI Calculations copied from Corr_RSI.mq4 - mladen |
 //|                                                                  |
 //+------------------------------------------------------------------+
 #property copyright "2017, getYourNet.ch"
@@ -12,6 +12,33 @@
 
 #include <MovingAverages.mqh>
 
+enum enPrices
+{
+   pr_close,      // Close
+   pr_open,       // Open
+   pr_high,       // High
+   pr_low,        // Low
+   pr_median,     // Median
+   pr_typical,    // Typical
+   pr_weighted,   // Weighted
+   pr_average,    // Average (high+low+open+close)/4
+   pr_medianb,    // Average median body (open+close)/2
+   pr_tbiased,    // Trend biased price
+   pr_tbiased2,   // Trend biased (extreme) price
+   pr_haclose,    // Heiken ashi close
+   pr_haopen ,    // Heiken ashi open
+   pr_hahigh,     // Heiken ashi high
+   pr_halow,      // Heiken ashi low
+   pr_hamedian,   // Heiken ashi median
+   pr_hatypical,  // Heiken ashi typical
+   pr_haweighted, // Heiken ashi weighted
+   pr_haaverage,  // Heiken ashi average
+   pr_hamedianb,  // Heiken ashi median body
+   pr_hatbiased,  // Heiken ashi trend biased price
+   pr_hatbiased2  // Heiken ashi trend biased (extreme) price
+};
+
+input enPrices PriceType = pr_close; // Price Type
 input int rsi_period = 9; // RSI Period
 input int ma_period = 6; // MA Period
 input int ma_smoothing = 3; // MA Smoothing
@@ -234,39 +261,39 @@ int OnCalculate(const int     rates_total, // size of incoming time series
 
    init_tf();
 
-   if(!GetClose("EURUSD",EURUSD)) return(0);
-   if(!GetClose("GBPUSD",GBPUSD)) return(0);
-   if(!GetClose("USDCHF",USDCHF)) return(0);
-   if(!GetClose("USDJPY",USDJPY)) return(0);
-   if(!GetClose("AUDUSD",AUDUSD)) return(0);
-   if(!GetClose("USDCAD",USDCAD)) return(0);
-   if(!GetClose("NZDUSD",NZDUSD)) return(0);
+   if(!GetRates("EURUSD",EURUSD)) return(0);
+   if(!GetRates("GBPUSD",GBPUSD)) return(0);
+   if(!GetRates("USDCHF",USDCHF)) return(0);
+   if(!GetRates("USDJPY",USDJPY)) return(0);
+   if(!GetRates("AUDUSD",AUDUSD)) return(0);
+   if(!GetRates("USDCAD",USDCAD)) return(0);
+   if(!GetRates("NZDUSD",NZDUSD)) return(0);
    
-   if(!GetClose("EURNZD",EURNZD)) return(0);
-   if(!GetClose("EURCAD",EURCAD)) return(0);
-   if(!GetClose("EURAUD",EURAUD)) return(0);
-   if(!GetClose("EURJPY",EURJPY)) return(0);
-   if(!GetClose("EURCHF",EURCHF)) return(0);
-   if(!GetClose("EURGBP",EURGBP)) return(0);
+   if(!GetRates("EURNZD",EURNZD)) return(0);
+   if(!GetRates("EURCAD",EURCAD)) return(0);
+   if(!GetRates("EURAUD",EURAUD)) return(0);
+   if(!GetRates("EURJPY",EURJPY)) return(0);
+   if(!GetRates("EURCHF",EURCHF)) return(0);
+   if(!GetRates("EURGBP",EURGBP)) return(0);
 
-   if(!GetClose("GBPNZD",GBPNZD)) return(0);
-   if(!GetClose("GBPAUD",GBPAUD)) return(0);
-   if(!GetClose("GBPCAD",GBPCAD)) return(0);
-   if(!GetClose("GBPJPY",GBPJPY)) return(0);
-   if(!GetClose("GBPCHF",GBPCHF)) return(0);
+   if(!GetRates("GBPNZD",GBPNZD)) return(0);
+   if(!GetRates("GBPAUD",GBPAUD)) return(0);
+   if(!GetRates("GBPCAD",GBPCAD)) return(0);
+   if(!GetRates("GBPJPY",GBPJPY)) return(0);
+   if(!GetRates("GBPCHF",GBPCHF)) return(0);
 
-   if(!GetClose("CADJPY",CADJPY)) return(0);
-   if(!GetClose("CADCHF",CADCHF)) return(0);
-   if(!GetClose("AUDCAD",AUDCAD)) return(0);
-   if(!GetClose("NZDCAD",NZDCAD)) return(0);
+   if(!GetRates("CADJPY",CADJPY)) return(0);
+   if(!GetRates("CADCHF",CADCHF)) return(0);
+   if(!GetRates("AUDCAD",AUDCAD)) return(0);
+   if(!GetRates("NZDCAD",NZDCAD)) return(0);
 
-   if(!GetClose("AUDCHF",AUDCHF)) return(0);
-   if(!GetClose("AUDJPY",AUDJPY)) return(0);
-   if(!GetClose("AUDNZD",AUDNZD)) return(0);
+   if(!GetRates("AUDCHF",AUDCHF)) return(0);
+   if(!GetRates("AUDJPY",AUDJPY)) return(0);
+   if(!GetRates("AUDNZD",AUDNZD)) return(0);
 
-   if(!GetClose("NZDJPY",NZDJPY)) return(0);
-   if(!GetClose("NZDCHF",NZDCHF)) return(0);
-   if(!GetClose("CHFJPY",CHFJPY)) return(0);
+   if(!GetRates("NZDJPY",NZDJPY)) return(0);
+   if(!GetRates("NZDCHF",NZDCHF)) return(0);
+   if(!GetRates("CHFJPY",CHFJPY)) return(0);
 
    for(i=limit-1;i>=0;i--)
    {
@@ -374,23 +401,23 @@ int OnCalculate(const int     rates_total, // size of incoming time series
    }
    for(i=ii;i>=0;i--)
    {
-      USDrsi[i]=f_RSI(USDx,rsi_period,i);
-      EURrsi[i]=f_RSI(EURx,rsi_period,i);
-      GBPrsi[i]=f_RSI(GBPx,rsi_period,i);
-      CHFrsi[i]=f_RSI(CHFx,rsi_period,i);
-      JPYrsi[i]=f_RSI(JPYx,rsi_period,i);
-      CADrsi[i]=f_RSI(CADx,rsi_period,i);
-      AUDrsi[i]=f_RSI(AUDx,rsi_period,i);
-      NZDrsi[i]=f_RSI(NZDx,rsi_period,i);
+      //USDrsi[i]=f_RSI(USDx,rsi_period,i);
+      //EURrsi[i]=f_RSI(EURx,rsi_period,i);
+      //GBPrsi[i]=f_RSI(GBPx,rsi_period,i);
+      //CHFrsi[i]=f_RSI(CHFx,rsi_period,i);
+      //JPYrsi[i]=f_RSI(JPYx,rsi_period,i);
+      //CADrsi[i]=f_RSI(CADx,rsi_period,i);
+      //AUDrsi[i]=f_RSI(AUDx,rsi_period,i);
+      //NZDrsi[i]=f_RSI(NZDx,rsi_period,i);
 
-      //USDplot[i]=f_RSI(USDx,rsi_period,i);
-      //EURplot[i]=f_RSI(EURx,rsi_period,i);
-      //GBPplot[i]=f_RSI(GBPx,rsi_period,i);
-      //CHFplot[i]=f_RSI(CHFx,rsi_period,i);
-      //JPYplot[i]=f_RSI(JPYx,rsi_period,i);
-      //CADplot[i]=f_RSI(CADx,rsi_period,i);
-      //AUDplot[i]=f_RSI(AUDx,rsi_period,i);
-      //NZDplot[i]=f_RSI(NZDx,rsi_period,i);
+      USDplot[i]=f_RSI(USDx,rsi_period,i);
+      EURplot[i]=f_RSI(EURx,rsi_period,i);
+      GBPplot[i]=f_RSI(GBPx,rsi_period,i);
+      CHFplot[i]=f_RSI(CHFx,rsi_period,i);
+      JPYplot[i]=f_RSI(JPYx,rsi_period,i);
+      CADplot[i]=f_RSI(CADx,rsi_period,i);
+      AUDplot[i]=f_RSI(AUDx,rsi_period,i);
+      NZDplot[i]=f_RSI(NZDx,rsi_period,i);
    }
    int period=ma_period, smoothing=ma_smoothing, malimit=rates_total-shiftbars;
    if(limit==1)
@@ -399,28 +426,35 @@ int OnCalculate(const int     rates_total, // size of incoming time series
    //SimpleMAOnBuffer
    //ExponentialMAOnBuffer
 
-   SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,USDrsi,USDplot);
-   SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,EURrsi,EURplot);
-   SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,GBPrsi,GBPplot);
-   SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,CHFrsi,CHFplot);
-   SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,JPYrsi,JPYplot);
-   SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,CADrsi,CADplot);
-   SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,AUDrsi,AUDplot);
-   SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,NZDrsi,NZDplot);
+   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,USDrsi,USDplot);
+   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,EURrsi,EURplot);
+   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,GBPrsi,GBPplot);
+   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,CHFrsi,CHFplot);
+   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,JPYrsi,JPYplot);
+   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,CADrsi,CADplot);
+   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,AUDrsi,AUDplot);
+   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,NZDrsi,NZDplot);
    
    return(rates_total);
 }
 
 
-bool GetClose(string pair, double& buffer[])
+bool GetRates(string pair, double& buffer[])
 {
    bool ret = true;
    int copied;
-   copied=CopyClose(pair,PERIOD_CURRENT,0,shiftbars,buffer);
+   MqlRates rates[];
+   ArraySetAsSeries(rates,true); 
+   copied=CopyRates(pair,PERIOD_CURRENT,0,shiftbars,rates);
    if(copied==-1)
    {
       f_comment("Wait..."+pair);
       ret=false;
+   }
+   else
+   {
+      for(int i=0;i<copied;i++)
+         buffer[i]=GetPrice(PriceType,rates,i);
    }
    return ret;
 }
@@ -568,3 +602,73 @@ void GetPairData(int idx, string pair)
    copy=CopyTime(pair,PERIOD_CURRENT,0,1,tmp_time);
    arrTime[idx]=tmp_time[0];
 }
+
+
+#define _pricesInstances 1
+#define _pricesSize      4
+double workHa[][_pricesInstances*_pricesSize];
+double GetPrice(int tprice, MqlRates& rates[], int i, int instanceNo=0)
+{
+  if (tprice>=pr_haclose)
+   {
+      int ratessize = ArraySize(rates);
+      if (ArrayRange(workHa,0)!= ratessize) ArrayResize(workHa,ratessize); instanceNo*=_pricesSize;
+         
+         double haOpen;
+         if (i>0)
+                haOpen  = (workHa[i-1][instanceNo+2] + workHa[i-1][instanceNo+3])/2.0;
+         else   haOpen  = (rates[i].open+rates[i].close)/2;
+         double haClose = (rates[i].open + rates[i].high + rates[i].low + rates[i].close) / 4.0;
+         double haHigh  = MathMax(rates[i].high, MathMax(haOpen,haClose));
+         double haLow   = MathMin(rates[i].low , MathMin(haOpen,haClose));
+
+         if(haOpen  <haClose) { workHa[i][instanceNo+0] = haLow;  workHa[i][instanceNo+1] = haHigh; } 
+         else                 { workHa[i][instanceNo+0] = haHigh; workHa[i][instanceNo+1] = haLow;  } 
+                                workHa[i][instanceNo+2] = haOpen;
+                                workHa[i][instanceNo+3] = haClose;
+
+         switch (tprice)
+         {
+            case pr_haclose:     return(haClose);
+            case pr_haopen:      return(haOpen);
+            case pr_hahigh:      return(haHigh);
+            case pr_halow:       return(haLow);
+            case pr_hamedian:    return((haHigh+haLow)/2.0);
+            case pr_hamedianb:   return((haOpen+haClose)/2.0);
+            case pr_hatypical:   return((haHigh+haLow+haClose)/3.0);
+            case pr_haweighted:  return((haHigh+haLow+haClose+haClose)/4.0);
+            case pr_haaverage:   return((haHigh+haLow+haClose+haOpen)/4.0);
+            case pr_hatbiased:
+               if (haClose>haOpen)
+                     return((haHigh+haClose)/2.0);
+               else  return((haLow+haClose)/2.0);        
+            case pr_hatbiased2:
+               if (haClose>haOpen)  return(haHigh);
+               if (haClose<haOpen)  return(haLow);
+                                    return(haClose);        
+         }
+   }
+   
+   switch (tprice)
+   {
+      case pr_close:     return(rates[i].close);
+      case pr_open:      return(rates[i].open);
+      case pr_high:      return(rates[i].high);
+      case pr_low:       return(rates[i].low);
+      case pr_median:    return((rates[i].high+rates[i].low)/2.0);
+      case pr_medianb:   return((rates[i].open+rates[i].close)/2.0);
+      case pr_typical:   return((rates[i].high+rates[i].low+rates[i].close)/3.0);
+      case pr_weighted:  return((rates[i].high+rates[i].low+rates[i].close+rates[i].close)/4.0);
+      case pr_average:   return((rates[i].high+rates[i].low+rates[i].close+rates[i].open)/4.0);
+      case pr_tbiased:   
+               if (rates[i].close>rates[i].open)
+                     return((rates[i].high+rates[i].close)/2.0);
+               else  return((rates[i].low+rates[i].close)/2.0);        
+      case pr_tbiased2:   
+               if (rates[i].close>rates[i].open) return(rates[i].high);
+               if (rates[i].close<rates[i].open) return(rates[i].low);
+                                     return(rates[i].close);        
+   }
+   return(0);
+}
+
