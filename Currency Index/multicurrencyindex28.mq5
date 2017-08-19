@@ -1,16 +1,18 @@
-//+------------------------------------------------------------------+
-//|                                         MultiCurrencyIndex28.mq5 |
-//|     Price and RSI Calculations copied from Corr_RSI.mq4 - mladen |
-//|                                                                  |
-//+------------------------------------------------------------------+
+// --------------------------------------------------------------------------
+// MultiCurrencyIndex28.mq5
+// Peter Thomet, getYournet.ch
+// Price and RSI Calculations copied from Corr_RSI.mq4 - mladen
+// --------------------------------------------------------------------------
+
 #property copyright "2017, getYourNet.ch"
-#property version   "1.0"
+#property version   "2.0"
 #property indicator_separate_window
 
 #property indicator_buffers 52
 #property indicator_plots   8
 
 #include <MovingAverages.mqh>
+#include <SmoothAlgorithms.mqh> 
 
 enum enPrices
 {
@@ -42,7 +44,7 @@ input enPrices PriceType = pr_close; // Price Type
 input int rsi_period = 9; // RSI Period
 input int ma_period = 6; // MA Period
 input int ma_smoothing = 3; // MA Smoothing
-input int shiftbars = 300; // Number of Bars to calculate
+input int BarsToCalculate = 300; // Number of Bars to calculate
 
 input color Color_USD = SeaGreen;            // USD line color
 input color Color_EUR = DarkSlateBlue;         // EUR line color
@@ -56,60 +58,53 @@ input color Color_NZD = Gray;         // NZD line color
 input int                wid_main =         2; //Lines width for current chart
 input ENUM_LINE_STYLE style_slave = STYLE_DOT; //Style of alternative lines for current chart
 input bool all_solid = false; //Draw all main style
+input bool draw_current_pairs_only = false; //Draw indexes of current pairs only
 
-
-double  EURUSD[], // quotes
-        GBPUSD[],
-        USDCHF[],
-        USDJPY[],
-        AUDUSD[],
-        USDCAD[],
-        NZDUSD[],
-        
-         EURNZD[],
-         EURCAD[],
-         EURAUD[],
-         EURJPY[],
-         EURCHF[],
-         EURGBP[],
-
-         GBPNZD[],
-         GBPAUD[],
-         GBPCAD[],
-         GBPJPY[],
-         GBPCHF[],
-
-         CADJPY[],
-         CADCHF[],
-         AUDCAD[],
-         NZDCAD[],
-
-         AUDCHF[],
-         AUDJPY[],
-         AUDNZD[],
-
-         NZDJPY[],
-         NZDCHF[],
-         CHFJPY[];
-
-        
-double    USDx[], // indexes
-          EURx[],
-          GBPx[],
-          JPYx[],
-          CHFx[],
-          CADx[],
-          AUDx[],
-          NZDx[];                         
-double USDplot[], // results of currency lines
+double EURUSD[], // quotes
+       GBPUSD[],
+       USDCHF[],
+       USDJPY[],
+       AUDUSD[],
+       USDCAD[],
+       NZDUSD[],
+       EURNZD[],
+       EURCAD[],
+       EURAUD[],
+       EURJPY[],
+       EURCHF[],
+       EURGBP[],
+       GBPNZD[],
+       GBPAUD[],
+       GBPCAD[],
+       GBPJPY[],
+       GBPCHF[],
+       CADJPY[],
+       CADCHF[],
+       AUDCAD[],
+       NZDCAD[],
+       AUDCHF[],
+       AUDJPY[],
+       AUDNZD[],
+       NZDJPY[],
+       NZDCHF[],
+       CHFJPY[],
+       USDx[], // indexes
+       EURx[],
+       GBPx[],
+       JPYx[],
+       CHFx[],
+       CADx[],
+       AUDx[],
+       NZDx[],
+       USDplot[], // results of currency lines
        EURplot[],
        GBPplot[],
        JPYplot[],
        CHFplot[],
        CADplot[],
        AUDplot[],
-       NZDplot[]; 
-double USDrsi[], // buffers of intermediate data rsi
+       NZDplot[],
+       USDrsi[], // buffers of intermediate data rsi
        EURrsi[],
        GBPrsi[],
        JPYrsi[],
@@ -118,12 +113,18 @@ double USDrsi[], // buffers of intermediate data rsi
        AUDrsi[],
        NZDrsi[];
 
-int         y_pos = 3; // Y coordinate variable for the informatory objects  
-datetime   arrTime[]; // Array with the last known time of a zero valued bar (needed for synchronization)  
-int        bars_tf[]; // To check the number of available bars in different currency pairs  
-int         index = 0;
-datetime  tmp_time[1]; // Intermediate array for the time of the bar 
+int y_pos = 3; // Y coordinate variable for the informatory objects  
+datetime arrTime[28]; // Array with the last known time of a zero valued bar (needed for synchronization)  
+int bars_tf[28]; // To check the number of available bars in different currency pairs  
+int index = 0;
+datetime tmp_time[1]; // Intermediate array for the time of the bar 
 string namespace = "MultiCurrencyIndex28";
+bool incalculation = false;
+bool fullinit = true;
+datetime lastticktime;
+datetime currentticktime;
+int sameticktimecount=0;
+CXMA xmaUSD;
 
 
 void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, string currency=NULL, color col=NULL)
@@ -134,7 +135,7 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
    if(currency!=NULL)
    {
       PlotIndexSetString(idx,PLOT_LABEL,currency+"plot");
-      PlotIndexSetInteger(idx,PLOT_DRAW_BEGIN,shiftbars);
+      PlotIndexSetInteger(idx,PLOT_DRAW_BEGIN,BarsToCalculate);
       PlotIndexSetInteger(idx,PLOT_DRAW_TYPE,DRAW_LINE);
       PlotIndexSetInteger(idx,PLOT_LINE_COLOR,col);
       if(StringFind(Symbol(),currency,0)!=-1 || all_solid)
@@ -144,17 +145,25 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
       }
       else
       {
-        PlotIndexSetInteger(idx,PLOT_LINE_WIDTH,1);
-        PlotIndexSetInteger(idx,PLOT_LINE_STYLE,style_slave);
+         if(draw_current_pairs_only)
+         {
+            PlotIndexSetInteger(idx,PLOT_DRAW_TYPE,DRAW_NONE);
+         }
+         else
+         {
+            PlotIndexSetInteger(idx,PLOT_DRAW_TYPE,DRAW_LINE);
+            PlotIndexSetInteger(idx,PLOT_LINE_WIDTH,1);
+            PlotIndexSetInteger(idx,PLOT_LINE_STYLE,style_slave);
+         }
       }
-      f_draw(currency,col);
+      DrawObjects(currency,col);
    }
 }
 
 
 void OnInit()
 {
-   IndicatorSetInteger(INDICATOR_DIGITS,1);                    // number of digits after period, if RSI or Stochastic
+   IndicatorSetInteger(INDICATOR_DIGITS,1);
 
    string nameInd="MultiCurrencyIndex28";
    nameInd+=" RSI("+IntegerToString(rsi_period)+")";
@@ -199,7 +208,6 @@ void OnInit()
    InitBuffer(22,NZDx,INDICATOR_CALCULATIONS);
    InitBuffer(30,NZDrsi,INDICATOR_CALCULATIONS);
 
-
    InitBuffer(31,EURNZD,INDICATOR_CALCULATIONS);
    InitBuffer(32,EURCAD,INDICATOR_CALCULATIONS);
    InitBuffer(33,EURAUD,INDICATOR_CALCULATIONS);
@@ -225,170 +233,209 @@ void OnInit()
    InitBuffer(49,NZDJPY,INDICATOR_CALCULATIONS);
    InitBuffer(50,NZDCHF,INDICATOR_CALCULATIONS);
    InitBuffer(51,CHFJPY,INDICATOR_CALCULATIONS);
-
-   //ArrayResize(arrTime,countVal-1);
-   //ArrayResize(bars_tf,countVal-1);
-   ArrayResize(arrTime,28);
-   ArrayResize(bars_tf,28);
 }
 
 
 void OnDeinit(const int reason)
 {
    ObjectsDeleteAll(0,"namespace",ChartWindowFind());
+   EventKillTimer();
 }
 
 
-int OnCalculate(const int     rates_total, // size of incoming time series
-                const int prev_calculated, // processing of bars on the previous request
-                const datetime&    time[], // Time
-                const double&      open[], // Open
-                const double&      high[], // High
-                const double&       low[], // Low
-                const double&     close[], // Close
-                const long& tick_volume[], // Tick Volume
-                const long&      volume[], // Real Volume
-                const int&       spread[]) // Spread
+void OnTimer()
+{
+   if(incalculation)
+      return;
+   incalculation=true;
+   if(CalculateIndex())
+   {
+      fullinit=false;
+   }
+   if(currentticktime != lastticktime)
+   {
+      lastticktime=currentticktime;
+      sameticktimecount=0;
+   }
+   else
+   {
+      sameticktimecount++;
+      if(sameticktimecount>=30)
+      {
+         EventKillTimer();
+         fullinit=true;
+         Print("Timer Stopped - No Data Feed Available");
+      }
+   }
+   incalculation=false;
+}
+
+
+int OnCalculate(const int rates_total, 
+                const int prev_calculated, 
+                const datetime& time[], 
+                const double& open[], 
+                const double& high[], 
+                const double& low[], 
+                const double& close[], 
+                const long& tick_volume[], 
+                const long& volume[], 
+                const int& spread[]) 
+{
+   ArraySetAsSeries(time,true);
+   currentticktime=time[0];
+   EventSetTimer(1);
+   return(rates_total);
+}
+
+
+bool CalculateIndex()
 {
    int i,ii;
-   int limit=shiftbars;
-   int notcalc=rates_total-shiftbars;
+   int limit=BarsToCalculate;
 
-   if(prev_calculated>0)
-     {limit=1;}
+   if(fullinit)
+      limit=BarsToCalculate;
    else
-     {limit=shiftbars;}
+      limit=1;
 
-   init_tf();
+   //Print("Calculate " + limit);
 
-   if(!GetRates("EURUSD",EURUSD)) return(0);
-   if(!GetRates("GBPUSD",GBPUSD)) return(0);
-   if(!GetRates("USDCHF",USDCHF)) return(0);
-   if(!GetRates("USDJPY",USDJPY)) return(0);
-   if(!GetRates("AUDUSD",AUDUSD)) return(0);
-   if(!GetRates("USDCAD",USDCAD)) return(0);
-   if(!GetRates("NZDUSD",NZDUSD)) return(0);
+   if(!SynchronizeTimeframes())
+      return(false);
+
+   if(!GetRates("EURUSD",EURUSD,limit)) return(false);
+   if(!GetRates("GBPUSD",GBPUSD,limit)) return(false);
+   if(!GetRates("USDCHF",USDCHF,limit)) return(false);
+   if(!GetRates("USDJPY",USDJPY,limit)) return(false);
+   if(!GetRates("AUDUSD",AUDUSD,limit)) return(false);
+   if(!GetRates("USDCAD",USDCAD,limit)) return(false);
+   if(!GetRates("NZDUSD",NZDUSD,limit)) return(false);
    
-   if(!GetRates("EURNZD",EURNZD)) return(0);
-   if(!GetRates("EURCAD",EURCAD)) return(0);
-   if(!GetRates("EURAUD",EURAUD)) return(0);
-   if(!GetRates("EURJPY",EURJPY)) return(0);
-   if(!GetRates("EURCHF",EURCHF)) return(0);
-   if(!GetRates("EURGBP",EURGBP)) return(0);
+   if(!GetRates("EURNZD",EURNZD,limit)) return(false);
+   if(!GetRates("EURCAD",EURCAD,limit)) return(false);
+   if(!GetRates("EURAUD",EURAUD,limit)) return(false);
+   if(!GetRates("EURJPY",EURJPY,limit)) return(false);
+   if(!GetRates("EURCHF",EURCHF,limit)) return(false);
+   if(!GetRates("EURGBP",EURGBP,limit)) return(false);
 
-   if(!GetRates("GBPNZD",GBPNZD)) return(0);
-   if(!GetRates("GBPAUD",GBPAUD)) return(0);
-   if(!GetRates("GBPCAD",GBPCAD)) return(0);
-   if(!GetRates("GBPJPY",GBPJPY)) return(0);
-   if(!GetRates("GBPCHF",GBPCHF)) return(0);
+   if(!GetRates("GBPNZD",GBPNZD,limit)) return(false);
+   if(!GetRates("GBPAUD",GBPAUD,limit)) return(false);
+   if(!GetRates("GBPCAD",GBPCAD,limit)) return(false);
+   if(!GetRates("GBPJPY",GBPJPY,limit)) return(false);
+   if(!GetRates("GBPCHF",GBPCHF,limit)) return(false);
 
-   if(!GetRates("CADJPY",CADJPY)) return(0);
-   if(!GetRates("CADCHF",CADCHF)) return(0);
-   if(!GetRates("AUDCAD",AUDCAD)) return(0);
-   if(!GetRates("NZDCAD",NZDCAD)) return(0);
+   if(!GetRates("CADJPY",CADJPY,limit)) return(false);
+   if(!GetRates("CADCHF",CADCHF,limit)) return(false);
+   if(!GetRates("AUDCAD",AUDCAD,limit)) return(false);
+   if(!GetRates("NZDCAD",NZDCAD,limit)) return(false);
 
-   if(!GetRates("AUDCHF",AUDCHF)) return(0);
-   if(!GetRates("AUDJPY",AUDJPY)) return(0);
-   if(!GetRates("AUDNZD",AUDNZD)) return(0);
+   if(!GetRates("AUDCHF",AUDCHF,limit)) return(false);
+   if(!GetRates("AUDJPY",AUDJPY,limit)) return(false);
+   if(!GetRates("AUDNZD",AUDNZD,limit)) return(false);
 
-   if(!GetRates("NZDJPY",NZDJPY)) return(0);
-   if(!GetRates("NZDCHF",NZDCHF)) return(0);
-   if(!GetRates("CHFJPY",CHFJPY)) return(0);
+   if(!GetRates("NZDJPY",NZDJPY,limit)) return(false);
+   if(!GetRates("NZDCHF",NZDCHF,limit)) return(false);
+   if(!GetRates("CHFJPY",CHFJPY,limit)) return(false);
 
    for(i=limit-1;i>=0;i--)
    {
-      USDx[i]=1.0;
-      USDx[i]+=EURUSD[i];
-      USDx[i]+=GBPUSD[i];
-      USDx[i]+=1/USDCHF[i];
-      USDx[i]+=1/USDJPY[i];
-      USDx[i]+=1/USDCAD[i];
-      USDx[i]+=AUDUSD[i];
-      USDx[i]+=NZDUSD[i];
-      USDx[i]=1/USDx[i];
-
-      //EURx[i]=EURUSD[i]*USDx[i];
-      EURx[i]=1.0;
-      EURx[i]+=1/EURUSD[i];
-      EURx[i]+=1/EURNZD[i];
-      EURx[i]+=1/EURCAD[i];
-      EURx[i]+=1/EURAUD[i];
-      EURx[i]+=1/EURJPY[i];
-      EURx[i]+=1/EURCHF[i];
-      EURx[i]+=1/EURGBP[i];
-      EURx[i]=1/EURx[i];
-      
-      //GBPx[i]=GBPUSD[i]*USDx[i];
-      GBPx[i]=1.0;
-      GBPx[i]+=1/GBPUSD[i];
-      GBPx[i]+=1/GBPNZD[i];
-      GBPx[i]+=1/GBPAUD[i];
-      GBPx[i]+=1/GBPCAD[i];
-      GBPx[i]+=1/GBPJPY[i];
-      GBPx[i]+=1/GBPCHF[i];
-      GBPx[i]+=EURGBP[i];
-      GBPx[i]=1/GBPx[i];
-
-
-      //CHFx[i]=USDx[i]/USDCHF[i];
-      CHFx[i]=1.0;
-      CHFx[i]+=USDCHF[i];
-      CHFx[i]+=EURCHF[i];
-      CHFx[i]+=GBPCHF[i];
-      CHFx[i]+=CADCHF[i];
-      CHFx[i]+=AUDCHF[i];
-      CHFx[i]+=NZDCHF[i];
-      CHFx[i]+=1/CHFJPY[i];
-      CHFx[i]=1/CHFx[i];
-      
-      
-      //JPYx[i]=USDx[i]/USDJPY[i];
-      JPYx[i]=1.0;
-      JPYx[i]+=USDJPY[i];
-      JPYx[i]+=EURJPY[i];
-      JPYx[i]+=GBPJPY[i];
-      JPYx[i]+=CADJPY[i];
-      JPYx[i]+=AUDJPY[i];
-      JPYx[i]+=NZDJPY[i];
-      JPYx[i]+=CHFJPY[i];
-      JPYx[i]=1/JPYx[i];
-
-
-      //CADx[i]=USDx[i]/USDCAD[i];
-      CADx[i]=1.0;
-      CADx[i]+=USDCAD[i];
-      CADx[i]+=EURCAD[i];
-      CADx[i]+=GBPCAD[i];
-      CADx[i]+=1/CADJPY[i];
-      CADx[i]+=1/CADCHF[i];
-      CADx[i]+=AUDCAD[i];
-      CADx[i]+=NZDCAD[i];
-      CADx[i]=1/CADx[i];
-
-
-      //AUDx[i]=AUDUSD[i]*USDx[i];
-      AUDx[i]=1.0;
-      AUDx[i]+=1/AUDUSD[i];
-      AUDx[i]+=EURAUD[i];
-      AUDx[i]+=GBPAUD[i];
-      AUDx[i]+=1/AUDCAD[i];
-      AUDx[i]+=1/AUDCHF[i];
-      AUDx[i]+=1/AUDJPY[i];
-      AUDx[i]+=1/AUDNZD[i];
-      AUDx[i]=1/AUDx[i];
-
-      
-      //NZDx[i]=NZDUSD[i]*USDx[i];
-      NZDx[i]=1.0;
-      NZDx[i]+=1/NZDUSD[i];
-      NZDx[i]+=EURNZD[i];
-      NZDx[i]+=GBPNZD[i];
-      NZDx[i]+=1/NZDCAD[i];
-      NZDx[i]+=AUDNZD[i];
-      NZDx[i]+=1/NZDJPY[i];
-      NZDx[i]+=1/NZDCHF[i];
-      NZDx[i]=1/NZDx[i];
-
+      if(IncludeCurrency("USD"))
+      {
+         USDx[i]=1.0;
+         USDx[i]+=EURUSD[i];
+         USDx[i]+=GBPUSD[i];
+         USDx[i]+=1/USDCHF[i];
+         USDx[i]+=1/USDJPY[i];
+         USDx[i]+=1/USDCAD[i];
+         USDx[i]+=AUDUSD[i];
+         USDx[i]+=NZDUSD[i];
+         USDx[i]=1/USDx[i];
+      }
+      if(IncludeCurrency("EUR"))
+      {
+         EURx[i]=1.0;
+         EURx[i]+=1/EURUSD[i];
+         EURx[i]+=1/EURNZD[i];
+         EURx[i]+=1/EURCAD[i];
+         EURx[i]+=1/EURAUD[i];
+         EURx[i]+=1/EURJPY[i];
+         EURx[i]+=1/EURCHF[i];
+         EURx[i]+=1/EURGBP[i];
+         EURx[i]=1/EURx[i];
+      }
+      if(IncludeCurrency("GBP"))
+      {
+         GBPx[i]=1.0;
+         GBPx[i]+=1/GBPUSD[i];
+         GBPx[i]+=1/GBPNZD[i];
+         GBPx[i]+=1/GBPAUD[i];
+         GBPx[i]+=1/GBPCAD[i];
+         GBPx[i]+=1/GBPJPY[i];
+         GBPx[i]+=1/GBPCHF[i];
+         GBPx[i]+=EURGBP[i];
+         GBPx[i]=1/GBPx[i];
+      }
+      if(IncludeCurrency("CHF"))
+      {
+         CHFx[i]=1.0;
+         CHFx[i]+=USDCHF[i];
+         CHFx[i]+=EURCHF[i];
+         CHFx[i]+=GBPCHF[i];
+         CHFx[i]+=CADCHF[i];
+         CHFx[i]+=AUDCHF[i];
+         CHFx[i]+=NZDCHF[i];
+         CHFx[i]+=1/CHFJPY[i];
+         CHFx[i]=1/CHFx[i];
+      }
+      if(IncludeCurrency("JPY"))
+      {
+         JPYx[i]=1.0;
+         JPYx[i]+=USDJPY[i];
+         JPYx[i]+=EURJPY[i];
+         JPYx[i]+=GBPJPY[i];
+         JPYx[i]+=CADJPY[i];
+         JPYx[i]+=AUDJPY[i];
+         JPYx[i]+=NZDJPY[i];
+         JPYx[i]+=CHFJPY[i];
+         JPYx[i]=1/JPYx[i];
+      }
+      if(IncludeCurrency("CAD"))
+      {
+         CADx[i]=1.0;
+         CADx[i]+=USDCAD[i];
+         CADx[i]+=EURCAD[i];
+         CADx[i]+=GBPCAD[i];
+         CADx[i]+=1/CADJPY[i];
+         CADx[i]+=1/CADCHF[i];
+         CADx[i]+=AUDCAD[i];
+         CADx[i]+=NZDCAD[i];
+         CADx[i]=1/CADx[i];
+      }
+      if(IncludeCurrency("AUD"))
+      {
+         AUDx[i]=1.0;
+         AUDx[i]+=1/AUDUSD[i];
+         AUDx[i]+=EURAUD[i];
+         AUDx[i]+=GBPAUD[i];
+         AUDx[i]+=1/AUDCAD[i];
+         AUDx[i]+=1/AUDCHF[i];
+         AUDx[i]+=1/AUDJPY[i];
+         AUDx[i]+=1/AUDNZD[i];
+         AUDx[i]=1/AUDx[i];
+      }
+      if(IncludeCurrency("NZD"))
+      {
+         NZDx[i]=1.0;
+         NZDx[i]+=1/NZDUSD[i];
+         NZDx[i]+=EURNZD[i];
+         NZDx[i]+=GBPNZD[i];
+         NZDx[i]+=1/NZDCAD[i];
+         NZDx[i]+=AUDNZD[i];
+         NZDx[i]+=1/NZDJPY[i];
+         NZDx[i]+=1/NZDCHF[i];
+         NZDx[i]=1/NZDx[i];
+      }
    }
 
    if(limit>1)
@@ -401,66 +448,84 @@ int OnCalculate(const int     rates_total, // size of incoming time series
    }
    for(i=ii;i>=0;i--)
    {
-      //USDrsi[i]=f_RSI(USDx,rsi_period,i);
-      //EURrsi[i]=f_RSI(EURx,rsi_period,i);
-      //GBPrsi[i]=f_RSI(GBPx,rsi_period,i);
-      //CHFrsi[i]=f_RSI(CHFx,rsi_period,i);
-      //JPYrsi[i]=f_RSI(JPYx,rsi_period,i);
-      //CADrsi[i]=f_RSI(CADx,rsi_period,i);
-      //AUDrsi[i]=f_RSI(AUDx,rsi_period,i);
-      //NZDrsi[i]=f_RSI(NZDx,rsi_period,i);
+      //USDrsi[i]=GetRSI(USDx,rsi_period,i);
+      //EURrsi[i]=GetRSI(EURx,rsi_period,i);
+      //GBPrsi[i]=GetRSI(GBPx,rsi_period,i);
+      //CHFrsi[i]=GetRSI(CHFx,rsi_period,i);
+      //JPYrsi[i]=GetRSI(JPYx,rsi_period,i);
+      //CADrsi[i]=GetRSI(CADx,rsi_period,i);
+      //AUDrsi[i]=GetRSI(AUDx,rsi_period,i);
+      //NZDrsi[i]=GetRSI(NZDx,rsi_period,i);
 
-      USDplot[i]=f_RSI(USDx,rsi_period,i);
-      EURplot[i]=f_RSI(EURx,rsi_period,i);
-      GBPplot[i]=f_RSI(GBPx,rsi_period,i);
-      CHFplot[i]=f_RSI(CHFx,rsi_period,i);
-      JPYplot[i]=f_RSI(JPYx,rsi_period,i);
-      CADplot[i]=f_RSI(CADx,rsi_period,i);
-      AUDplot[i]=f_RSI(AUDx,rsi_period,i);
-      NZDplot[i]=f_RSI(NZDx,rsi_period,i);
+      if(IncludeCurrency("USD"))
+         USDplot[i]=GetRSI(USDx,rsi_period,i);
+      if(IncludeCurrency("EUR"))
+         EURplot[i]=GetRSI(EURx,rsi_period,i);
+      if(IncludeCurrency("GBP"))
+         GBPplot[i]=GetRSI(GBPx,rsi_period,i);
+      if(IncludeCurrency("CHF"))
+         CHFplot[i]=GetRSI(CHFx,rsi_period,i);
+      if(IncludeCurrency("JPY"))
+         JPYplot[i]=GetRSI(JPYx,rsi_period,i);
+      if(IncludeCurrency("CAD"))
+         CADplot[i]=GetRSI(CADx,rsi_period,i);
+      if(IncludeCurrency("AUD"))
+         AUDplot[i]=GetRSI(AUDx,rsi_period,i);
+      if(IncludeCurrency("NZD"))
+         NZDplot[i]=GetRSI(NZDx,rsi_period,i);
    }
-   int period=ma_period, smoothing=ma_smoothing, malimit=rates_total-shiftbars;
-   if(limit==1)
-      malimit=rates_total-1;
-
-   //SimpleMAOnBuffer
-   //ExponentialMAOnBuffer
-
-   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,USDrsi,USDplot);
-   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,EURrsi,EURplot);
-   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,GBPrsi,GBPplot);
-   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,CHFrsi,CHFplot);
-   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,JPYrsi,JPYplot);
-   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,CADrsi,CADplot);
-   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,AUDrsi,AUDplot);
-   //SmoothedMAOnBuffer(rates_total,malimit,period,smoothing,NZDrsi,NZDplot);
-   
-   return(rates_total);
+   return(true);
 }
 
 
-bool GetRates(string pair, double& buffer[])
+bool IncludePair(string pair)
 {
+   if(!draw_current_pairs_only)
+      return true;
+   return IncludeCurrency(StringSubstr(pair,0,3)) || IncludeCurrency(StringSubstr(pair,3,3));
+}
+
+
+bool IncludeCurrency(string currency)
+{
+   if(!draw_current_pairs_only)
+      return true;
+   return StringFind(Symbol(),currency,0)!=-1;
+}
+
+
+bool GetRates(string pair, double& buffer[], int bars)
+{
+   if(!IncludePair(pair))
+      return true;
    bool ret = true;
    int copied;
    MqlRates rates[];
    ArraySetAsSeries(rates,true); 
-   copied=CopyRates(pair,PERIOD_CURRENT,0,shiftbars,rates);
+   copied=CopyRates(pair,PERIOD_CURRENT,0,BarsToCalculate,rates);
    if(copied==-1)
    {
-      f_comment("Wait..."+pair);
+      WriteComment("Wait..."+pair);
       ret=false;
    }
    else
    {
       for(int i=0;i<copied;i++)
+      {
          buffer[i]=GetPrice(PriceType,rates,i);
+
+         //if(pair=="EURUSD")
+         //{
+            //double val1 = xmaUSD.XMASeries(0, 0, shiftbars, MODE_EMA_, 100, 6, GetPrice(PriceType,rates,i), i, false);
+            //buffer[i]=val1;
+         //}
+      }
    }
    return ret;
 }
 
 
-double f_RSI(double &buf_in[],int period,int shift)
+double GetRSI(double &buf_in[],int period,int shift)
 {
    double pos=0.00000000,neg=0.00000000;
    double diff=0.0;
@@ -477,7 +542,7 @@ double f_RSI(double &buf_in[],int period,int shift)
 }
 
 
-int f_draw(string name,color _color)
+int DrawObjects(string name,color _color)
 {
    string oname = namespace+"-"+name;
    ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
@@ -493,7 +558,7 @@ int f_draw(string name,color _color)
 }
 
 
-int f_comment(string  text)
+int WriteComment(string text)
 {
    string name=namespace+"-f_comment";
    color _color=Gray;
@@ -505,102 +570,73 @@ int f_comment(string  text)
    ObjectSetInteger(0,name,OBJPROP_FONTSIZE,8);
    ObjectSetString(0,name,OBJPROP_TEXT,text);
    ObjectSetInteger(0,name,OBJPROP_COLOR,_color);
-   //ChartRedraw();
    return(0);
 }
 
 
-int init_tf()
+bool SynchronizeTimeframes()
 {
    ArrayInitialize(arrTime,0);
    ArrayInitialize(bars_tf,0);
    bool writeComment=true;
-   for(int n=0;n<10;n++) // Loop for initializing used currency pairs with the same TF
+   for(int n=0;n<1;n++)
    {
-      index=0;
       int exit=-1;
-      if(writeComment){f_comment("Synchronizing TF");writeComment=false;}
+      if(writeComment){WriteComment("Synchronizing Timeframes");writeComment=false;}
+      index=-1;
 
-      GetPairData(index,"EURUSD");
-      index++;
-      GetPairData(index,"GBPUSD");
-      index++;
-      GetPairData(index,"USDCHF");
-      index++;
-      GetPairData(index,"USDJPY");
-      index++;
-      GetPairData(index,"USDCAD");
-      index++;
-      GetPairData(index,"AUDUSD");
-      index++;
-      GetPairData(index,"NZDUSD");
-
-      index++;
-      GetPairData(index,"EURNZD");
-      index++;
-      GetPairData(index,"EURCAD");
-      index++;
-      GetPairData(index,"EURAUD");
-      index++;
-      GetPairData(index,"EURJPY");
-      index++;
-      GetPairData(index,"EURCHF");
-      index++;
-      GetPairData(index,"EURGBP");
-
-      index++;
-      GetPairData(index,"GBPNZD");
-      index++;
-      GetPairData(index,"GBPAUD");
-      index++;
-      GetPairData(index,"GBPCAD");
-      index++;
-      GetPairData(index,"GBPJPY");
-      index++;
-      GetPairData(index,"GBPCHF");
-
-      index++;
-      GetPairData(index,"CADJPY");
-      index++;
-      GetPairData(index,"CADCHF");
-      index++;
-      GetPairData(index,"AUDCAD");
-      index++;
-      GetPairData(index,"NZDCAD");
-
-      index++;
-      GetPairData(index,"AUDCHF");
-      index++;
-      GetPairData(index,"AUDJPY");
-      index++;
-      GetPairData(index,"AUDNZD");
-
-      index++;
-      GetPairData(index,"NZDJPY");
-      index++;
-      GetPairData(index,"NZDCHF");
-      index++;
-      GetPairData(index,"CHFJPY");
+      GetPairData("EURUSD");
+      GetPairData("GBPUSD");
+      GetPairData("USDCHF");
+      GetPairData("USDJPY");
+      GetPairData("USDCAD");
+      GetPairData("AUDUSD");
+      GetPairData("NZDUSD");
+      GetPairData("EURNZD");
+      GetPairData("EURCAD");
+      GetPairData("EURAUD");
+      GetPairData("EURJPY");
+      GetPairData("EURCHF");
+      GetPairData("EURGBP");
+      GetPairData("GBPNZD");
+      GetPairData("GBPAUD");
+      GetPairData("GBPCAD");
+      GetPairData("GBPJPY");
+      GetPairData("GBPCHF");
+      GetPairData("CADJPY");
+      GetPairData("CADCHF");
+      GetPairData("AUDCAD");
+      GetPairData("NZDCAD");
+      GetPairData("AUDCHF");
+      GetPairData("AUDJPY");
+      GetPairData("AUDNZD");
+      GetPairData("NZDJPY");
+      GetPairData("NZDCHF");
+      GetPairData("CHFJPY");
 
       for(int h=1;h<=index;h++)
       {
-         if(arrTime[0]==arrTime[h]&&  arrTime[0]!=0 && exit==-1){exit=1;}
-         if(arrTime[0]!=arrTime[h] &&  arrTime[0]!=0 && exit==1){exit=0;}
-         if(bars_tf[h]<shiftbars){exit=0;}
+         if(arrTime[0]==arrTime[h] && arrTime[0]!=0 && exit==-1){exit=1;}
+         if(arrTime[0]!=arrTime[h] && arrTime[0]!=0 && exit==1){exit=0;}
+         if(bars_tf[h]<BarsToCalculate){exit=0;}
       }
-      if(exit==1){f_comment("Timeframes synchronized");return(0);}
+      if(exit==1){WriteComment("Timeframes synchronized");return(true);}
    }
-   f_comment("Unable to synchronize TF");
-   return(0);
+   WriteComment("Trying to synchronize Timeframes");
+   return(false);
 }
 
 
-void GetPairData(int idx, string pair)
+bool GetPairData(string pair)
 {
+   if(!IncludePair(pair))
+      return false;
    int copy;
-   bars_tf[idx]=Bars(pair,PERIOD_CURRENT);
+   index++;
+   bars_tf[index]=Bars(pair,PERIOD_CURRENT);
    copy=CopyTime(pair,PERIOD_CURRENT,0,1,tmp_time);
-   arrTime[idx]=tmp_time[0];
+   arrTime[index]=tmp_time[0];
+   return true;
 }
 
 
