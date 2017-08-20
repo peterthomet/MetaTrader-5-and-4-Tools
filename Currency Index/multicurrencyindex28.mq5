@@ -446,6 +446,19 @@ bool CalculateIndex()
    {
       ii=limit-1;
    }
+   
+   if(fullinit)
+   {
+      ArrayInitialize(USDplot,EMPTY_VALUE);
+      ArrayInitialize(EURplot,EMPTY_VALUE);
+      ArrayInitialize(GBPplot,EMPTY_VALUE);
+      ArrayInitialize(CHFplot,EMPTY_VALUE);
+      ArrayInitialize(JPYplot,EMPTY_VALUE);
+      ArrayInitialize(CADplot,EMPTY_VALUE);
+      ArrayInitialize(AUDplot,EMPTY_VALUE);
+      ArrayInitialize(NZDplot,EMPTY_VALUE);
+   }
+   
    for(i=ii;i>=0;i--)
    {
       //USDrsi[i]=GetRSI(USDx,rsi_period,i);
