@@ -124,6 +124,7 @@ bool fullinit = true;
 datetime lastticktime;
 datetime currentticktime;
 int sameticktimecount=0;
+bool timerenabled=true;
 CXMA xmaUSD;
 
 
@@ -233,6 +234,7 @@ void OnInit()
    InitBuffer(49,NZDJPY,INDICATOR_CALCULATIONS);
    InitBuffer(50,NZDCHF,INDICATOR_CALCULATIONS);
    InitBuffer(51,CHFJPY,INDICATOR_CALCULATIONS);
+   EventSetTimer(1);
 }
 
 
@@ -245,7 +247,7 @@ void OnDeinit(const int reason)
 
 void OnTimer()
 {
-   if(incalculation)
+   if(incalculation || !timerenabled)
       return;
    incalculation=true;
    if(CalculateIndex())
@@ -262,7 +264,7 @@ void OnTimer()
       sameticktimecount++;
       if(sameticktimecount>=30)
       {
-         EventKillTimer();
+         timerenabled=false;
          fullinit=true;
          Print("Timer Stopped - No Data Feed Available");
       }
@@ -282,9 +284,8 @@ int OnCalculate(const int rates_total,
                 const long& volume[], 
                 const int& spread[]) 
 {
-   ArraySetAsSeries(time,true);
-   currentticktime=time[0];
-   EventSetTimer(1);
+   currentticktime=TimeTradeServer();
+   timerenabled=true;
    return(rates_total);
 }
 
