@@ -287,7 +287,17 @@ int OnCalculate(const int rates_total,
 {
    currentticktime=TimeTradeServer();
    if(prev_calculated<rates_total)
+   {
       fullinit=true;
+      ArrayInitialize(USDplot,EMPTY_VALUE);
+      ArrayInitialize(EURplot,EMPTY_VALUE);
+      ArrayInitialize(GBPplot,EMPTY_VALUE);
+      ArrayInitialize(CHFplot,EMPTY_VALUE);
+      ArrayInitialize(JPYplot,EMPTY_VALUE);
+      ArrayInitialize(CADplot,EMPTY_VALUE);
+      ArrayInitialize(AUDplot,EMPTY_VALUE);
+      ArrayInitialize(NZDplot,EMPTY_VALUE);
+   }
    timerenabled=true;
    return(rates_total);
 }
@@ -478,18 +488,6 @@ bool CalculateIndex()
    }
 
    ii=limit-1;
-
-   if(fullinit)
-   {
-      ArrayInitialize(USDplot,EMPTY_VALUE);
-      ArrayInitialize(EURplot,EMPTY_VALUE);
-      ArrayInitialize(GBPplot,EMPTY_VALUE);
-      ArrayInitialize(CHFplot,EMPTY_VALUE);
-      ArrayInitialize(JPYplot,EMPTY_VALUE);
-      ArrayInitialize(CADplot,EMPTY_VALUE);
-      ArrayInitialize(AUDplot,EMPTY_VALUE);
-      ArrayInitialize(NZDplot,EMPTY_VALUE);
-   }
 
    for(i=ii;i>=0;i--)
    {
