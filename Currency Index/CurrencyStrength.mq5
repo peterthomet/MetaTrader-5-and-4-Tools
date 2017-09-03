@@ -40,7 +40,7 @@ enum enPrices
    pr_hatbiased2  // Heiken ashi trend biased (extreme) price
 };
 
-input enPrices PriceType = pr_haaverage; // Price Type
+input enPrices PriceType = pr_close; // Price Type
 input int rsi_period = 9; // RSI Period
 input int ma_period = 6; // MA Period
 input int ma_smoothing = 3; // MA Smoothing
@@ -126,6 +126,8 @@ datetime lastticktime;
 datetime currentticktime;
 int sameticktimecount=0;
 bool timerenabled=true;
+bool istesting;
+datetime lasttestevent;
 CXMA xmaUSD;
 
 
@@ -166,6 +168,8 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
 
 void OnInit()
 {
+   istesting=MQLInfoInteger(MQL_TESTER);
+   
    IndicatorSetInteger(INDICATOR_DIGITS,3);
 
    string nameInd="CurrencyStrength";
@@ -250,6 +254,13 @@ void OnTimer()
 {
    if(incalculation || !timerenabled)
       return;
+   if(istesting)
+   {
+      datetime curtime=TimeCurrent();
+      if(curtime-lasttestevent < 2)
+         return;
+      lasttestevent=curtime;
+   }
    incalculation=true;
    if(CalculateIndex())
    {
@@ -299,6 +310,8 @@ int OnCalculate(const int rates_total,
       ArrayInitialize(NZDplot,EMPTY_VALUE);
    }
    timerenabled=true;
+   if(istesting)
+      OnTimer();
    return(rates_total);
 }
 
@@ -316,7 +329,7 @@ bool CalculateIndex()
    else
       limit=1;
 
-   //Print("Calculate " + limit);
+   //limit=BarsToCalculate;
 
    if(!SynchronizeTimeframes())
       return(false);
@@ -489,9 +502,11 @@ bool CalculateIndex()
 
    ii=limit-1;
 
-   for(i=ii;i>=0;i--)
+   //for(i=ii;i>=0;i--)
+   for(i=0;i<=ii;i++)
    {
       if(IncludeCurrency("USD"))
+         //USDplot[i]=xmaUSD.XMASeries(0, BarsToCalculate-ii+1, BarsToCalculate, MODE_EMA_, 0, ma_period, USDx[i], i, false);
          USDplot[i]=GetRSI(USDx,rsi_period,i);
       if(IncludeCurrency("EUR"))
          EURplot[i]=GetRSI(EURx,rsi_period,i);
@@ -535,7 +550,6 @@ bool GetRates(string pair, double& buffer[], int bars)
    bool ret = true;
    int copied;
    MqlRates rates[];
-   ArraySetAsSeries(rates,true); 
    copied=CopyRates(pair,PERIOD_CURRENT,0,BarsToCalculate,rates);
    if(copied==-1)
    {
@@ -546,7 +560,7 @@ bool GetRates(string pair, double& buffer[], int bars)
    {
       for(int i=0;i<copied;i++)
       {
-         buffer[i]=GetPrice(PriceType,rates,i);
+         buffer[copied-i-1]=GetPrice(PriceType,rates,i);
 
          //if(pair=="EURUSD")
          //{
@@ -676,28 +690,22 @@ bool GetPairData(string pair)
 }
 
 
-#define _pricesInstances 1
-#define _pricesSize      4
-double workHa[][_pricesInstances*_pricesSize];
-double GetPrice(int tprice, MqlRates& rates[], int i, int instanceNo=0)
+double GetPrice(int tprice, MqlRates& rates[], int i)
 {
   if (tprice>=pr_haclose)
    {
       int ratessize = ArraySize(rates);
-      if (ArrayRange(workHa,0)!= ratessize) ArrayResize(workHa,ratessize); instanceNo*=_pricesSize;
          
          double haOpen;
          if (i>0)
-                haOpen  = (workHa[i-1][instanceNo+2] + workHa[i-1][instanceNo+3])/2.0;
+                haOpen  = (rates[i-1].open + rates[i-1].close)/2.0;
          else   haOpen  = (rates[i].open+rates[i].close)/2;
          double haClose = (rates[i].open + rates[i].high + rates[i].low + rates[i].close) / 4.0;
          double haHigh  = MathMax(rates[i].high, MathMax(haOpen,haClose));
          double haLow   = MathMin(rates[i].low , MathMin(haOpen,haClose));
 
-         if(haOpen  <haClose) { workHa[i][instanceNo+0] = haLow;  workHa[i][instanceNo+1] = haHigh; } 
-         else                 { workHa[i][instanceNo+0] = haHigh; workHa[i][instanceNo+1] = haLow;  } 
-                                workHa[i][instanceNo+2] = haOpen;
-                                workHa[i][instanceNo+3] = haClose;
+         rates[i].open=haOpen;
+         rates[i].close=haClose;
 
          switch (tprice)
          {

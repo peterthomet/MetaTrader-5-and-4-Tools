@@ -515,7 +515,6 @@ bool GetRates(string pair, double& buffer[], int bars)
    bool ret = true;
    int copied;
    MqlRates rates[];
-   ArraySetAsSeries(rates,true); 
    copied=CopyRates(pair,PERIOD_CURRENT,0,BarsToCalculate,rates);
    if(copied==-1)
    {
@@ -526,7 +525,7 @@ bool GetRates(string pair, double& buffer[], int bars)
    {
       for(int i=0;i<copied;i++)
       {
-         buffer[i]=GetPrice(PriceType,rates,i);
+         buffer[copied-i-1]=GetPrice(PriceType,rates,i);
 
          //if(pair=="EURUSD")
          //{
@@ -654,28 +653,22 @@ bool GetPairData(string pair)
 }
 
 
-#define _pricesInstances 1
-#define _pricesSize      4
-double workHa[][_pricesInstances*_pricesSize];
-double GetPrice(int tprice, MqlRates& rates[], int i, int instanceNo=0)
+double GetPrice(int tprice, MqlRates& rates[], int i)
 {
   if (tprice>=pr_haclose)
    {
       int ratessize = ArraySize(rates);
-      if (ArrayRange(workHa,0)!= ratessize) ArrayResize(workHa,ratessize); instanceNo*=_pricesSize;
          
          double haOpen;
          if (i>0)
-                haOpen  = (workHa[i-1][instanceNo+2] + workHa[i-1][instanceNo+3])/2.0;
+                haOpen  = (rates[i-1].open + rates[i-1].close)/2.0;
          else   haOpen  = (rates[i].open+rates[i].close)/2;
          double haClose = (rates[i].open + rates[i].high + rates[i].low + rates[i].close) / 4.0;
          double haHigh  = MathMax(rates[i].high, MathMax(haOpen,haClose));
          double haLow   = MathMin(rates[i].low , MathMin(haOpen,haClose));
 
-         if(haOpen  <haClose) { workHa[i][instanceNo+0] = haLow;  workHa[i][instanceNo+1] = haHigh; } 
-         else                 { workHa[i][instanceNo+0] = haHigh; workHa[i][instanceNo+1] = haLow;  } 
-                                workHa[i][instanceNo+2] = haOpen;
-                                workHa[i][instanceNo+3] = haClose;
+         rates[i].open=haOpen;
+         rates[i].close=haClose;
 
          switch (tprice)
          {
