@@ -42,7 +42,7 @@ enum enPrices
 
 input enPrices PriceType = pr_close; // Price Type
 input int rsi_period = 9; // RSI Period
-input int ma_period = 6; // MA Period
+input int ma_period = 3; // MA Period
 input int ma_smoothing = 3; // MA Smoothing
 input int BarsToCalculate = 100; // Number of Bars to calculate
 input int ZeroPoint = 100; // Zero Point
@@ -128,7 +128,7 @@ int sameticktimecount=0;
 bool timerenabled=true;
 bool istesting;
 datetime lasttestevent;
-CXMA xmaUSD;
+CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 
 
 void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, string currency=NULL, color col=NULL)
@@ -502,26 +502,29 @@ bool CalculateIndex()
 
    ii=limit-1;
 
-   //for(i=ii;i>=0;i--)
-   for(i=0;i<=ii;i++)
+
+   int total = BarsToCalculate;
+   int prev, idx;
+   for(i=ii;i>=0;i--)
    {
+      prev = BarsToCalculate-(i+1);
+      idx = BarsToCalculate-1-i;
       if(IncludeCurrency("USD"))
-         //USDplot[i]=xmaUSD.XMASeries(0, BarsToCalculate-ii+1, BarsToCalculate, MODE_EMA_, 0, ma_period, USDx[i], i, false);
-         USDplot[i]=GetRSI(USDx,rsi_period,i);
+         USDplot[i]=xmaUSD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, USDx[i], idx, false);
       if(IncludeCurrency("EUR"))
-         EURplot[i]=GetRSI(EURx,rsi_period,i);
+         EURplot[i]=xmaEUR.XMASeries(0, prev, total, MODE_T3, 0, ma_period, EURx[i], idx, false);
       if(IncludeCurrency("GBP"))
-         GBPplot[i]=GetRSI(GBPx,rsi_period,i);
+         GBPplot[i]=xmaGBP.XMASeries(0, prev, total, MODE_T3, 0, ma_period, GBPx[i], idx, false);
       if(IncludeCurrency("CHF"))
-         CHFplot[i]=GetRSI(CHFx,rsi_period,i);
+         CHFplot[i]=xmaCHF.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CHFx[i], idx, false);
       if(IncludeCurrency("JPY"))
-         JPYplot[i]=GetRSI(JPYx,rsi_period,i);
+         JPYplot[i]=xmaJPY.XMASeries(0, prev, total, MODE_T3, 0, ma_period, JPYx[i], idx, false);
       if(IncludeCurrency("CAD"))
-         CADplot[i]=GetRSI(CADx,rsi_period,i);
+         CADplot[i]=xmaCAD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CADx[i], idx, false);
       if(IncludeCurrency("AUD"))
-         AUDplot[i]=GetRSI(AUDx,rsi_period,i);
+         AUDplot[i]=xmaAUD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, AUDx[i], idx, false);
       if(IncludeCurrency("NZD"))
-         NZDplot[i]=GetRSI(NZDx,rsi_period,i);
+         NZDplot[i]=xmaNZD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, NZDx[i], idx, false);
    }
    return(true);
 }
@@ -561,34 +564,9 @@ bool GetRates(string pair, double& buffer[], int bars)
       for(int i=0;i<copied;i++)
       {
          buffer[copied-i-1]=GetPrice(PriceType,rates,i);
-
-         //if(pair=="EURUSD")
-         //{
-            //double val1 = xmaUSD.XMASeries(0, 0, shiftbars, MODE_EMA_, 100, 6, GetPrice(PriceType,rates,i), i, false);
-            //buffer[i]=val1;
-         //}
       }
    }
    return ret;
-}
-
-
-double GetRSI(double &buf_in[],int period,int shift)
-{
-   return buf_in[shift];
-   
-   double pos=0.00000000,neg=0.00000000;
-   double diff=0.0;
-   for(int j=shift;j<=shift+period;j++)
-   {
-      diff=buf_in[j]-buf_in[j+1];
-      pos+=(diff>0?diff:0.0);
-      neg+=(diff<0?-diff:0.0);
-   }
-   if(neg<0.000000001){return(100.0);}//Protection from division by zero
-   pos/=period;
-   neg/=period;
-   return(100.0 -(100.0/(1.0+pos/neg)));
 }
 
 
