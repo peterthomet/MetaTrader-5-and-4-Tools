@@ -13,57 +13,57 @@
 #property indicator_plots     count_buffers
 //--- plot buffer 1
 #property indicator_label1    "Pivot"
-#property indicator_type1     DRAW_ARROW
-#property indicator_color1    PaleGoldenrod
+#property indicator_type1     DRAW_LINE
+#property indicator_color1    DarkKhaki
 #property indicator_style1    STYLE_DOT
 #property indicator_width1    1
 //--- plot buffer 2
 #property indicator_label2    "S1"
-#property indicator_type2     DRAW_ARROW
-#property indicator_color2    LightPink
-#property indicator_style2    STYLE_SOLID
+#property indicator_type2     DRAW_LINE
+#property indicator_color2    HotPink
+#property indicator_style2    STYLE_DOT
 #property indicator_width2    1
 //--- plot buffer 3
 #property indicator_label3    "R1"
-#property indicator_type3     DRAW_ARROW
-#property indicator_color3    LightPink
-#property indicator_style3    STYLE_SOLID
+#property indicator_type3     DRAW_LINE
+#property indicator_color3    HotPink
+#property indicator_style3    STYLE_DOT
 #property indicator_width3    1
 //--- plot buffer 4
 #property indicator_label4    "S2"
-#property indicator_type4     DRAW_ARROW
-#property indicator_color4    LightSkyBlue
-#property indicator_style4    STYLE_SOLID
+#property indicator_type4     DRAW_LINE
+#property indicator_color4    CornflowerBlue
+#property indicator_style4    STYLE_DOT
 #property indicator_width4    1
 //--- plot buffer 5
 #property indicator_label5    "R2"
-#property indicator_type5     DRAW_ARROW
-#property indicator_color5    LightSkyBlue
-#property indicator_style5    STYLE_SOLID
+#property indicator_type5     DRAW_LINE
+#property indicator_color5    CornflowerBlue
+#property indicator_style5    STYLE_DOT
 #property indicator_width5    1
 //--- plot buffer 6
 #property indicator_label6    "S3"
-#property indicator_type6     DRAW_ARROW
-#property indicator_color6    LightGreen
-#property indicator_style6    STYLE_SOLID
+#property indicator_type6     DRAW_LINE
+#property indicator_color6    DarkGray
+#property indicator_style6    STYLE_DOT
 #property indicator_width6    1
 //--- plot buffer 7
 #property indicator_label7    "R3"
-#property indicator_type7     DRAW_ARROW
-#property indicator_color7    LightGreen
-#property indicator_style7    STYLE_SOLID
+#property indicator_type7     DRAW_LINE
+#property indicator_color7    DarkGray
+#property indicator_style7    STYLE_DOT
 #property indicator_width7    1
 //--- plot buffer 8
 #property indicator_label8    "S4"
-#property indicator_type8     DRAW_ARROW
-#property indicator_color8    LightGreen
-#property indicator_style8    STYLE_SOLID
+#property indicator_type8     DRAW_LINE
+#property indicator_color8    DarkGray
+#property indicator_style8    STYLE_DOT
 #property indicator_width8    1
 //--- plot buffer 9
 #property indicator_label9    "R4"
-#property indicator_type9     DRAW_ARROW
-#property indicator_color9    LightGreen
-#property indicator_style9    STYLE_SOLID
+#property indicator_type9     DRAW_LINE
+#property indicator_color9    DarkGray
+#property indicator_style9    STYLE_DOT
 #property indicator_width9    1
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -130,8 +130,8 @@ int OnInit()
          shiftGMT=(InpTime==TIME_GMT)?" GMT ":" TRADE SERVER ";
          ShiftTime=int((TimeTradeServer()-TimeGMT())/PeriodSeconds(_Period))+int(PeriodSeconds(PERIOD_D1)/PeriodSeconds(_Period));
          for(int i=0;i<count_buffers;i++)
-            PlotIndexSetInteger(i,PLOT_ARROW,159);
-         PlotIndexSetInteger(0,PLOT_ARROW,110);
+            PlotIndexSetInteger(i,PLOT_ARROW,158);
+         //PlotIndexSetInteger(0,PLOT_ARROW,159);
          break;
       case WEEKLY:
          //--- Verify Time Period
@@ -143,7 +143,8 @@ int OnInit()
          period="(WEEKLY)";
          ShiftTime=int((TimeTradeServer()-TimeGMT())/PeriodSeconds(_Period))+int(PeriodSeconds(PERIOD_W1)/PeriodSeconds(_Period));
          for(int i=0;i<count_buffers;i++)
-            PlotIndexSetInteger(i,PLOT_ARROW,115);
+            PlotIndexSetInteger(i,PLOT_ARROW,158);
+         //PlotIndexSetInteger(0,PLOT_ARROW,159);
          //PlotIndexSetInteger(0,PLOT_ARROW,110);
          break;
       case MONTHLY:
@@ -155,7 +156,8 @@ int OnInit()
          period="(MONTHLY)";
          ShiftTime=int((TimeTradeServer()-TimeGMT())/PeriodSeconds(_Period))+int(PeriodSeconds(PERIOD_MN1)/PeriodSeconds(_Period));
          for(int i=0;i<count_buffers;i++)
-            PlotIndexSetInteger(i,PLOT_ARROW,250);
+            PlotIndexSetInteger(i,PLOT_ARROW,158);
+         //PlotIndexSetInteger(0,PLOT_ARROW,159);
          //PlotIndexSetInteger(0,PLOT_ARROW,110);
          break;
      }
@@ -384,6 +386,15 @@ void DrawPivotLevel(datetime Previous,datetime Current,int Index)
       R3Buffer[shift+i]=resistance3;
       R4Buffer[shift+i]=resistance4;
      }
+     PBuffer[shift]=EMPTY_VALUE;
+     S1Buffer[shift]=EMPTY_VALUE;
+     S2Buffer[shift]=EMPTY_VALUE;
+     S3Buffer[shift]=EMPTY_VALUE;
+     S4Buffer[shift]=EMPTY_VALUE;
+     R1Buffer[shift]=EMPTY_VALUE;
+     R2Buffer[shift]=EMPTY_VALUE;
+     R3Buffer[shift]=EMPTY_VALUE;
+     R4Buffer[shift]=EMPTY_VALUE;
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -394,3 +405,30 @@ double LineY(int Index,double StartY,double EndY,int StartX,int EndX)
    return(LINH);
   }
 //+------------------------------------------------------------------+
+
+
+void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
+{
+   if(id==CHARTEVENT_CLICK)
+   {
+      static ulong ClickTimeMemory;
+      ulong ClickTime = GetTickCount();
+      if(ClickTime > ClickTimeMemory && ClickTime < ClickTimeMemory + 300)
+      {
+         if(PlotIndexGetInteger(0,PLOT_DRAW_TYPE)==DRAW_LINE)
+         {
+            for(int i=0;i<9;i++)
+               PlotIndexSetInteger(i,PLOT_DRAW_TYPE,DRAW_NONE);
+         }
+         else
+         {
+            for(int i=0;i<9;i++)
+               PlotIndexSetInteger(i,PLOT_DRAW_TYPE,DRAW_LINE);
+            OnInit();
+         }
+         ChartRedraw();
+      }
+      ClickTimeMemory = ClickTime;
+   }
+   return;
+}
