@@ -128,8 +128,9 @@ int sameticktimecount=0;
 bool timerenabled=true;
 bool istesting;
 datetime lasttestevent;
+int _BarsToCalculate;
 CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
-
+CJJMA jjmaUSD;
 
 void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, string currency=NULL, color col=NULL)
 {
@@ -139,10 +140,11 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
    if(currency!=NULL)
    {
       PlotIndexSetString(idx,PLOT_LABEL,currency+"plot");
-      PlotIndexSetInteger(idx,PLOT_DRAW_BEGIN,BarsToCalculate);
+      PlotIndexSetInteger(idx,PLOT_DRAW_BEGIN,_BarsToCalculate);
       PlotIndexSetInteger(idx,PLOT_DRAW_TYPE,DRAW_LINE);
       PlotIndexSetInteger(idx,PLOT_LINE_COLOR,col);
       PlotIndexSetDouble(idx,PLOT_EMPTY_VALUE,EMPTY_VALUE);
+      //PlotIndexSetInteger(idx,PLOT_SHIFT,10);
       if(StringFind(Symbol(),currency,0)!=-1 || all_solid)
       {
         PlotIndexSetInteger(idx,PLOT_LINE_WIDTH,wid_main);
@@ -170,7 +172,10 @@ void OnInit()
 {
    istesting=MQLInfoInteger(MQL_TESTER);
    
-   IndicatorSetInteger(INDICATOR_DIGITS,3);
+   _BarsToCalculate = BarsToCalculate;
+   //_BarsToCalculate = BarsToCalculate+30;
+   
+   IndicatorSetInteger(INDICATOR_DIGITS,5);
 
    string nameInd="CurrencyStrength";
    IndicatorSetString(INDICATOR_SHORTNAME,nameInd);
@@ -319,17 +324,17 @@ int OnCalculate(const int rates_total,
 bool CalculateIndex()
 {
    int i,ii;
-   int limit=BarsToCalculate;
-   int start=BarsToCalculate-1;
+   int limit=_BarsToCalculate;
+   int start=_BarsToCalculate-1;
    if(ZeroPoint<start && ZeroPoint>=0)
       start=ZeroPoint;
 
    if(fullinit)
-      limit=BarsToCalculate;
+      limit=_BarsToCalculate;
    else
       limit=1;
 
-   //limit=BarsToCalculate;
+   //limit=_BarsToCalculate;
 
    if(!SynchronizeTimeframes())
       return(false);
@@ -503,28 +508,53 @@ bool CalculateIndex()
    ii=limit-1;
 
 
-   int total = BarsToCalculate;
-   int prev, idx;
+   int total = _BarsToCalculate;
+   int prev, idx, sml=-1;
    for(i=ii;i>=0;i--)
    {
-      prev = BarsToCalculate-(i+1);
-      idx = BarsToCalculate-1-i;
+      prev = _BarsToCalculate-(i+1);
+      idx = _BarsToCalculate-1-i;
       if(IncludeCurrency("USD"))
-         USDplot[i]=xmaUSD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, USDx[i], idx, false);
+         if(i>sml)
+            USDplot[i]=xmaUSD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, USDx[i], idx, false);
+         else
+            USDplot[i]=USDx[i];
+         //USDplot[i]=jjmaUSD.JJMASeries(0, prev, total, 0, 100, ma_period, USDx[i], idx, false);
       if(IncludeCurrency("EUR"))
-         EURplot[i]=xmaEUR.XMASeries(0, prev, total, MODE_T3, 0, ma_period, EURx[i], idx, false);
+         if(i>sml)
+            EURplot[i]=xmaEUR.XMASeries(0, prev, total, MODE_T3, 0, ma_period, EURx[i], idx, false);
+         else
+            EURplot[i]=EURx[i];
       if(IncludeCurrency("GBP"))
-         GBPplot[i]=xmaGBP.XMASeries(0, prev, total, MODE_T3, 0, ma_period, GBPx[i], idx, false);
+         if(i>sml)
+            GBPplot[i]=xmaGBP.XMASeries(0, prev, total, MODE_T3, 0, ma_period, GBPx[i], idx, false);
+         else
+            GBPplot[i]=GBPx[i];
       if(IncludeCurrency("CHF"))
-         CHFplot[i]=xmaCHF.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CHFx[i], idx, false);
+         if(i>sml)
+            CHFplot[i]=xmaCHF.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CHFx[i], idx, false);
+         else
+            CHFplot[i]=CHFx[i];
       if(IncludeCurrency("JPY"))
-         JPYplot[i]=xmaJPY.XMASeries(0, prev, total, MODE_T3, 0, ma_period, JPYx[i], idx, false);
+         if(i>sml)
+            JPYplot[i]=xmaJPY.XMASeries(0, prev, total, MODE_T3, 0, ma_period, JPYx[i], idx, false);
+         else
+            JPYplot[i]=JPYx[i];
       if(IncludeCurrency("CAD"))
-         CADplot[i]=xmaCAD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CADx[i], idx, false);
+         if(i>sml)
+            CADplot[i]=xmaCAD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CADx[i], idx, false);
+         else
+            CADplot[i]=CADx[i];
       if(IncludeCurrency("AUD"))
-         AUDplot[i]=xmaAUD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, AUDx[i], idx, false);
+         if(i>sml)
+            AUDplot[i]=xmaAUD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, AUDx[i], idx, false);
+         else
+            AUDplot[i]=AUDx[i];
       if(IncludeCurrency("NZD"))
-         NZDplot[i]=xmaNZD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, NZDx[i], idx, false);
+         if(i>sml)
+            NZDplot[i]=xmaNZD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, NZDx[i], idx, false);
+         else
+            NZDplot[i]=NZDx[i];
    }
    return(true);
 }
@@ -553,7 +583,7 @@ bool GetRates(string pair, double& buffer[], int bars)
    bool ret = true;
    int copied;
    MqlRates rates[];
-   copied=CopyRates(pair,PERIOD_CURRENT,0,BarsToCalculate,rates);
+   copied=CopyRates(pair,PERIOD_CURRENT,0,_BarsToCalculate,rates);
    if(copied==-1)
    {
       WriteComment("Wait..."+pair);
@@ -646,7 +676,7 @@ bool SynchronizeTimeframes()
       {
          if(arrTime[0]==arrTime[h] && arrTime[0]!=0 && exit==-1){exit=1;}
          if(arrTime[0]!=arrTime[h] && arrTime[0]!=0 && exit==1){exit=0;}
-         if(bars_tf[h]<BarsToCalculate){exit=0;}
+         if(bars_tf[h]<_BarsToCalculate){exit=0;}
       }
       if(exit==1){WriteComment("Timeframes synchronized");return(true);}
    }
