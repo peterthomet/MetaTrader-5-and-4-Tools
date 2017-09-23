@@ -2,6 +2,7 @@
 //|                                          PivotPointUniversal.mq5 |
 //|                                               Copyright VDV Soft |
 //|                                                 vdv_2001@mail.ru |
+//|                                        Enhanced by getyournet.ch |
 //+------------------------------------------------------------------+
 #property copyright "VDV Soft"
 #property link      "vdv_2001@mail.ru"
@@ -65,28 +66,22 @@
 #property indicator_color9    DarkGray
 #property indicator_style9    STYLE_DOT
 #property indicator_width9    1
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+
 enum PivotType
-  {
+{
    PIVOT_CLASSIC=0,
    PIVOT_FIBONACCI=1,
    PIVOT_DEMARK=2,
    PIVOT_CAMARILLA=3,
    PIVOT_WOODIES=4
-  };
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+};
+
 enum inptime
-  {
+{
    TIME_TRADE_SERVER,
    TIME_GMT
-  };
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+};
+
 enum inpperiod
   {
    DAY,
@@ -97,7 +92,6 @@ input PivotType InpPivotType=PIVOT_CLASSIC; //Pivot type
 input inpperiod InpPeriod=DAY;   // Period
 input inptime InpTime=TIME_TRADE_SERVER;  //Time
 
-//---- buffers
 double   PBuffer[];
 double   S1Buffer[];
 double   R1Buffer[];
@@ -107,18 +101,16 @@ double   S3Buffer[];
 double   R3Buffer[];
 double   S4Buffer[];
 double   R4Buffer[];
-//    Global variable
-int      ShiftTime;  // Displacement of the buffer for construction of levels in the future
-//+------------------------------------------------------------------+
-//| Custom indicator initialization function                         |
-//+------------------------------------------------------------------+
+
+int      ShiftTime;
+
+
 int OnInit()
-  {
-// Displacement of the buffer for construction of levels in the future
+{
    string period;
    string shiftGMT=" TRADE SERVER ";
    switch(InpPeriod)
-     {
+   {
       case DAY:
          //--- Verify Time Period
          //if(PeriodSeconds(_Period)>=PeriodSeconds(PERIOD_H2))
@@ -160,9 +152,10 @@ int OnInit()
          //PlotIndexSetInteger(0,PLOT_ARROW,159);
          //PlotIndexSetInteger(0,PLOT_ARROW,110);
          break;
-     }
+   }
+
    IndicatorSetString(INDICATOR_SHORTNAME,"PivotPoint"+period+shiftGMT+"time");
-//--- indicator buffers mapping
+
    SetIndexBuffer(0,PBuffer,INDICATOR_DATA);
    SetIndexBuffer(1,S1Buffer,INDICATOR_DATA);
    SetIndexBuffer(2,R1Buffer,INDICATOR_DATA);
@@ -174,17 +167,15 @@ int OnInit()
    SetIndexBuffer(8,R4Buffer,INDICATOR_DATA);
    IndicatorSetInteger(INDICATOR_DIGITS,_Digits);
    for(int i=0;i<count_buffers;i++)
-     {
+   {
       PlotIndexSetInteger(i,PLOT_SHIFT,ShiftTime);
       PlotIndexSetDouble(i,PLOT_EMPTY_VALUE,EMPTY_VALUE);
       //PlotIndexSetInteger(i,PLOT_ARROW,159);
-     }
-//---
+   }
    return(0);
-  }
-//+------------------------------------------------------------------+
-//| Custom indicator iteration function                              |
-//+------------------------------------------------------------------+
+}
+
+
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
                 const datetime &time[],
@@ -195,13 +186,12 @@ int OnCalculate(const int rates_total,
                 const long &tick_volume[],
                 const long &volume[],
                 const int &spread[])
-  {
-//--- auxiliary variables
+{
    int  i=1;
    MqlDateTime time1,time2;
-//--- set position for beginning
+
    if(prev_calculated==0)
-     {
+   {
       i=ShiftTime+1;
       ArrayInitialize(PBuffer,EMPTY_VALUE);
       ArrayInitialize(S1Buffer,EMPTY_VALUE);
@@ -210,12 +200,12 @@ int OnCalculate(const int rates_total,
       ArrayInitialize(R2Buffer,EMPTY_VALUE);
       ArrayInitialize(S3Buffer,EMPTY_VALUE);
       ArrayInitialize(R3Buffer,EMPTY_VALUE);
-     }
+   }
    else
       i=prev_calculated-1;
-//--- start calculations
+
    while(i<rates_total)
-     {
+   {
       TimeToStruct(time[i-1],time1);
       TimeToStruct(time[i],time2);
       switch(InpPeriod)
@@ -259,21 +249,19 @@ int OnCalculate(const int rates_total,
             break;
         }
       i++;
-     }
-//--- return value of prev_calculated for next call
+   }
    return(rates_total);
-  }
-//+------------------------------------------------------------------+
-//|   Calculation an filling the Pivot buffers                       |
-//+------------------------------------------------------------------+
+}
+
+
 void DrawPivotLevel(datetime Previous,datetime Current,int Index)
-  {
+{
    int rates_total,shift,shift_end=0;
    double range=0,pivot=0,support1=0,support2=0,support3=0,support4=0,resistance1=0,resistance2=0,resistance3=0,resistance4=0;
    double iHigh[],iLow[],iClose[],iOpen[],HighDay,LowDay,CloseDay,OpenDay;
    datetime shiftGMT=0;
    switch(InpPeriod)
-     {
+   {
       case DAY:
          shift_end=int(PeriodSeconds(PERIOD_D1)/PeriodSeconds(_Period));
          if(InpTime==TIME_GMT) shiftGMT=(TimeTradeServer()-TimeGMT());
@@ -284,7 +272,7 @@ void DrawPivotLevel(datetime Previous,datetime Current,int Index)
       case MONTHLY:
          shift_end=int(PeriodSeconds(PERIOD_MN1)/PeriodSeconds(_Period));
          break;
-     }
+   }
    datetime _start=Previous+shiftGMT;
    datetime _end=Current+shiftGMT-1;
 
@@ -309,7 +297,7 @@ void DrawPivotLevel(datetime Previous,datetime Current,int Index)
    else
       OpenDay=iOpen[0];
    switch(InpPivotType)
-     {
+   {
       case PIVOT_CLASSIC:
          pivot=(CloseDay+HighDay+LowDay)/3;
          support1=(2*pivot)-HighDay;
@@ -371,11 +359,11 @@ void DrawPivotLevel(datetime Previous,datetime Current,int Index)
          resistance3=EMPTY_VALUE;
          resistance4=EMPTY_VALUE;
          break;
-     }
+   }
 
    shift=Index-ShiftTime+int(shiftGMT/PeriodSeconds(_Period));
    for(int i=0;i<=shift_end;i++)
-     {
+   {
       PBuffer[shift+i]=pivot;
       S1Buffer[shift+i]=support1;
       S2Buffer[shift+i]=support2;
@@ -385,50 +373,75 @@ void DrawPivotLevel(datetime Previous,datetime Current,int Index)
       R2Buffer[shift+i]=resistance2;
       R3Buffer[shift+i]=resistance3;
       R4Buffer[shift+i]=resistance4;
-     }
-     PBuffer[shift]=EMPTY_VALUE;
-     S1Buffer[shift]=EMPTY_VALUE;
-     S2Buffer[shift]=EMPTY_VALUE;
-     S3Buffer[shift]=EMPTY_VALUE;
-     S4Buffer[shift]=EMPTY_VALUE;
-     R1Buffer[shift]=EMPTY_VALUE;
-     R2Buffer[shift]=EMPTY_VALUE;
-     R3Buffer[shift]=EMPTY_VALUE;
-     R4Buffer[shift]=EMPTY_VALUE;
-  }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+   }
+   PBuffer[shift]=EMPTY_VALUE;
+   S1Buffer[shift]=EMPTY_VALUE;
+   S2Buffer[shift]=EMPTY_VALUE;
+   S3Buffer[shift]=EMPTY_VALUE;
+   S4Buffer[shift]=EMPTY_VALUE;
+   R1Buffer[shift]=EMPTY_VALUE;
+   R2Buffer[shift]=EMPTY_VALUE;
+   R3Buffer[shift]=EMPTY_VALUE;
+   R4Buffer[shift]=EMPTY_VALUE;
+}
+
+
 double LineY(int Index,double StartY,double EndY,int StartX,int EndX)
-  {
+{
    double LINH=StartY*(Index-EndX)/(StartX-EndX)+EndY*(Index-StartX)/(EndX-StartX);
    return(LINH);
-  }
-//+------------------------------------------------------------------+
+}
 
 
+static bool ctrl_pressed = false;
 void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
 {
-   if(id==CHARTEVENT_CLICK)
+   if(id==CHARTEVENT_KEYDOWN)
    {
-      static ulong ClickTimeMemory;
-      ulong ClickTime = GetTickCount();
-      if(ClickTime > ClickTimeMemory && ClickTime < ClickTimeMemory + 300)
+      if (ctrl_pressed == false && lparam == 17)
       {
-         if(PlotIndexGetInteger(0,PLOT_DRAW_TYPE)==DRAW_LINE)
-         {
-            for(int i=0;i<9;i++)
-               PlotIndexSetInteger(i,PLOT_DRAW_TYPE,DRAW_NONE);
-         }
-         else
-         {
-            for(int i=0;i<9;i++)
-               PlotIndexSetInteger(i,PLOT_DRAW_TYPE,DRAW_LINE);
-            OnInit();
-         }
-         ChartRedraw();
+         ctrl_pressed = true;
       }
-      ClickTimeMemory = ClickTime;
+      else if (ctrl_pressed == true)
+      {
+         if (lparam == 50)
+         {
+            if(PlotIndexGetInteger(0,PLOT_DRAW_TYPE)==DRAW_LINE)
+            {
+               for(int i=0;i<9;i++)
+                  PlotIndexSetInteger(i,PLOT_DRAW_TYPE,DRAW_NONE);
+            }
+            else
+            {
+               for(int i=0;i<9;i++)
+                  PlotIndexSetInteger(i,PLOT_DRAW_TYPE,DRAW_LINE);
+               OnInit();
+            }
+            ChartRedraw();
+            ctrl_pressed = false;
+         }
+      }
    }
+   //if(id==CHARTEVENT_CLICK)
+   //{
+   //   static ulong ClickTimeMemory;
+   //   ulong ClickTime = GetTickCount();
+   //   if(ClickTime > ClickTimeMemory && ClickTime < ClickTimeMemory + 300)
+   //   {
+   //      if(PlotIndexGetInteger(0,PLOT_DRAW_TYPE)==DRAW_LINE)
+   //      {
+   //         for(int i=0;i<9;i++)
+   //            PlotIndexSetInteger(i,PLOT_DRAW_TYPE,DRAW_NONE);
+   //      }
+   //      else
+   //      {
+   //         for(int i=0;i<9;i++)
+   //            PlotIndexSetInteger(i,PLOT_DRAW_TYPE,DRAW_LINE);
+   //         OnInit();
+   //      }
+   //      ChartRedraw();
+   //   }
+   //   ClickTimeMemory = ClickTime;
+   //}
    return;
 }
