@@ -9,9 +9,10 @@
 #property version   "1.00"
 #property indicator_chart_window
 #property indicator_buffers 1
-#property indicator_plots   1
+#property indicator_plots 1
+#property indicator_type1 DRAW_LINE
 
-input color colorMajor=Khaki;    // Color Major
+input color colorMajor=PaleGoldenrod;    // Color Major
 input color colorMinor=WhiteSmoke;    // Color Minor
 
 string short_name="Quarters";
@@ -30,8 +31,7 @@ void OnInit()
 void OnDeinit(const int reason)
 {
    EventKillTimer();
-   //if(reason==REASON_REMOVE)
-      DeleteObjects();
+   DeleteObjects();
 }
 
   
@@ -53,22 +53,10 @@ int OnCalculate(const int rates_total,
 
 bool Paint()
 {
-   //Print("Paint");
-
-   double lastprice;
-   MqlTick tick;
-   if(!SymbolInfoTick(_Symbol,tick))
-      return false;
-
-   if(tick.bid==0)
-      return false;
-
-   lastprice=tick.bid;
-      
    if(_Digits!=5 && _Digits!=4 && _Digits!=3)
       return true;
       
-   double base=0, step=0;
+   double step=0;
    int digits=0;
    if(_Digits==5)
    {
@@ -85,51 +73,44 @@ bool Paint()
       digits=0;
       step = 1;
    }
-   base = NormalizeDouble(lastprice,digits);
 
-   double range = step*8;
-   double lower = base - range;
-   double upper = base + range;
-   double rangesteps;
-   
-   lower=NormalizeDouble(min,digits)-step;
-   upper=max;
-   
-   rangesteps=(max-min)/step;
+   double lower=NormalizeDouble(min,digits)-step;
+   double upper=max;
+   double rangesteps=(max-min)/step;
    
    DeleteObjects();
    while(lower<=upper)
    {
       double f = step/4;
       if(rangesteps<40)
-         CreateLine(lower,colorMajor);
+         CreateLine(lower,colorMajor,STYLE_SOLID,2);
       if(rangesteps<5.5)
-         CreateLine(lower+(f*1),colorMajor);
+         CreateLine(lower+(f*1),colorMajor,STYLE_SOLID,1);
       if(rangesteps<14)
-         CreateLine(lower+(f*2),colorMajor);
+         CreateLine(lower+(f*2),colorMajor,STYLE_SOLID,1);
       if(rangesteps<5.5)
-         CreateLine(lower+(f*3),colorMajor);
+         CreateLine(lower+(f*3),colorMajor,STYLE_SOLID,1);
 
       f = step/10;
       if(rangesteps<3.5)
       {
-         CreateLine(lower+(f*1),colorMinor,STYLE_DOT);
-         CreateLine(lower+(f*2),colorMinor,STYLE_DOT);
-         CreateLine(lower+(f*3),colorMinor,STYLE_DOT);
-         CreateLine(lower+(f*4),colorMinor,STYLE_DOT);
-         CreateLine(lower+(f*6),colorMinor,STYLE_DOT);
-         CreateLine(lower+(f*7),colorMinor,STYLE_DOT);
-         CreateLine(lower+(f*8),colorMinor,STYLE_DOT);
-         CreateLine(lower+(f*9),colorMinor,STYLE_DOT);
+         CreateLine(lower+(f*1),colorMinor,STYLE_SOLID,1);
+         CreateLine(lower+(f*2),colorMinor,STYLE_SOLID,1);
+         CreateLine(lower+(f*3),colorMinor,STYLE_SOLID,1);
+         CreateLine(lower+(f*4),colorMinor,STYLE_SOLID,1);
+         CreateLine(lower+(f*6),colorMinor,STYLE_SOLID,1);
+         CreateLine(lower+(f*7),colorMinor,STYLE_SOLID,1);
+         CreateLine(lower+(f*8),colorMinor,STYLE_SOLID,1);
+         CreateLine(lower+(f*9),colorMinor,STYLE_SOLID,1);
       }
 
       f = step/8;
       if(rangesteps<1.5)
       {
-         CreateLine(lower+(f*1),colorMinor);
-         CreateLine(lower+(f*3),colorMinor);
-         CreateLine(lower+(f*5),colorMinor);
-         CreateLine(lower+(f*7),colorMinor);
+         CreateLine(lower+(f*1),colorMinor,STYLE_SOLID,1);
+         CreateLine(lower+(f*3),colorMinor,STYLE_SOLID,1);
+         CreateLine(lower+(f*5),colorMinor,STYLE_SOLID,1);
+         CreateLine(lower+(f*7),colorMinor,STYLE_SOLID,1);
       }
 
       lower+=step;
@@ -139,12 +120,14 @@ bool Paint()
 }
 
 
-void CreateLine(double price, color clr, ENUM_LINE_STYLE style = STYLE_SOLID)
+void CreateLine(double price, color clr, ENUM_LINE_STYLE style = STYLE_SOLID, int width = 1)
 {
-   style = STYLE_SOLID;
+   if(PlotIndexGetInteger(0,PLOT_DRAW_TYPE)==DRAW_NONE)
+      return;
    string objname = short_name + " " + DoubleToString(price,_Digits);
    ObjectCreate(0,objname,OBJ_HLINE,0,0,price);
    ObjectSetInteger(0,objname,OBJPROP_STYLE,style);
+   ObjectSetInteger(0,objname,OBJPROP_WIDTH,width);
    ObjectSetInteger(0,objname,OBJPROP_COLOR,clr);
    ObjectSetInteger(0,objname,OBJPROP_BACK,true);
 }
@@ -161,15 +144,13 @@ void OnTimer()
 {
    if(currentrange==lastrange)
       return;
-
    paintrange=currentrange;
-
    Paint();
-      
    lastrange=paintrange;
 }
 
 
+static bool ctrl_pressed = false;
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
    if(id==CHARTEVENT_CHART_CHANGE)
@@ -177,6 +158,30 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       min = ChartGetDouble(0,CHART_PRICE_MIN,0);
       max = ChartGetDouble(0,CHART_PRICE_MAX,0);
       currentrange = NormalizeDouble(max-min,_Digits);
+   }
+   if(id==CHARTEVENT_KEYDOWN)
+   {
+      if (ctrl_pressed == false && lparam == 17)
+      {
+         ctrl_pressed = true;
+      }
+      else if (ctrl_pressed == true)
+      {
+         if (lparam == 51)
+         {
+            if(PlotIndexGetInteger(0,PLOT_DRAW_TYPE)==DRAW_NONE)
+            {
+               PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_LINE);
+               lastrange=0;
+            }
+            else
+            {
+               PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_NONE);
+               lastrange=0;
+            }
+            ctrl_pressed = false;
+         }
+      }
    }
 }
 
