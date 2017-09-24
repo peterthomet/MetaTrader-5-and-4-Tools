@@ -78,21 +78,52 @@ bool Paint()
    double upper=max;
    double rangesteps=(max-min)/step;
    
+   bool showMinorQuarters=false;
+   bool showMinorRN=false;
+   bool showMajorQuarters=false;
+   bool showMajorHalfRN=false;
+   bool showMajorRN=false;
+   color colorMajorSub=colorMinor;
+   int widthMajorMain=1;
+
+   if(rangesteps<40)
+   {
+      showMajorRN=true;
+      if(rangesteps<14)
+      {
+         showMajorHalfRN=true;
+         if(rangesteps<5.5)
+         {
+            showMajorQuarters=true;
+            if(rangesteps<3.5)
+            {
+               showMinorRN=true;
+               widthMajorMain=2;
+               colorMajorSub=colorMajor;
+               if(rangesteps<1.5)
+               {
+                  showMinorQuarters=true;
+               }
+            }
+         }
+      }
+   }
+   
    DeleteObjects();
    while(lower<=upper)
    {
       double f = step/4;
-      if(rangesteps<40)
-         CreateLine(lower,colorMajor,STYLE_SOLID,2);
-      if(rangesteps<5.5)
-         CreateLine(lower+(f*1),colorMajor,STYLE_SOLID,1);
-      if(rangesteps<14)
-         CreateLine(lower+(f*2),colorMajor,STYLE_SOLID,1);
-      if(rangesteps<5.5)
-         CreateLine(lower+(f*3),colorMajor,STYLE_SOLID,1);
+      if(showMajorRN)
+         CreateLine(lower,colorMajor,STYLE_SOLID,widthMajorMain);
+      if(showMajorQuarters)
+         CreateLine(lower+(f*1),colorMajorSub,STYLE_SOLID,1);
+      if(showMajorHalfRN)
+         CreateLine(lower+(f*2),colorMajorSub,STYLE_SOLID,1);
+      if(showMajorQuarters)
+         CreateLine(lower+(f*3),colorMajorSub,STYLE_SOLID,1);
 
       f = step/10;
-      if(rangesteps<3.5)
+      if(showMinorRN)
       {
          CreateLine(lower+(f*1),colorMinor,STYLE_SOLID,1);
          CreateLine(lower+(f*2),colorMinor,STYLE_SOLID,1);
@@ -105,7 +136,7 @@ bool Paint()
       }
 
       f = step/8;
-      if(rangesteps<1.5)
+      if(showMinorQuarters)
       {
          CreateLine(lower+(f*1),colorMinor,STYLE_SOLID,1);
          CreateLine(lower+(f*3),colorMinor,STYLE_SOLID,1);
