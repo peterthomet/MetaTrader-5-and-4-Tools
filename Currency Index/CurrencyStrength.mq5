@@ -515,43 +515,43 @@ bool CalculateIndex()
       prev = _BarsToCalculate-(i+1);
       idx = _BarsToCalculate-1-i;
       if(IncludeCurrency("USD"))
-         if(i>sml)
+         if(i>sml && ma_period>1)
             USDplot[i]=xmaUSD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, USDx[i], idx, false);
          else
             USDplot[i]=USDx[i];
          //USDplot[i]=jjmaUSD.JJMASeries(0, prev, total, 0, 100, ma_period, USDx[i], idx, false);
       if(IncludeCurrency("EUR"))
-         if(i>sml)
+         if(i>sml && ma_period>1)
             EURplot[i]=xmaEUR.XMASeries(0, prev, total, MODE_T3, 0, ma_period, EURx[i], idx, false);
          else
             EURplot[i]=EURx[i];
       if(IncludeCurrency("GBP"))
-         if(i>sml)
+         if(i>sml && ma_period>1)
             GBPplot[i]=xmaGBP.XMASeries(0, prev, total, MODE_T3, 0, ma_period, GBPx[i], idx, false);
          else
             GBPplot[i]=GBPx[i];
       if(IncludeCurrency("CHF"))
-         if(i>sml)
+         if(i>sml && ma_period>1)
             CHFplot[i]=xmaCHF.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CHFx[i], idx, false);
          else
             CHFplot[i]=CHFx[i];
       if(IncludeCurrency("JPY"))
-         if(i>sml)
+         if(i>sml && ma_period>1)
             JPYplot[i]=xmaJPY.XMASeries(0, prev, total, MODE_T3, 0, ma_period, JPYx[i], idx, false);
          else
             JPYplot[i]=JPYx[i];
       if(IncludeCurrency("CAD"))
-         if(i>sml)
+         if(i>sml && ma_period>1)
             CADplot[i]=xmaCAD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CADx[i], idx, false);
          else
             CADplot[i]=CADx[i];
       if(IncludeCurrency("AUD"))
-         if(i>sml)
+         if(i>sml && ma_period>1)
             AUDplot[i]=xmaAUD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, AUDx[i], idx, false);
          else
             AUDplot[i]=AUDx[i];
       if(IncludeCurrency("NZD"))
-         if(i>sml)
+         if(i>sml && ma_period>1)
             NZDplot[i]=xmaNZD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, NZDx[i], idx, false);
          else
             NZDplot[i]=NZDx[i];
