@@ -10,6 +10,7 @@
 #property indicator_chart_window
 #property indicator_buffers 1
 #property indicator_plots 1
+#property script_show_inputs
 
 input color colorPivot=DarkKhaki;    // Color Pivot
 input color colorS1=HotPink;    // Color S1
@@ -20,6 +21,22 @@ input color colorS3=DarkGray;    // Color S3
 input color colorR3=DarkGray;    // Color R3
 input color colorS4=DarkGray;    // Color S4
 input color colorR4=DarkGray;    // Color R4
+enum PivotType
+{
+   NONE, // None
+   PIVOT_CLASSIC, // Classic
+   PIVOT_FIBONACCI, // Fibonacci
+   PIVOT_DEMARK, // Demark
+   PIVOT_CAMARILLA, // Camarilla
+   PIVOT_WOODIES // Woodies
+};
+input PivotType PivotTypeHour=PIVOT_CLASSIC;    // Pivot Type Hour
+input PivotType PivotTypeFourHour=PIVOT_CLASSIC;    // Pivot Type Four Hour
+input PivotType PivotTypeDay=PIVOT_CLASSIC;    // Pivot Type Day
+
+input ENUM_LINE_STYLE LineStyleHour=STYLE_SOLID;    // Line Style Hour
+input ENUM_LINE_STYLE LineStyleFourHour=STYLE_SOLID;    // Line Style Four Hour
+input ENUM_LINE_STYLE LineStyleDay=STYLE_SOLID;    // Line Style Day
 
 string short_name="MultiPivots";
 //double currentrange=0;
@@ -28,25 +45,20 @@ string short_name="MultiPivots";
 //double min, max;
 datetime currenth1time=0;
 datetime lasth1time=0;
+datetime currenth4time=0;
+datetime lasth4time=0;
+datetime currentdaytime=0;
+datetime lastdaytime=0;
 bool newbar=false;
 int weekdaystart=-1;
 int dayhourstart=-1;
 long firstbar=0;
 long lastfirstbar=-1;
 
-enum PivotType
-{
-   PIVOT_CLASSIC=0,
-   PIVOT_FIBONACCI=1,
-   PIVOT_DEMARK=2,
-   PIVOT_CAMARILLA=3,
-   PIVOT_WOODIES=4
-};
-
 enum PivotPeriod
 {
    HOUR,
-   FORHOUR,
+   FOURHOUR,
    DAY,
    WEEK,
    MONTH
@@ -58,6 +70,7 @@ struct TimeRange
    datetime end;
    datetime startdisplay;
    datetime enddisplay;
+   PivotPeriod period;
 };
 
 
@@ -92,11 +105,15 @@ int OnCalculate(const int rates_total,
 }
 
 
-void CreateLine(TimeRange& time, double price, color clr, string level, ENUM_LINE_STYLE style = STYLE_DOT, int width = 1)
+void CreateLine(TimeRange& time, double price, color clr, string level, PivotType type, ENUM_LINE_STYLE style = STYLE_DOT, int width = 1)
 {
    if(!PlotIndexGetInteger(0,PLOT_SHOW_DATA))
       return;
-   string objname = short_name + " " + level + " " + TimeToString(time.startdisplay) + "-" + DoubleToString(price,_Digits);
+   if(time.period==HOUR) style=LineStyleHour;
+   if(time.period==FOURHOUR) style=LineStyleFourHour;
+   if(time.period==DAY) style=LineStyleDay;
+   //string objname = short_name + " " + PivotPeriodToString(time.period) + " " + level + " " + TimeToString(time.startdisplay) + "-" + DoubleToString(price,_Digits);
+   string objname = short_name + " " + PivotPeriodToString(time.period) + " " + level;
    ObjectCreate(0,objname,OBJ_TREND,0,time.startdisplay,price,time.enddisplay,price);
    ObjectSetInteger(0,objname,OBJPROP_RAY_RIGHT,true);
    ObjectSetInteger(0,objname,OBJPROP_STYLE,style);
@@ -106,9 +123,9 @@ void CreateLine(TimeRange& time, double price, color clr, string level, ENUM_LIN
 }
 
 
-void DeleteObjects()
+void DeleteObjects(string namespace="")
 {
-   ObjectsDeleteAll(0,short_name);
+   ObjectsDeleteAll(0,short_name + (StringLen(namespace)==0 ? "" : " " + namespace));
    ChartRedraw();
 }
 
@@ -128,16 +145,40 @@ void OnTimer()
          {
             if(!FindWeekDayStart())
                return;
+
+            TimeRange times;
+
+            times=CalculatePivotRange(HOUR);
+            DeleteObjects(PivotPeriodToString(times.period));
+            if(PivotTypeHour>NONE)
+               if(!CalculatePivots(times,PivotTypeHour))
+                  return;
          
-            TimeRange times=CalculatePivotRange(HOUR);
+            times=CalculatePivotRange(FOURHOUR);
+            currenth4time=times.start;
+            if(currenth4time!=lasth4time)
+            {
+               DeleteObjects(PivotPeriodToString(times.period));
+               if(PivotTypeFourHour>NONE)
+                  if(!CalculatePivots(times,PivotTypeFourHour))
+                     return;
+               lasth4time=currenth4time;
+            }
 
-            if(!CalculatePivots(times,PIVOT_CLASSIC))
-               return;
+            times=CalculatePivotRange(DAY);
+            currentdaytime=times.start;
+            if(currentdaytime!=lastdaytime)
+            {
+               DeleteObjects(PivotPeriodToString(times.period));
+               if(PivotTypeDay>NONE)
+                  if(!CalculatePivots(times,PivotTypeDay))
+                     return;
+               lastdaytime=currentdaytime;
+            }
 
-            Print("New Calculation:" + TimeToString(times.start) + " | " + TimeToString(times.end));
 
 
-
+            //Print("New Calculation:" + TimeToString(times.start) + " | " + TimeToString(times.end));
             lasth1time=currenth1time;
             lastfirstbar=firstbar;
          }
@@ -187,7 +228,6 @@ bool CalculatePivots(TimeRange& times, PivotType type)
    switch(type)
    {
       case PIVOT_CLASSIC:
-         //Print("Close:"+CloseDay+" High:"+HighDay+" Low:"+LowDay);
          pivot=(CloseDay+HighDay+LowDay)/3;
          support1=(2*pivot)-HighDay;
          support2=pivot-(HighDay - LowDay);
@@ -250,15 +290,13 @@ bool CalculatePivots(TimeRange& times, PivotType type)
          break;
    }
 
-   DeleteObjects();
-
-   CreateLine(times,pivot,colorPivot,"PP");
-   CreateLine(times,support1,colorS1,"S1");
-   CreateLine(times,resistance1,colorR1,"R1");
-   CreateLine(times,support2,colorS2,"S2");
-   CreateLine(times,resistance2,colorR2,"R2");
-   CreateLine(times,support3,colorS3,"S3");
-   CreateLine(times,resistance3,colorR3,"R3");
+   CreateLine(times,pivot,colorPivot,"PP",type);
+   CreateLine(times,support1,colorS1,"S1",type);
+   CreateLine(times,resistance1,colorR1,"R1",type);
+   CreateLine(times,support2,colorS2,"S2",type);
+   CreateLine(times,resistance2,colorR2,"R2",type);
+   CreateLine(times,support3,colorS3,"S3",type);
+   CreateLine(times,resistance3,colorR3,"R3",type);
 
    return true;
 }
@@ -282,8 +320,6 @@ bool FindWeekDayStart()
             TimeToStruct(ref,wdstart);
             weekdaystart=wdstart.day_of_week;
             dayhourstart=wdstart.hour;
-            //Print("Start Week/Day: " + wdstart.hour + " " + wdstart.day_of_week);
-         
             break;
          }
          ref=dtarr[i];
@@ -302,6 +338,7 @@ TimeRange CalculatePivotRange(PivotPeriod period)
    TimeRange times;
    times.start=0;
    times.end=0;
+   times.period=period;
    
    if(period==HOUR)
    {
@@ -314,19 +351,58 @@ TimeRange CalculatePivotRange(PivotPeriod period)
          times.start=times.start-172800;
       times.end=times.start+PeriodSeconds(PERIOD_H1)-1;
    }
-   if(period==FORHOUR)
+   if(period==FOURHOUR)
    {
-      times.startdisplay=currenth1time;
-      times.enddisplay=currenth1time+PeriodSeconds(PERIOD_H4)-1;
-      times.start=currenth1time-PeriodSeconds(PERIOD_H1);
+      int houroffset=dayhourstart;
+      if(houroffset>12)
+         houroffset=dayhourstart-24;
+      MqlDateTime h1time;
+      TimeToStruct(currenth1time,h1time);
+      int h1hour=h1time.hour;
+      int h4start=(int)(MathFloor((h1time.hour-houroffset)/4)*4)+houroffset;
+      times.startdisplay=currenth1time-(PeriodSeconds(PERIOD_H1)*(h1hour-h4start));
+      times.enddisplay=times.startdisplay+(PeriodSeconds(PERIOD_H1)*4)-1;
+      times.start=times.startdisplay-(PeriodSeconds(PERIOD_H1)*4);
       MqlDateTime starttime;
       TimeToStruct(times.start,starttime);
-      if(starttime.day_of_week==weekdaystart && starttime.hour==dayhourstart-1)
+      if(starttime.day_of_week==weekdaystart && starttime.hour<dayhourstart)
          times.start=times.start-172800;
-      times.end=times.start+PeriodSeconds(PERIOD_H1)-1;
+      times.end=times.start+(PeriodSeconds(PERIOD_H1)*4)-1;
+   }
+   if(period==DAY)
+   {
+      int houroffset=dayhourstart;
+      if(houroffset>12)
+         houroffset=dayhourstart-24;
+      MqlDateTime h1time;
+      TimeToStruct(currenth1time,h1time);
+      int h1hour=h1time.hour;
+      //int daystart=(int)(MathFloor((h1time.hour-houroffset)/24)*24)+houroffset;
+      //times.startdisplay=currenth1time-(PeriodSeconds(PERIOD_H1)*(h1hour-daystart));
+      times.startdisplay=currenth1time-(PeriodSeconds(PERIOD_H1)*(h1hour-houroffset));
+      times.enddisplay=times.startdisplay+(PeriodSeconds(PERIOD_H1)*24)-1;
+      times.start=times.startdisplay-(PeriodSeconds(PERIOD_H1)*24);
+      MqlDateTime starttime;
+      TimeToStruct(times.start,starttime);
+      int weekdayempty=weekdaystart-1;
+      if(weekdayempty<0)
+         weekdayempty=7+weekdayempty;
+      if(starttime.day_of_week==weekdayempty)
+         times.start=times.start-172800;
+      times.end=times.start+(PeriodSeconds(PERIOD_H1)*24)-1;
    }
 
    return times;
+}
+
+
+string PivotPeriodToString(PivotPeriod period)
+{
+   if(period==HOUR) return "Hour";
+   if(period==FOURHOUR) return "4Hour";
+   if(period==DAY) return "Day";
+   if(period==WEEK) return "Week";
+   return "-";
 }
 
 
@@ -360,12 +436,16 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             {
                PlotIndexSetInteger(0,PLOT_SHOW_DATA,true);
                lasth1time=0;
+               lasth4time=0;
+               lastdaytime=0;
                newbar=true;
             }
             else
             {
                PlotIndexSetInteger(0,PLOT_SHOW_DATA,false);
                lasth1time=0;
+               lasth4time=0;
+               lastdaytime=0;
                newbar=true;
             }
             ctrl_pressed = false;
