@@ -10,10 +10,13 @@
 #property indicator_chart_window
 #property indicator_buffers 1
 #property indicator_plots 1
-#property indicator_type1 DRAW_LINE
 
 input color colorMajor=PaleGoldenrod;    // Color Major
 input color colorMinor=WhiteSmoke;    // Color Minor
+input bool MajorQuarters=false; // Show Major Quarters
+input bool MajorHalfRN=false; // Show Major Half RN
+input bool MinorQuarters=false; // Show Minor Quarters
+input bool MinorRN=false; // Show Minor RN
 
 string short_name="Quarters";
 double currentrange=0;
@@ -108,22 +111,22 @@ bool Paint()
          }
       }
    }
-   
+
    DeleteObjects();
    while(lower<=upper)
    {
       double f = step/4;
       if(showMajorRN)
          CreateLine(lower,colorMajor,STYLE_SOLID,widthMajorMain);
-      if(showMajorQuarters)
+      if(showMajorQuarters && MajorQuarters)
          CreateLine(lower+(f*1),colorMajorSub,STYLE_SOLID,1);
-      if(showMajorHalfRN)
+      if(showMajorHalfRN && MajorHalfRN)
          CreateLine(lower+(f*2),colorMajorSub,STYLE_SOLID,1);
-      if(showMajorQuarters)
+      if(showMajorQuarters && MajorQuarters)
          CreateLine(lower+(f*3),colorMajorSub,STYLE_SOLID,1);
 
       f = step/10;
-      if(showMinorRN)
+      if(showMinorRN && MinorRN)
       {
          CreateLine(lower+(f*1),colorMinor,STYLE_SOLID,1);
          CreateLine(lower+(f*2),colorMinor,STYLE_SOLID,1);
@@ -136,7 +139,7 @@ bool Paint()
       }
 
       f = step/8;
-      if(showMinorQuarters)
+      if(showMinorQuarters && MinorQuarters)
       {
          CreateLine(lower+(f*1),colorMinor,STYLE_SOLID,1);
          CreateLine(lower+(f*3),colorMinor,STYLE_SOLID,1);
@@ -153,7 +156,7 @@ bool Paint()
 
 void CreateLine(double price, color clr, ENUM_LINE_STYLE style = STYLE_SOLID, int width = 1)
 {
-   if(PlotIndexGetInteger(0,PLOT_DRAW_TYPE)==DRAW_NONE)
+   if(!PlotIndexGetInteger(0,PLOT_SHOW_DATA))
       return;
    string objname = short_name + " " + DoubleToString(price,_Digits);
    ObjectCreate(0,objname,OBJ_HLINE,0,0,price);
@@ -200,14 +203,14 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       {
          if (lparam == 51)
          {
-            if(PlotIndexGetInteger(0,PLOT_DRAW_TYPE)==DRAW_NONE)
+            if(!PlotIndexGetInteger(0,PLOT_SHOW_DATA))
             {
-               PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_LINE);
+               PlotIndexSetInteger(0,PLOT_SHOW_DATA,true);
                lastrange=0;
             }
             else
             {
-               PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_NONE);
+               PlotIndexSetInteger(0,PLOT_SHOW_DATA,false);
                lastrange=0;
             }
             ctrl_pressed = false;
