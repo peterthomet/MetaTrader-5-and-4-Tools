@@ -14,29 +14,32 @@
 
 #include <MultiPivots.mqh>
 
-input color colorPivot=DarkKhaki;    // Color Pivot
-input color colorS1=HotPink;    // Color S1
-input color colorR1=HotPink;    // Color R1
-input color colorS2=CornflowerBlue;    // Color S2
-input color colorR2=CornflowerBlue;    // Color R2
-input color colorS3=DarkGray;    // Color S3
-input color colorR3=DarkGray;    // Color R3
-input color colorS4=DarkGray;    // Color S4
-input color colorR4=DarkGray;    // Color R4
-input color colorS5=DarkGray;    // Color S5
-input color colorR5=DarkGray;    // Color R5
-input color colormidpoints=Silver;    // Color Mid-Points
+input color colorPivot=PaleGoldenrod;    // Color Pivot
+input color colorS1=LightPink;    // Color S1
+input color colorR1=LightPink;    // Color R1
+input color colorS2=LightBlue;    // Color S2
+input color colorR2=LightBlue;    // Color R2
+input color colorS3=LightGray;    // Color S3
+input color colorR3=LightGray;    // Color R3
+input color colorS4=LightGray;    // Color S4
+input color colorR4=LightGray;    // Color R4
+input color colorS5=LightGray;    // Color S5
+input color colorR5=LightGray;    // Color R5
+input color colormidpoints=WhiteSmoke;    // Color Mid-Points
 
 input TypePivotsType PivotTypeHour=PIVOT_TRADITIONAL;    // Pivot Type Hour
 input TypePivotsType PivotTypeFourHour=PIVOT_TRADITIONAL;    // Pivot Type Four Hour
 input TypePivotsType PivotTypeDay=PIVOT_TRADITIONAL;    // Pivot Type Day
-input bool PivotTypeDayMidPoints=true;    // Pivot Day Show Mid-Points
+input TypePivotsType PivotTypeWeek=PIVOT_TRADITIONAL;    // Pivot Type Week
+input bool PivotTypeHourMidPoints=true;    // Pivot Hour Show Mid-Points
 input bool PivotTypeFourHourMidPoints=true;    // Pivot Four Hour Show Mid-Points
-input bool PivotTypeHourMidPoints=false;    // Pivot Hour Show Mid-Points
+input bool PivotTypeDayMidPoints=true;    // Pivot Day Show Mid-Points
+input bool PivotTypeWeekMidPoints=true;    // Pivot Week Show Mid-Points
 
 input ENUM_LINE_STYLE LineStyleHour=STYLE_SOLID;    // Line Style Hour
 input ENUM_LINE_STYLE LineStyleFourHour=STYLE_SOLID;    // Line Style Four Hour
 input ENUM_LINE_STYLE LineStyleDay=STYLE_SOLID;    // Line Style Day
+input ENUM_LINE_STYLE LineStyleWeek=STYLE_SOLID;    // Line Style Week
 
 string short_name="MultiPivots";
 bool newbar=false;
@@ -64,12 +67,15 @@ void OnInit()
    PD.Settings.PivotTypeHour=PivotTypeHour;
    PD.Settings.PivotTypeFourHour=PivotTypeFourHour;
    PD.Settings.PivotTypeDay=PivotTypeDay;
-   PD.Settings.PivotTypeDayMidPoints=PivotTypeDayMidPoints;
-   PD.Settings.PivotTypeFourHourMidPoints=PivotTypeFourHourMidPoints;
+   PD.Settings.PivotTypeWeek=PivotTypeWeek;
    PD.Settings.PivotTypeHourMidPoints=PivotTypeHourMidPoints;
+   PD.Settings.PivotTypeFourHourMidPoints=PivotTypeFourHourMidPoints;
+   PD.Settings.PivotTypeDayMidPoints=PivotTypeDayMidPoints;
+   PD.Settings.PivotTypeWeekMidPoints=PivotTypeWeekMidPoints;
    PD.Settings.LineStyleHour=LineStyleHour;
    PD.Settings.LineStyleFourHour=LineStyleFourHour;
    PD.Settings.LineStyleDay=LineStyleDay;
+   PD.Settings.LineStyleDay=LineStyleWeek;
    
    istesting=MQLInfoInteger(MQL_TESTER);
    EventSetTimer(1);
