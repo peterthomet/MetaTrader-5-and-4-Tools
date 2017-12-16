@@ -9,7 +9,7 @@
 #property indicator_separate_window
 
 #property indicator_buffers 52
-#property indicator_plots   8
+#property indicator_plots 8
 
 #include <MovingAverages.mqh>
 #include <SmoothAlgorithms.mqh> 
@@ -42,24 +42,26 @@ enum enPrices
 
 input enPrices PriceType = pr_close; // Price Type
 input int rsi_period = 9; // RSI Period
-input int ma_period = 3; // MA Period
+input int ma_period = 0; // MA Period
 input int ma_smoothing = 3; // MA Smoothing
-input int BarsToCalculate = 100; // Number of Bars to calculate
-input int ZeroPoint = 100; // Zero Point
+input int BarsToCalculate = 30; // Number of Bars to calculate
+input int ZeroPoint = 30; // Zero Point
 
-input color Color_USD = SeaGreen;            // USD line color
-input color Color_EUR = DarkSlateBlue;         // EUR line color
+input color Color_USD = MediumSeaGreen;            // USD line color
+input color Color_EUR = DodgerBlue;         // EUR line color
 input color Color_GBP = DeepPink;              // GBP line color
 input color Color_CHF = Black;        // CHF line color
-input color Color_JPY = Maroon;           // JPY line color
+input color Color_JPY = Chocolate;           // JPY line color
 input color Color_AUD = DarkOrange;       // AUD line color
 input color Color_CAD = MediumVioletRed;           // CAD line color
-input color Color_NZD = Gray;         // NZD line color
+input color Color_NZD = Silver;         // NZD line color
 
-input int                wid_main =         2; //Lines width for current chart
-input ENUM_LINE_STYLE style_slave = STYLE_DOT; //Style of alternative lines for current chart
+input int wid_main = 3; //Lines width for current chart
+input ENUM_LINE_STYLE style_slave = STYLE_SOLID; //Style of alternative lines for current chart
 input bool all_solid = false; //Draw all main style
 input bool draw_current_pairs_only = false; //Draw indexes of current pairs only
+input bool alert_momentum = true; //Alert Momentum
+input bool show_strongest = false; //Show Strongest Move
 
 double EURUSD[], // quotes
        GBPUSD[],
@@ -128,9 +130,11 @@ int sameticktimecount=0;
 bool timerenabled=true;
 bool istesting;
 datetime lasttestevent;
+datetime lastalert;
 int _BarsToCalculate;
 CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 CJJMA jjmaUSD;
+
 
 void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, string currency=NULL, color col=NULL)
 {
@@ -250,8 +254,189 @@ void OnInit()
 
 void OnDeinit(const int reason)
 {
-   ObjectsDeleteAll(0,"namespace",ChartWindowFind());
+   if(reason!=REASON_CHARTCHANGE)
+      ObjectsDeleteAll(0,namespace,ChartWindowFind());
    EventKillTimer();
+}
+
+
+void CalculateAlert()
+{
+   if(!alert_momentum || Symbol()!="EURUSD")
+      return;
+
+   datetime dtarr[1];
+   if(CopyTime(_Symbol,_Period,0,1,dtarr)!=1)
+      return;
+
+   int alertsecondsbefore=60;
+   if(PeriodSeconds()==60)
+      alertsecondsbefore=40;
+
+   if(PeriodSeconds()-(TimeCurrent()-dtarr[0])<=alertsecondsbefore && lastalert!=dtarr[0])
+   {
+      bool usdup = USDplot[1]>USDplot[2] && USDplot[0]>=USDplot[1]+(USDplot[1]-USDplot[2]);
+      bool usddown = USDplot[1]<USDplot[2] && USDplot[0]<=USDplot[1]-(USDplot[2]-USDplot[1]);
+      bool eurup = EURplot[1]>EURplot[2] && EURplot[0]>=EURplot[1]+(EURplot[1]-EURplot[2]);
+      bool eurdown = EURplot[1]<EURplot[2] && EURplot[0]<=EURplot[1]-(EURplot[2]-EURplot[1]);
+      if(usdup && eurdown)
+      {
+         Alert(_Symbol + " Down Momentum");
+         lastalert=dtarr[0];
+      }
+      if(usddown && eurup)
+      {
+         Alert(_Symbol + " Up Momentum");
+         lastalert=dtarr[0];
+      }
+   }
+
+
+}
+
+
+void StrongestMove()
+{
+   if(!show_strongest)
+      return;
+   double maxup=0;
+   double maxdn=0;
+   double diff;
+   string up="";
+   string dn="";
+
+   diff=USDplot[0]-USDplot[1];
+   if(diff>maxup)
+   {
+      maxup=diff;
+      up="USD";
+   }
+   if(diff<maxdn)
+   {
+      maxdn=diff;
+      dn="USD";
+   }
+   diff=EURplot[0]-EURplot[1];
+   if(diff>maxup)
+   {
+      maxup=diff;
+      up="EUR";
+   }
+   if(diff<maxdn)
+   {
+      maxdn=diff;
+      dn="EUR";
+   }
+   diff=GBPplot[0]-GBPplot[1];
+   if(diff>maxup)
+   {
+      maxup=diff;
+      up="GBP";
+   }
+   if(diff<maxdn)
+   {
+      maxdn=diff;
+      dn="GBP";
+   }
+   diff=JPYplot[0]-JPYplot[1];
+   if(diff>maxup)
+   {
+      maxup=diff;
+      up="JPY";
+   }
+   if(diff<maxdn)
+   {
+      maxdn=diff;
+      dn="JPY";
+   }
+   diff=CHFplot[0]-CHFplot[1];
+   if(diff>maxup)
+   {
+      maxup=diff;
+      up="CHF";
+   }
+   if(diff<maxdn)
+   {
+      maxdn=diff;
+      dn="CHF";
+   }
+   diff=CADplot[0]-CADplot[1];
+   if(diff>maxup)
+   {
+      maxup=diff;
+      up="CAD";
+   }
+   if(diff<maxdn)
+   {
+      maxdn=diff;
+      dn="CAD";
+   }
+   diff=AUDplot[0]-AUDplot[1];
+   if(diff>maxup)
+   {
+      maxup=diff;
+      up="AUD";
+   }
+   if(diff<maxdn)
+   {
+      maxdn=diff;
+      dn="AUD";
+   }
+   diff=NZDplot[0]-NZDplot[1];
+   if(diff>maxup)
+   {
+      maxup=diff;
+      up="NZD";
+   }
+   if(diff<maxdn)
+   {
+      maxdn=diff;
+      dn="NZD";
+   }
+
+   string oname = namespace+"-StrongestMove";
+   ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
+   ObjectSetInteger(0,oname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,oname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,oname,OBJPROP_XDISTANCE,40);
+   ObjectSetInteger(0,oname,OBJPROP_YDISTANCE,10);
+   ObjectSetString(0,oname,OBJPROP_TEXT,NormalizePairing(up+dn));
+   ObjectSetInteger(0,oname,OBJPROP_COLOR,Black);
+   ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,12);
+}
+
+
+string NormalizePairing(string pair)
+{
+   if(pair=="USDEUR") return "EURUSD";
+   if(pair=="USDGBP") return "GBPUSD";
+   if(pair=="CHFUSD") return "USDCHF";
+   if(pair=="JPYUSD") return "USDJPY";
+   if(pair=="CADUSD") return "USDCAD";
+   if(pair=="USDAUD") return "AUDUSD";
+   if(pair=="USDNZD") return "NZDUSD";
+   if(pair=="NZDEUR") return "EURNZD";
+   if(pair=="CADEUR") return "EURCAD";
+   if(pair=="AUDEUR") return "EURAUD";
+   if(pair=="JPYEUR") return "EURJPY";
+   if(pair=="CHFEUR") return "EURCHF";
+   if(pair=="GBPEUR") return "EURGBP";
+   if(pair=="NZDGBP") return "GBPNZD";
+   if(pair=="AUDGBP") return "GBPAUD";
+   if(pair=="CADGBP") return "GBPCAD";
+   if(pair=="JPYGBP") return "GBPJPY";
+   if(pair=="CHFGBP") return "GBPCHF";
+   if(pair=="JPYCAD") return "CADJPY";
+   if(pair=="CHFCAD") return "CADCHF";
+   if(pair=="CADAUD") return "AUDCAD";
+   if(pair=="CADNZD") return "NZDCAD";
+   if(pair=="CHFAUD") return "AUDCHF";
+   if(pair=="JPYAUD") return "AUDJPY";
+   if(pair=="NZDAUD") return "AUDNZD";
+   if(pair=="JPYNZD") return "NZDJPY";
+   if(pair=="CHFNZD") return "NZDCHF";
+   if(pair=="JPYCHF") return "CHFJPY";
+   return pair;
 }
 
 
@@ -269,6 +454,8 @@ void OnTimer()
    incalculation=true;
    if(CalculateIndex())
    {
+      StrongestMove();
+      CalculateAlert();
       fullinit=false;
    }
    if(currentticktime != lastticktime)
@@ -405,6 +592,18 @@ bool CalculateIndex()
             EURx[i]+=(EURCHF[i]-EURCHF[start])/EURCHF[start]*100;
             EURx[i]+=(EURGBP[i]-EURGBP[start])/EURGBP[start]*100;
             EURx[i]=EURx[i]/7;
+
+            //EURx[i]=0;
+            //EURx[i]-=(GBPUSD[i]-GBPUSD[start])/GBPUSD[start]*100;
+            //EURx[i]+=(USDCHF[i]-USDCHF[start])/USDCHF[start]*100;
+            //EURx[i]+=(USDJPY[i]-USDJPY[start])/USDJPY[start]*100;
+            //EURx[i]+=(USDCAD[i]-USDCAD[start])/USDCAD[start]*100;
+            //EURx[i]-=(AUDUSD[i]-AUDUSD[start])/AUDUSD[start]*100;
+            //EURx[i]-=(NZDUSD[i]-NZDUSD[start])/NZDUSD[start]*100;
+            //EURx[i]=EURx[i]/6;
+            
+            //EURx[i]=EURx[i]-USDx[i];
+
          }
       }
       if(IncludeCurrency("GBP"))
@@ -760,3 +959,17 @@ double GetPrice(int tprice, MqlRates& rates[], int i)
    return(0);
 }
 
+
+void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
+{
+   if(id==CHARTEVENT_OBJECT_CLICK)
+   {
+      if(StringFind(sparam,"-StrongestMove")>-1)
+      {
+         string z=ObjectGetString(0,sparam,OBJPROP_TEXT);
+         //printf("I am %s, my text is %s",sparam,z);
+         if(ChartSymbol()!=z)
+            ChartSetSymbolPeriod(0,z,_Period);
+      }
+   }
+}
