@@ -60,8 +60,11 @@ input int wid_main = 3; //Lines width for current chart
 input ENUM_LINE_STYLE style_slave = STYLE_SOLID; //Style of alternative lines for current chart
 input bool all_solid = false; //Draw all main style
 input bool draw_current_pairs_only = false; //Draw indexes of current pairs only
+input bool switch_symbol_on_signal = false; //Switch Symbol on Signal
+input bool test_forward_trading = false; //Test Forward Trading
 input bool alert_momentum = true; //Alert Momentum
 input bool show_strongest = false; //Show Strongest Move
+input int test_trading_candle_expiration = 3; //Test Trading Candle Expiration
 
 double EURUSD[], // quotes
        GBPUSD[],
@@ -116,7 +119,7 @@ double EURUSD[], // quotes
        AUDrsi[],
        NZDrsi[];
 
-int y_pos = 3; // Y coordinate variable for the informatory objects  
+int y_pos = 4; // Y coordinate variable for the informatory objects  
 datetime arrTime[28]; // Array with the last known time of a zero valued bar (needed for synchronization)  
 int bars_tf[28]; // To check the number of available bars in different currency pairs  
 int index = 0;
@@ -135,6 +138,29 @@ int _BarsToCalculate;
 CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 CJJMA jjmaUSD;
 
+struct TypeUpdown
+{
+   double maxup;
+   double maxdn;
+   string up;
+   string dn;
+   bool isupreversal;
+   bool isdnreversal;
+};
+
+string currencyclicked=NULL;
+
+struct TypeSignal
+{
+   bool open;
+   datetime candleendtime;
+   int candles;
+   string pair;
+   string direction;
+};
+
+TypeSignal tradesignal={false,NULL,0,"",""};
+
 
 void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, string currency=NULL, color col=NULL)
 {
@@ -148,7 +174,7 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
       PlotIndexSetInteger(idx,PLOT_DRAW_TYPE,DRAW_LINE);
       PlotIndexSetInteger(idx,PLOT_LINE_COLOR,col);
       PlotIndexSetDouble(idx,PLOT_EMPTY_VALUE,EMPTY_VALUE);
-      //PlotIndexSetInteger(idx,PLOT_SHIFT,10);
+      bool showlabel=true;
       if(StringFind(Symbol(),currency,0)!=-1 || all_solid)
       {
         PlotIndexSetInteger(idx,PLOT_LINE_WIDTH,wid_main);
@@ -159,6 +185,7 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
          if(draw_current_pairs_only)
          {
             PlotIndexSetInteger(idx,PLOT_DRAW_TYPE,DRAW_NONE);
+            showlabel=false;
          }
          else
          {
@@ -167,7 +194,8 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
             PlotIndexSetInteger(idx,PLOT_LINE_STYLE,style_slave);
          }
       }
-      DrawObjects(currency,col);
+      if(showlabel)
+         DrawObjects(currency,col);
    }
 }
 
@@ -295,114 +323,79 @@ void CalculateAlert()
 }
 
 
-void StrongestMove()
+void CheckUpDown(string currency, TypeUpdown& ud, double& arr[], int range)
+{
+   double diff=arr[0]-arr[range];
+   if(diff>ud.maxup)
+   {
+      ud.maxup=diff;
+      ud.up=currency;
+      ud.isupreversal=arr[0]-arr[1]>0&&arr[0]-arr[1]>arr[1]-arr[2];
+   }
+   if(diff<ud.maxdn)
+   {
+      ud.maxdn=diff;
+      ud.dn=currency;
+      ud.isdnreversal=arr[0]-arr[1]<0&&arr[0]-arr[1]<arr[1]-arr[2];
+   }
+}
+
+
+void StrongestMove(int range)
 {
    if(!show_strongest)
       return;
-   double maxup=0;
-   double maxdn=0;
-   double diff;
-   string up="";
-   string dn="";
 
-   diff=USDplot[0]-USDplot[1];
-   if(diff>maxup)
-   {
-      maxup=diff;
-      up="USD";
-   }
-   if(diff<maxdn)
-   {
-      maxdn=diff;
-      dn="USD";
-   }
-   diff=EURplot[0]-EURplot[1];
-   if(diff>maxup)
-   {
-      maxup=diff;
-      up="EUR";
-   }
-   if(diff<maxdn)
-   {
-      maxdn=diff;
-      dn="EUR";
-   }
-   diff=GBPplot[0]-GBPplot[1];
-   if(diff>maxup)
-   {
-      maxup=diff;
-      up="GBP";
-   }
-   if(diff<maxdn)
-   {
-      maxdn=diff;
-      dn="GBP";
-   }
-   diff=JPYplot[0]-JPYplot[1];
-   if(diff>maxup)
-   {
-      maxup=diff;
-      up="JPY";
-   }
-   if(diff<maxdn)
-   {
-      maxdn=diff;
-      dn="JPY";
-   }
-   diff=CHFplot[0]-CHFplot[1];
-   if(diff>maxup)
-   {
-      maxup=diff;
-      up="CHF";
-   }
-   if(diff<maxdn)
-   {
-      maxdn=diff;
-      dn="CHF";
-   }
-   diff=CADplot[0]-CADplot[1];
-   if(diff>maxup)
-   {
-      maxup=diff;
-      up="CAD";
-   }
-   if(diff<maxdn)
-   {
-      maxdn=diff;
-      dn="CAD";
-   }
-   diff=AUDplot[0]-AUDplot[1];
-   if(diff>maxup)
-   {
-      maxup=diff;
-      up="AUD";
-   }
-   if(diff<maxdn)
-   {
-      maxdn=diff;
-      dn="AUD";
-   }
-   diff=NZDplot[0]-NZDplot[1];
-   if(diff>maxup)
-   {
-      maxup=diff;
-      up="NZD";
-   }
-   if(diff<maxdn)
-   {
-      maxdn=diff;
-      dn="NZD";
-   }
+   TypeUpdown ud={0,0,"","",false,false};
 
-   string oname = namespace+"-StrongestMove";
+   CheckUpDown("USD",ud,USDplot,range);
+   CheckUpDown("EUR",ud,EURplot,range);
+   CheckUpDown("GBP",ud,GBPplot,range);
+   CheckUpDown("JPY",ud,JPYplot,range);
+   CheckUpDown("CHF",ud,CHFplot,range);
+   CheckUpDown("CAD",ud,CADplot,range);
+   CheckUpDown("AUD",ud,AUDplot,range);
+   CheckUpDown("NZD",ud,NZDplot,range);
+   
+   bool signal=false;
+   color c=DimGray;
+   string pair=NormalizePairing(ud.up+ud.dn);
+   if(ud.isupreversal && ud.isdnreversal)
+   {
+      c=DodgerBlue;
+      if(PeriodSeconds()-(TimeCurrent()-arrTime[0])<=20 && !tradesignal.open && test_forward_trading && range==1)
+      {
+         signal=true;
+         tradesignal.open=true;
+         tradesignal.candles=test_trading_candle_expiration;
+         tradesignal.candleendtime=arrTime[0]+(PeriodSeconds()*tradesignal.candles);
+         tradesignal.pair=pair;
+         tradesignal.direction="up";
+         if(StringFind(pair,ud.up)==0)
+            tradesignal.direction="dn";
+         Print(tradesignal.direction+" "+pair+" | "+TimeToString(tradesignal.candleendtime));
+      }
+   }
+   AddSymbolButton(1, range, pair,c);
+   if(signal && switch_symbol_on_signal)
+      SwitchSymbol(pair);
+
+}
+
+
+void AddSymbolButton(int col, int row, string text, color _color=DimGray)
+{
+   int xdistance=(col-1)*62+93;
+   int ydistance=(row-1)*16+4;
+   string oname = namespace+"-SymbolButton-"+IntegerToString(col)+"-"+IntegerToString(row);
    ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
    ObjectSetInteger(0,oname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
-   ObjectSetInteger(0,oname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
-   ObjectSetInteger(0,oname,OBJPROP_XDISTANCE,40);
-   ObjectSetInteger(0,oname,OBJPROP_YDISTANCE,10);
-   ObjectSetString(0,oname,OBJPROP_TEXT,NormalizePairing(up+dn));
-   ObjectSetInteger(0,oname,OBJPROP_COLOR,Black);
-   ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,12);
+   ObjectSetInteger(0,oname,OBJPROP_ANCHOR,ANCHOR_LEFT_UPPER);
+   ObjectSetInteger(0,oname,OBJPROP_XDISTANCE,xdistance);
+   ObjectSetInteger(0,oname,OBJPROP_YDISTANCE,ydistance);
+   ObjectSetString(0,oname,OBJPROP_TEXT,text);
+   ObjectSetInteger(0,oname,OBJPROP_COLOR,_color);
+   ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,9);
 }
 
 
@@ -454,8 +447,9 @@ void OnTimer()
    incalculation=true;
    if(CalculateIndex())
    {
-      StrongestMove();
-      CalculateAlert();
+      for(int i=1; i<=20; i++)
+         StrongestMove(i);
+      //CalculateAlert();
       fullinit=false;
    }
    if(currentticktime != lastticktime)
@@ -500,6 +494,15 @@ int OnCalculate(const int rates_total,
       ArrayInitialize(CADplot,EMPTY_VALUE);
       ArrayInitialize(AUDplot,EMPTY_VALUE);
       ArrayInitialize(NZDplot,EMPTY_VALUE);
+
+      //USDplot[0]=USDplot[1];
+      //EURplot[0]=EURplot[1];
+      //GBPplot[0]=GBPplot[1];
+      //CHFplot[0]=CHFplot[1];
+      //JPYplot[0]=JPYplot[1];
+      //CADplot[0]=CADplot[1];
+      //AUDplot[0]=AUDplot[1];
+      //NZDplot[0]=NZDplot[1];
    }
    timerenabled=true;
    if(istesting)
@@ -794,23 +797,97 @@ bool GetRates(string pair, double& buffer[], int bars)
       {
          buffer[copied-i-1]=GetPrice(PriceType,rates,i);
       }
+      CheckTrade(pair,rates,copied);
    }
    return ret;
 }
 
 
+void CheckTrade(string pair, MqlRates& rates[], int count)
+{
+   if(tradesignal.open && tradesignal.pair==pair)
+   {
+      if(rates[count-2].time>=tradesignal.candleendtime)
+      {
+         string candledirection="up";
+         if(rates[count-2].close<rates[count-1-tradesignal.candles].open)
+            candledirection="dn";
+         SetTradeResults((candledirection==tradesignal.direction));
+         if(!istesting)
+         {
+            MqlDateTime dt;
+            TimeToStruct(tradesignal.candleendtime,dt);
+            string filename=IntegerToString(dt.year)+"-"+IntegerToString(dt.mon,2,'0')+"-"+IntegerToString(dt.day,2,'0')+"-"+IntegerToString(dt.hour,2,'0')+"-"+IntegerToString(dt.min,2,'0');
+            string on=namespace+"TempScreenShot";
+            ENUM_OBJECT ot=OBJ_ARROW_CHECK;
+            color c=MediumSeaGreen;
+            if(candledirection!=tradesignal.direction)
+            {
+               ot=OBJ_ARROW_STOP;
+               c=DeepPink;
+            }
+            ObjectCreate(0,on,ot,0,rates[count-2].time,rates[count-2].high+(_Point*0));
+            ObjectSetInteger(0,on,OBJPROP_WIDTH,5);
+            ObjectSetInteger(0,on,OBJPROP_ANCHOR,ANCHOR_BOTTOM);
+            ObjectSetInteger(0,on,OBJPROP_COLOR,c);
+            ChartScreenShot(0,filename+".png",1280,720);
+            ObjectDelete(0,on);
+         }
+         tradesignal.open=false;
+      }
+   }
+}
+
+
+void SetTradeResults(bool won)
+{
+   Print("Won "+IntegerToString(won));
+
+   string oname1 = namespace+"-TradesWon";
+   string oname2 = namespace+"-TradesTotal";
+   if(ObjectFind(0,oname1)<0)
+   {
+      ObjectCreate(0,oname1,OBJ_LABEL,ChartWindowFind(),0,0);
+      ObjectSetInteger(0,oname1,OBJPROP_CORNER,CORNER_LEFT_UPPER);
+      ObjectSetInteger(0,oname1,OBJPROP_ANCHOR,ANCHOR_LEFT_UPPER);
+      ObjectSetInteger(0,oname1,OBJPROP_XDISTANCE,20);
+      ObjectSetInteger(0,oname1,OBJPROP_YDISTANCE,25);
+      ObjectSetString(0,oname1,OBJPROP_TEXT,"0");
+      ObjectSetInteger(0,oname1,OBJPROP_COLOR,Black);
+      ObjectSetInteger(0,oname1,OBJPROP_FONTSIZE,12);
+   }
+   if(won)
+      ObjectSetString(0,oname1,OBJPROP_TEXT,IntegerToString(StringToInteger(ObjectGetString(0,oname1,OBJPROP_TEXT))+1));
+   if(ObjectFind(0,oname2)<0)
+   {
+      ObjectCreate(0,oname2,OBJ_LABEL,ChartWindowFind(),0,0);
+      ObjectSetInteger(0,oname2,OBJPROP_CORNER,CORNER_LEFT_UPPER);
+      ObjectSetInteger(0,oname2,OBJPROP_ANCHOR,ANCHOR_LEFT_UPPER);
+      ObjectSetInteger(0,oname2,OBJPROP_XDISTANCE,60);
+      ObjectSetInteger(0,oname2,OBJPROP_YDISTANCE,25);
+      ObjectSetString(0,oname2,OBJPROP_TEXT,"1");
+      ObjectSetInteger(0,oname2,OBJPROP_COLOR,Black);
+      ObjectSetInteger(0,oname2,OBJPROP_FONTSIZE,12);
+   }
+   else
+   {
+      ObjectSetString(0,oname2,OBJPROP_TEXT,IntegerToString(StringToInteger(ObjectGetString(0,oname2,OBJPROP_TEXT))+1));
+   }
+}
+
+
 int DrawObjects(string name,color _color)
 {
-   string oname = namespace+"-"+name;
+   string oname = namespace+"-Currency-"+name;
    ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
    ObjectSetInteger(0,oname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
    ObjectSetInteger(0,oname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
-   ObjectSetInteger(0,oname,OBJPROP_XDISTANCE,5);
+   ObjectSetInteger(0,oname,OBJPROP_XDISTANCE,6);
    ObjectSetInteger(0,oname,OBJPROP_YDISTANCE,y_pos);
    ObjectSetString(0,oname,OBJPROP_TEXT,name);
    ObjectSetInteger(0,oname,OBJPROP_COLOR,_color);
-   ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,8);
-   y_pos+=15;
+   ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,9);
+   y_pos+=16;
    return(0);
 }
 
@@ -818,7 +895,7 @@ int DrawObjects(string name,color _color)
 int WriteComment(string text)
 {
    string name=namespace+"-f_comment";
-   color _color=Gray;
+   color _color=DimGray;
    ObjectCreate(0,name,OBJ_LABEL,ChartWindowFind(),0,0);
    ObjectSetInteger(0,name,OBJPROP_CORNER,CORNER_LEFT_LOWER);
    ObjectSetInteger(0,name,OBJPROP_ANCHOR,ANCHOR_LEFT_LOWER);
@@ -964,12 +1041,36 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 {
    if(id==CHARTEVENT_OBJECT_CLICK)
    {
-      if(StringFind(sparam,"-StrongestMove")>-1)
+      if(StringFind(sparam,"-SymbolButton")>-1)
+      {
+         SwitchSymbol(ObjectGetString(0,sparam,OBJPROP_TEXT));
+      }
+      if(StringFind(sparam,"-Currency")>-1 && !draw_current_pairs_only)
       {
          string z=ObjectGetString(0,sparam,OBJPROP_TEXT);
-         //printf("I am %s, my text is %s",sparam,z);
-         if(ChartSymbol()!=z)
-            ChartSetSymbolPeriod(0,z,_Period);
+         z=StringSubstr(z,StringLen(z)-3);
+         if(currencyclicked==NULL)
+         {
+            currencyclicked=z;
+         }
+         else
+         {
+            SwitchSymbol(NormalizePairing(z+currencyclicked));
+            currencyclicked=NULL;
+         }
       }
+   }
+}
+
+
+void SwitchSymbol(string tosymbol)
+{
+   if(istesting)
+      return;
+   string currentsymbol=ChartSymbol();
+   if(currentsymbol!=tosymbol)
+   {
+      ChartSetSymbolPeriod(0,tosymbol,_Period);
+      AddSymbolButton(2, 1, currentsymbol);
    }
 }
