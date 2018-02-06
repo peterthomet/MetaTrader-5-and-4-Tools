@@ -8,7 +8,7 @@
 #property version   "2.0"
 #property indicator_separate_window
 
-#property indicator_buffers 52
+#property indicator_buffers 53
 #property indicator_plots 8
 
 #include <MovingAverages.mqh>
@@ -117,7 +117,8 @@ double EURUSD[], // quotes
        CHFrsi[],
        CADrsi[],
        AUDrsi[],
-       NZDrsi[];
+       NZDrsi[],
+       UpDn[]; // buffers of intermediate data rsi
 
 int y_pos = 4; // Y coordinate variable for the informatory objects  
 datetime arrTime[28]; // Array with the last known time of a zero valued bar (needed for synchronization)  
@@ -276,6 +277,11 @@ void OnInit()
    InitBuffer(49,NZDJPY,INDICATOR_CALCULATIONS);
    InitBuffer(50,NZDCHF,INDICATOR_CALCULATIONS);
    InitBuffer(51,CHFJPY,INDICATOR_CALCULATIONS);
+
+   SetIndexBuffer(52,UpDn,INDICATOR_CALCULATIONS);
+   ArraySetAsSeries(UpDn,true);
+   ArrayInitialize(UpDn,EMPTY_VALUE);
+
    EventSetTimer(1);
 }
 
@@ -360,9 +366,26 @@ void StrongestMove(int range)
    bool signal=false;
    color c=DimGray;
    string pair=NormalizePairing(ud.up+ud.dn);
-   if(ud.isupreversal && ud.isdnreversal)
+   bool up=false;
+   if(StringFind(pair,ud.up)==0)
    {
       c=DodgerBlue;
+      up=true;
+   }
+   if(StringFind(pair,Symbol())==0)
+   {
+      if(up)
+         UpDn[range-1]=1;
+      else
+         UpDn[range-1]=-1;
+   }
+   else
+   {
+      UpDn[range-1]=0;
+   }
+   if(ud.isupreversal && ud.isdnreversal)
+   {
+      //c=DodgerBlue;
       if(PeriodSeconds()-(TimeCurrent()-arrTime[0])<=20 && !tradesignal.open && test_forward_trading && range==1)
       {
          signal=true;
