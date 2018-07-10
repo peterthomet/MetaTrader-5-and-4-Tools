@@ -215,7 +215,7 @@ bool PivotsGetPivots(datetime timeref)
 bool PivotsCalculatePivots(TypePivotsTimeRange& times, TypePivotsType type, TypePivots& p)
 {
    int count;
-   double High[],Low[],Close[],Open[],HighDay,LowDay,CloseDay,OpenDay;
+   double Highx[],Lowx[],Closex[],Openx[],HighDay,LowDay,CloseDay,OpenDay;
    double range=0,pivot=0,support1=0,support2=0,support3=0,support4=0,support5=0,resistance1=0,resistance2=0,resistance3=0,resistance4=0,resistance5=0,mplus=0,mplusplus=0,mminus=0,mminusminus=0;
 
    p.P=0;
@@ -234,22 +234,32 @@ bool PivotsCalculatePivots(TypePivotsTimeRange& times, TypePivotsType type, Type
    p.MM=0;
    p.MMM=0;
 
-   count=CopyHigh(NULL,PERIOD_H1,times.start,times.end,High);
+   count=CopyHigh(NULL,PERIOD_H1,times.start,times.end,Highx);
    if(count<=0)
       return false;
-   HighDay=High[ArrayMaximum(High,0,count)];
-   count=CopyLow(NULL,PERIOD_H1,times.start,times.end,Low);
+#ifdef __MQL5__
+   HighDay=Highx[ArrayMaximum(Highx,0,count)];
+#endif
+#ifdef __MQL4__
+   HighDay=Highx[ArrayMaximum(Highx,count,0)];
+#endif
+   count=CopyLow(NULL,PERIOD_H1,times.start,times.end,Lowx);
    if(count<=0)
       return false;
-   LowDay=Low[ArrayMinimum(Low,0,count)];
-   count=CopyClose(NULL,PERIOD_H1,times.end,1,Close);
+#ifdef __MQL5__
+   LowDay=Lowx[ArrayMinimum(Lowx,0,count)];
+#endif
+#ifdef __MQL4__
+   LowDay=Lowx[ArrayMinimum(Lowx,count,0)];
+#endif
+   count=CopyClose(NULL,PERIOD_H1,times.end,1,Closex);
    if(count<=0)
       return false;
-   CloseDay=Close[0];
-   count=CopyOpen(NULL,_Period,times.end+1,1,Open);
+   CloseDay=Closex[0];
+   count=CopyOpen(NULL,_Period,times.end+1,1,Openx);
    if(count<=0)
       return false;
-   OpenDay=Open[0];
+   OpenDay=Openx[0];
 
    switch(type)
    {
@@ -284,10 +294,14 @@ bool PivotsCalculatePivots(TypePivotsTimeRange& times, TypePivotsType type, Type
          pivot=(CloseDay+HighDay+LowDay)/3;
          support1=pivot-0.382*range;
          support2=pivot-0.618*range;
-         support3=pivot-range;
+         support3=pivot-0.786*range;
+         support4=pivot-range;
+         support5=pivot-1.382*range;
          resistance1=pivot+0.382*range;
          resistance2=pivot+0.618*range;
-         resistance3=pivot+range;
+         resistance3=pivot+0.786*range;
+         resistance4=pivot+range;
+         resistance5=pivot+1.382*range;
          break;
       case PIVOT_DEMARK:
          if(CloseDay<OpenDay) pivot=HighDay+2*LowDay+CloseDay;
@@ -399,6 +413,8 @@ TypePivotsTimeRange PivotsCalculatePivotRange(TypePivotsPeriod period)
    times.end=0;
    times.period=period;
    
+   int houroffset, h1hour;
+   
    if(period==HOUR)
    {
       times.startdisplay=PD.Settings.currenth1time;
@@ -412,12 +428,12 @@ TypePivotsTimeRange PivotsCalculatePivotRange(TypePivotsPeriod period)
    }
    if(period==FOURHOUR)
    {
-      int houroffset=PD.Settings.dayhourstart;
+      houroffset=PD.Settings.dayhourstart;
       if(houroffset>12)
          houroffset=PD.Settings.dayhourstart-24;
       MqlDateTime h1time;
       TimeToStruct(PD.Settings.currenth1time,h1time);
-      int h1hour=h1time.hour;
+      h1hour=h1time.hour;
       int h4start=(int)(MathFloor((h1time.hour-houroffset)/4)*4)+houroffset;
       times.startdisplay=PD.Settings.currenth1time-(PeriodSeconds(PERIOD_H1)*(h1hour-h4start));
       times.enddisplay=times.startdisplay+(PeriodSeconds(PERIOD_H1)*4)-1;
@@ -430,12 +446,12 @@ TypePivotsTimeRange PivotsCalculatePivotRange(TypePivotsPeriod period)
    }
    if(period==DAY)
    {
-      int houroffset=PD.Settings.dayhourstart;
+      houroffset=PD.Settings.dayhourstart;
       if(houroffset>12)
          houroffset=PD.Settings.dayhourstart-24;
       MqlDateTime h1time;
       TimeToStruct(PD.Settings.currenth1time,h1time);
-      int h1hour=h1time.hour;
+      h1hour=h1time.hour;
       int daystart=(int)(MathFloor((h1time.hour-houroffset)/24)*24)+houroffset;
       times.startdisplay=PD.Settings.currenth1time-(PeriodSeconds(PERIOD_H1)*(h1hour-daystart));
       times.enddisplay=times.startdisplay+(PeriodSeconds(PERIOD_H1)*24)-1;
@@ -453,7 +469,7 @@ TypePivotsTimeRange PivotsCalculatePivotRange(TypePivotsPeriod period)
    {
       times.startdisplay=PD.Settings.weekstarttime;
       times.enddisplay=times.startdisplay+(PeriodSeconds(PERIOD_H1)*(24*5))-1;
-      times.start=times.startdisplay-(PeriodSeconds(PERIOD_H1)*(24*5));
+      times.start=times.startdisplay-(PeriodSeconds(PERIOD_H1)*(24*7));
       times.end=times.start+(PeriodSeconds(PERIOD_H1)*(24*5))-1;
    }
 
@@ -492,7 +508,7 @@ void PivotsCreateLine(TypePivotsTimeRange& time, double price, color clr, string
    if(time.period==WEEK) style=PD.Settings.LineStyleWeek;
    string objname = PD.Settings.objectnamespace + " " + PivotsPivotPeriodToString(time.period) + " " + level + " " + PivotsPivotTypeToString(type);
    ObjectCreate(0,objname,OBJ_TREND,0,time.startdisplay,price,time.enddisplay,price);
-   //ObjectSetInteger(0,objname,OBJPROP_RAY_RIGHT,true);
+   ObjectSetInteger(0,objname,OBJPROP_RAY_RIGHT,false);
    ObjectSetInteger(0,objname,OBJPROP_STYLE,style);
    ObjectSetInteger(0,objname,OBJPROP_WIDTH,width);
    ObjectSetInteger(0,objname,OBJPROP_COLOR,clr);
