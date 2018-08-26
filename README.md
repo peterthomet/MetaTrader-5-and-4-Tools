@@ -1,2 +1,2 @@
-# Indicators for MetaTrader 5
-Some MT5 indicators I use for my trading. Feel free to contribute improvements and let me know if I can do something for you.
+# Indicators and EA Snippets for MetaTrader 5
+Some MT5 indicators I use for my trading. Some I have created, some are just conversions from other authors. You can also find some EA snippets where I have tested unconventional ideas. I love it to play around with insane ideas where most people usually stop thinking further. Feel free to contribute improvements and let me know your unconventional and insane ideas :)
