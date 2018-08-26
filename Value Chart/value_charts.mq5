@@ -41,11 +41,14 @@ double MiddleAverage[];
 double _AValue;
 double _BValue;
 int lastalert = 0;
+datetime lastflag = 0;
+datetime lastmark = 0;
+string namespace = "ValueChart-";
 //+------------------------------------------------------------------+
 //| Custom indicator initialization function                         |
 //+------------------------------------------------------------------+
 void OnInit()
-  {
+{
 //--- indicator buffers mapping 
    SetIndexBuffer(0,ExtOBuffer,INDICATOR_DATA);
    SetIndexBuffer(1,ExtHBuffer,INDICATOR_DATA);
@@ -57,15 +60,17 @@ void OnInit()
 //---
    IndicatorSetInteger(INDICATOR_DIGITS,_Digits);
    IndicatorSetString(INDICATOR_SHORTNAME,"Value Chart "+IntegerToString(Periode));
-//--- initialization done
-  }
+
+   lastmark=TimeCurrent();
+}
 //+------------------------------------------------------------------+
 //| Custom indicator deinitialization function                       |
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
   {
    ClearMyObjects();
-   Print("Deinit Value Chart, reason = "+IntegerToString(reason));
+   //Print("Deinit Value Chart, reason = "+IntegerToString(reason));
+   ResetColorFlag(true);
   }
 //+------------------------------------------------------------------+
 //| Value Chart                                                      | 
@@ -115,17 +120,47 @@ int OnCalculate(const int rates_total,
       if(ExtCBuffer[i]>ExtOBuffer[i])
          ExtColorBuffer[i]=1.0;
 
+
+      int alertsecondsbefore=60;
+      if(PeriodSeconds()==60)
+         alertsecondsbefore=40;
+      if(Alert && rates_total == prev_calculated && lastalert != rates_total)
+      {
+         if(PeriodSeconds()-(TimeCurrent()-Time[i])<=alertsecondsbefore)
+         {
+            if(ExtLBuffer[i-1]<=-8 && Close[i] > Open[i])
+            {
+               Print(_Symbol + " Oversold");
+               PlaySound("\\Sounds\\cartoon014.wav");
+               SetColorFlag();
+               lastalert = rates_total;
+            }
+            if(ExtHBuffer[i-1]>=8 && Close[i] < Open[i])
+            {
+               Print(_Symbol + " Overbought");
+               PlaySound("\\Sounds\\cartoon014.wav");
+               SetColorFlag();
+               lastalert = rates_total;
+            }
+         }
+      }
+
+
+
       //--- check for lower extreme bar   
       if(ExtLBuffer[i]<=-8)
         {
          ExtColorBuffer[i]=2.0;
          if(Show_Arrow)Trace("Value Chart"+IntegerToString(i),1,Low[i],Time[i],Arrow_Up);
 
-         if(Alert && rates_total == prev_calculated && lastalert != rates_total)
-         {
-            Alert(_Symbol + " Oversold");
-            lastalert = rates_total;
-         }
+         //if(Alert && rates_total == prev_calculated && lastalert != rates_total)
+         //{
+         //   //Alert(_Symbol + " Oversold");
+         //   Print(_Symbol + " Oversold");
+         //   PlaySound("\\Sounds\\cartoon014.wav");
+         //   SetColorFlag();
+         //   lastalert = rates_total;
+         //}
 
         }
 
@@ -135,16 +170,20 @@ int OnCalculate(const int rates_total,
          ExtColorBuffer[i]=2.0;
          if(Show_Arrow)Trace("Value Chart"+IntegerToString(i),-1,High[i],Time[i],Arrow_Down);
 
-         if(Alert && rates_total == prev_calculated && lastalert != rates_total)
-         {
-            Alert(_Symbol + " Overbought");
-            lastalert = rates_total;
-         }
+         //if(Alert && rates_total == prev_calculated && lastalert != rates_total)
+         //{
+         //   //Alert(_Symbol + " Overbought");
+         //   Print(_Symbol + " Overbought");
+         //   PlaySound("\\Sounds\\cartoon014.wav");
+         //   SetColorFlag();
+         //   lastalert = rates_total;
+         //}
 
         }
 
      }
-//--- return value of prev_calculated for next call
+     ResetColorFlag();
+     UpdateMark();
    return(rates_total);
   }
 //+------------------------------------------------------------------+
@@ -152,24 +191,112 @@ int OnCalculate(const int rates_total,
 //+------------------------------------------------------------------+
 void Trace(string name,int sens,double price,datetime time,color couleur)
   {
-   ObjectCreate(0,name,OBJ_ARROW,0,time,price);
+   ObjectCreate(0,namespace+name,OBJ_ARROW,0,time,price);
    if(sens==1)
-      ObjectSetInteger(0,name,OBJPROP_ARROWCODE,233);
+      ObjectSetInteger(0,namespace+name,OBJPROP_ARROWCODE,233);
    if(sens==-1)
-      ObjectSetInteger(0,name,OBJPROP_ARROWCODE,234);
-   ObjectSetInteger(0,name,OBJPROP_COLOR,couleur);
-   ObjectSetInteger(0,name,OBJPROP_WIDTH,Arrow_Width);
+      ObjectSetInteger(0,namespace+name,OBJPROP_ARROWCODE,234);
+   ObjectSetInteger(0,namespace+name,OBJPROP_COLOR,couleur);
+   ObjectSetInteger(0,namespace+name,OBJPROP_WIDTH,Arrow_Width);
   }
 //+------------------------------------------------------------------+
 //|   Delete Arrow Function                                          |
 //+------------------------------------------------------------------+  
 void ClearMyObjects()
-  {
-   string name;
-   for(int i=ObjectsTotal(0,0); i>=0; i--)
-     {
-      name=ObjectName(0,i);
-      if(StringSubstr(name,0,5)=="Value") ObjectDelete(0,name);
-     }
-  }
+{
+   ObjectsDeleteAll(0,namespace);
+}
 //+------------------------------------------------------------------+
+
+
+void ResetColorFlag(bool init=false)
+{
+   string on = namespace + "Flag";
+   if(ObjectFind(0,on)==0)
+   {
+      int timediff=(int)TimeCurrent()-(int)lastflag;
+      int newwidth=200-(timediff/4);
+      if(newwidth<20)
+         newwidth=20;
+      ObjectSetInteger(0,on,OBJPROP_XSIZE,newwidth);
+      if(timediff > 1000 || init)
+         ObjectDelete(0,on);
+   }
+}
+
+
+void SetColorFlag()
+{
+   string on = namespace + "Flag";
+   ObjectCreate(0,on,OBJ_RECTANGLE_LABEL,0,0,0);
+   ObjectSetInteger(0,on,OBJPROP_XDISTANCE,0);
+   ObjectSetInteger(0,on,OBJPROP_YDISTANCE,15);
+   ObjectSetInteger(0,on,OBJPROP_XSIZE,200);
+   ObjectSetInteger(0,on,OBJPROP_YSIZE,20);
+   ObjectSetInteger(0,on,OBJPROP_BGCOLOR,Black);
+   ObjectSetInteger(0,on,OBJPROP_BORDER_TYPE,BORDER_FLAT);
+   ObjectSetInteger(0,on,OBJPROP_CORNER,CORNER_LEFT_UPPER);
+   ObjectSetInteger(0,on,OBJPROP_WIDTH,0);
+   ObjectSetInteger(0,on,OBJPROP_SELECTED,false);
+   lastflag=TimeCurrent();
+}
+
+
+static bool ctrl_pressed = false;
+void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
+{
+   if(id==CHARTEVENT_KEYDOWN)
+   {
+      if (ctrl_pressed == false && lparam == 17)
+      {
+         ctrl_pressed = true;
+      }
+      else if (ctrl_pressed == true)
+      {
+         if (lparam == 49)
+         {
+            SetMark();
+            ctrl_pressed = false;
+         }
+      }
+   }
+   return;
+}
+
+
+void SetMark()
+{
+   string on = "Mark";
+   if(ObjectFind(0,on)==0)
+   {
+      ObjectDelete(0,on);
+   }
+   else
+   {
+      ObjectCreate(0,on,OBJ_RECTANGLE_LABEL,0,0,0);
+      ObjectSetInteger(0,on,OBJPROP_XDISTANCE,0);
+      ObjectSetInteger(0,on,OBJPROP_YDISTANCE,35);
+      ObjectSetInteger(0,on,OBJPROP_XSIZE,200);
+      ObjectSetInteger(0,on,OBJPROP_YSIZE,20);
+      ObjectSetInteger(0,on,OBJPROP_BGCOLOR,DeepPink);
+      ObjectSetInteger(0,on,OBJPROP_BORDER_TYPE,BORDER_FLAT);
+      ObjectSetInteger(0,on,OBJPROP_CORNER,CORNER_LEFT_UPPER);
+      ObjectSetInteger(0,on,OBJPROP_WIDTH,0);
+      ObjectSetInteger(0,on,OBJPROP_SELECTED,false);
+      lastmark=TimeCurrent();
+   }
+}
+
+
+void UpdateMark()
+{
+   string on = "Mark";
+   if(ObjectFind(0,on)==0)
+   {
+      int timediff=(int)TimeCurrent()-(int)lastmark;
+      int newwidth=200-(timediff/4);
+      if(newwidth<20)
+         newwidth=20;
+      ObjectSetInteger(0,on,OBJPROP_XSIZE,newwidth);
+   }
+}
