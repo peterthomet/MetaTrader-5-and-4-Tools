@@ -56,15 +56,17 @@ input color Color_AUD = DarkOrange;       // AUD line color
 input color Color_CAD = MediumVioletRed;           // CAD line color
 input color Color_NZD = Silver;         // NZD line color
 
+input int wid_standard = 1; //Lines width
 input int wid_main = 3; //Lines width for current chart
 input ENUM_LINE_STYLE style_slave = STYLE_SOLID; //Style of alternative lines for current chart
 input bool all_solid = false; //Draw all main style
 input bool draw_current_pairs_only = false; //Draw indexes of current pairs only
 input bool switch_symbol_on_signal = false; //Switch Symbol on Signal
 input bool test_forward_trading = false; //Test Forward Trading
-input bool alert_momentum = true; //Alert Momentum
+input bool alert_momentum = false; //Alert Momentum
 input bool show_strongest = false; //Show Strongest Move
 input int test_trading_candle_expiration = 3; //Test Trading Candle Expiration
+input bool switch_symbol_on_click_all_charts = false; //On Click Switch Symbol at all Charts
 
 double EURUSD[], // quotes
        GBPUSD[],
@@ -136,6 +138,9 @@ bool istesting;
 datetime lasttestevent;
 datetime lastalert;
 int _BarsToCalculate;
+bool MoveToCursor;
+int CursorBarIndex=0;
+string ExtraChars = "";
 CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 CJJMA jjmaUSD;
 
@@ -171,6 +176,7 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
    if(currency!=NULL)
    {
       PlotIndexSetString(idx,PLOT_LABEL,currency+"plot");
+      PlotIndexSetInteger(idx,PLOT_SHOW_DATA,false);
       PlotIndexSetInteger(idx,PLOT_DRAW_BEGIN,_BarsToCalculate);
       PlotIndexSetInteger(idx,PLOT_DRAW_TYPE,DRAW_LINE);
       PlotIndexSetInteger(idx,PLOT_LINE_COLOR,col);
@@ -191,7 +197,7 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
          else
          {
             PlotIndexSetInteger(idx,PLOT_DRAW_TYPE,DRAW_LINE);
-            PlotIndexSetInteger(idx,PLOT_LINE_WIDTH,1);
+            PlotIndexSetInteger(idx,PLOT_LINE_WIDTH,wid_standard);
             PlotIndexSetInteger(idx,PLOT_LINE_STYLE,style_slave);
          }
       }
@@ -207,6 +213,8 @@ void OnInit()
    
    _BarsToCalculate = BarsToCalculate;
    //_BarsToCalculate = BarsToCalculate+30;
+
+   ExtraChars = StringSubstr(Symbol(), 6);
    
    IndicatorSetInteger(INDICATOR_DIGITS,5);
 
@@ -282,12 +290,18 @@ void OnInit()
    ArraySetAsSeries(UpDn,true);
    ArrayInitialize(UpDn,EMPTY_VALUE);
 
-   EventSetTimer(1);
+   if(!istesting)
+   {
+      EventSetTimer(1);
+      ChartSetInteger(0,CHART_EVENT_MOUSE_MOVE,true);
+   }
 }
 
 
 void OnDeinit(const int reason)
 {
+   if(istesting)
+      return;
    if(reason!=REASON_CHARTCHANGE)
       ObjectsDeleteAll(0,namespace,ChartWindowFind());
    EventKillTimer();
@@ -349,8 +363,8 @@ void CheckUpDown(string currency, TypeUpdown& ud, double& arr[], int range)
 
 void StrongestMove(int range)
 {
-   if(!show_strongest)
-      return;
+   //if(!show_strongest)
+   //   return;
 
    TypeUpdown ud={0,0,"","",false,false};
 
@@ -372,12 +386,13 @@ void StrongestMove(int range)
       c=DodgerBlue;
       up=true;
    }
-   if(StringFind(pair,Symbol())==0)
+   if(StringFind(pair+ExtraChars,Symbol())==0)
    {
       if(up)
          UpDn[range-1]=1;
       else
          UpDn[range-1]=-1;
+      //Print(UpDn[range-1]);
    }
    else
    {
@@ -399,7 +414,8 @@ void StrongestMove(int range)
          Print(tradesignal.direction+" "+pair+" | "+TimeToString(tradesignal.candleendtime));
       }
    }
-   AddSymbolButton(1, range, pair,c);
+   if(show_strongest)
+      AddSymbolButton(1, range, pair,c);
    if(signal && switch_symbol_on_signal)
       SwitchSymbol(pair);
 
@@ -424,35 +440,40 @@ void AddSymbolButton(int col, int row, string text, color _color=DimGray)
 
 string NormalizePairing(string pair)
 {
-   if(pair=="USDEUR") return "EURUSD";
-   if(pair=="USDGBP") return "GBPUSD";
-   if(pair=="CHFUSD") return "USDCHF";
-   if(pair=="JPYUSD") return "USDJPY";
-   if(pair=="CADUSD") return "USDCAD";
-   if(pair=="USDAUD") return "AUDUSD";
-   if(pair=="USDNZD") return "NZDUSD";
-   if(pair=="NZDEUR") return "EURNZD";
-   if(pair=="CADEUR") return "EURCAD";
-   if(pair=="AUDEUR") return "EURAUD";
-   if(pair=="JPYEUR") return "EURJPY";
-   if(pair=="CHFEUR") return "EURCHF";
-   if(pair=="GBPEUR") return "EURGBP";
-   if(pair=="NZDGBP") return "GBPNZD";
-   if(pair=="AUDGBP") return "GBPAUD";
-   if(pair=="CADGBP") return "GBPCAD";
-   if(pair=="JPYGBP") return "GBPJPY";
-   if(pair=="CHFGBP") return "GBPCHF";
-   if(pair=="JPYCAD") return "CADJPY";
-   if(pair=="CHFCAD") return "CADCHF";
-   if(pair=="CADAUD") return "AUDCAD";
-   if(pair=="CADNZD") return "NZDCAD";
-   if(pair=="CHFAUD") return "AUDCHF";
-   if(pair=="JPYAUD") return "AUDJPY";
-   if(pair=="NZDAUD") return "AUDNZD";
-   if(pair=="JPYNZD") return "NZDJPY";
-   if(pair=="CHFNZD") return "NZDCHF";
-   if(pair=="JPYCHF") return "CHFJPY";
-   return pair;
+   string p=pair;
+   bool c=false;
+   if(p=="USDEUR") c=true;
+   if(p=="USDGBP") c=true;
+   if(p=="CHFUSD") c=true;
+   if(p=="JPYUSD") c=true;
+   if(p=="CADUSD") c=true;
+   if(p=="USDAUD") c=true;
+   if(p=="USDNZD") c=true;
+   if(p=="NZDEUR") c=true;
+   if(p=="CADEUR") c=true;
+   if(p=="AUDEUR") c=true;
+   if(p=="JPYEUR") c=true;
+   if(p=="CHFEUR") c=true;
+   if(p=="GBPEUR") c=true;
+   if(p=="NZDGBP") c=true;
+   if(p=="AUDGBP") c=true;
+   if(p=="CADGBP") c=true;
+   if(p=="JPYGBP") c=true;
+   if(p=="CHFGBP") c=true;
+   if(p=="JPYCAD") c=true;
+   if(p=="CHFCAD") c=true;
+   if(p=="CADAUD") c=true;
+   if(p=="CADNZD") c=true;
+   if(p=="CHFAUD") c=true;
+   if(p=="JPYAUD") c=true;
+   if(p=="NZDAUD") c=true;
+   if(p=="JPYNZD") c=true;
+   if(p=="CHFNZD") c=true;
+   if(p=="JPYCHF") c=true;
+   if(c)
+      p=StringSubstr(p,3,3)+StringSubstr(p,0,3);
+   //return p+ExtraChars;
+   return p;
 }
 
 
@@ -470,7 +491,10 @@ void OnTimer()
    incalculation=true;
    if(CalculateIndex())
    {
-      for(int i=1; i<=20; i++)
+      int strongcount=20;
+      if(BarsToCalculate<strongcount-1)
+         strongcount=BarsToCalculate-1;
+      for(int i=1; i<=strongcount; i++)
          StrongestMove(i);
       //CalculateAlert();
       fullinit=false;
@@ -808,7 +832,7 @@ bool GetRates(string pair, double& buffer[], int bars)
    bool ret = true;
    int copied;
    MqlRates rates[];
-   copied=CopyRates(pair,PERIOD_CURRENT,0,_BarsToCalculate,rates);
+   copied=CopyRates(pair+ExtraChars,PERIOD_CURRENT,0,_BarsToCalculate,rates);
    if(copied==-1)
    {
       WriteComment("Wait..."+pair);
@@ -990,8 +1014,8 @@ bool GetPairData(string pair)
       return false;
    int copy;
    index++;
-   bars_tf[index]=Bars(pair,PERIOD_CURRENT);
-   copy=CopyTime(pair,PERIOD_CURRENT,0,1,tmp_time);
+   bars_tf[index]=Bars(pair+ExtraChars,PERIOD_CURRENT);
+   copy=CopyTime(pair+ExtraChars,PERIOD_CURRENT,0,1,tmp_time);
    arrTime[index]=tmp_time[0];
    return true;
 }
@@ -1060,8 +1084,46 @@ double GetPrice(int tprice, MqlRates& rates[], int i)
 }
 
 
+static bool ctrl_pressed = false;
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
+   if(id==CHARTEVENT_KEYDOWN)
+   {
+      if (ctrl_pressed == false && lparam == 17)
+      {
+         ctrl_pressed = true;
+      }
+      else if (ctrl_pressed == true)
+      {
+         if (lparam == 57)
+         {
+            MoveToCursor=!MoveToCursor;
+            ctrl_pressed = false;
+         }
+      }
+   }
+   if(id==CHARTEVENT_MOUSE_MOVE)
+   {
+      int x=(int)lparam;
+      int y=(int)dparam;
+      datetime dt=0;
+      double price=0;
+      int window=0;
+      if(ChartXYToTimePrice(0,x,y,window,dt,price))
+      {
+         dt=dt-(PeriodSeconds()/2);
+         datetime Arr[],time1;
+         if(CopyTime(Symbol(),Period(),0,1,Arr)==1)
+         {
+            time1=Arr[0];
+            if(CopyTime(Symbol(),Period(),dt,time1,Arr)>0)
+            {
+               CursorBarIndex=ArraySize(Arr)-1;
+               //PrintFormat("Window=%d X=%d  Y=%d  =>  Time=%s  Price=%G Barindex=%i",window,x,y,TimeToString(dt),price,CursorBarIndex);
+            }
+         }
+      }
+   }
    if(id==CHARTEVENT_OBJECT_CLICK)
    {
       if(StringFind(sparam,"-SymbolButton")>-1)
@@ -1090,10 +1152,20 @@ void SwitchSymbol(string tosymbol)
 {
    if(istesting)
       return;
-   string currentsymbol=ChartSymbol();
+   string currentsymbol=StringSubstr(ChartSymbol(),0,6);
    if(currentsymbol!=tosymbol)
    {
-      ChartSetSymbolPeriod(0,tosymbol,_Period);
+      if(switch_symbol_on_click_all_charts)
+      {
+         long chartid=ChartFirst();
+         while(chartid>-1)
+         {
+            if(chartid!=ChartID())
+               ChartSetSymbolPeriod(chartid,tosymbol+ExtraChars,ChartPeriod(chartid));
+            chartid=ChartNext(chartid);
+         }
+      }
+      ChartSetSymbolPeriod(0,tosymbol+ExtraChars,0);
       AddSymbolButton(2, 1, currentsymbol);
    }
 }
