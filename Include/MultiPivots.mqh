@@ -58,10 +58,12 @@ struct TypePivotsSettings
    int dayhourstart;
    datetime weekstarttime;
    bool draw;
+   string symbol;
    TypePivotsSettings()
    {
       currenth1time=0; lasth1time=0; currenth4time=0; lasth4time=0; currentdaytime=0; lastdaytime=0; currentweektime=0; lastweektime=0; weekdaystart=-1; dayhourstart=-1; weekstarttime=0;
       draw=true;
+      symbol=_Symbol;
       objectnamespace="MultiPivots";
       colorPivot=PaleGoldenrod;
       colorS1=LightPink;
@@ -135,33 +137,31 @@ struct TypePivotsData
    TypePivots PivotsFourHour;
    TypePivots PivotsHour;
    TypePivots PivotsWeek;
-   bool Calculate(datetime timeref) { return PivotsGetPivots(timeref); };
+   bool Calculate(datetime timeref) { return PivotsGetPivots(this, timeref); };
 };
 
-TypePivotsData PD;
 
-
-bool PivotsGetPivots(datetime timeref)
+bool PivotsGetPivots(TypePivotsData& PD, datetime timeref)
 {
    datetime dtarr[1];
-   if(CopyTime(_Symbol,PERIOD_H1,timeref,1,dtarr)==1)
+   if(CopyTime(PD.Settings.symbol,PERIOD_H1,timeref,1,dtarr)==1)
    {
       PD.Settings.currenth1time=dtarr[0];
       if(PD.Settings.currenth1time!=PD.Settings.lasth1time)
       {
-         if(!PivotsFindWeekDayStart(timeref))
+         if(!PivotsFindWeekDayStart(PD,timeref))
             return false;
 
          TypePivotsTimeRange times;
 
          if(PD.Settings.PivotTypeWeek>NONE)
          {
-            times=PivotsCalculatePivotRange(WEEK);
+            times=PivotsCalculatePivotRange(PD,WEEK);
             PD.Settings.currentweektime=times.start;
             if(PD.Settings.currentweektime!=PD.Settings.lastweektime)
             {
-               PivotsDeleteObjects(PivotsPivotPeriodToString(times.period));
-               if(!PivotsCalculatePivots(times,PD.Settings.PivotTypeWeek,PD.PivotsWeek))
+               PivotsDeleteObjects(PD,PivotsPivotPeriodToString(times.period));
+               if(!PivotsCalculatePivots(PD,times,PD.Settings.PivotTypeWeek,PD.PivotsWeek))
                   return false;
                PD.Settings.lastweektime=PD.Settings.currentweektime;
             }
@@ -169,12 +169,12 @@ bool PivotsGetPivots(datetime timeref)
 
          if(PD.Settings.PivotTypeDay>NONE)
          {
-            times=PivotsCalculatePivotRange(DAY);
+            times=PivotsCalculatePivotRange(PD,DAY);
             PD.Settings.currentdaytime=times.start;
             if(PD.Settings.currentdaytime!=PD.Settings.lastdaytime)
             {
-               PivotsDeleteObjects(PivotsPivotPeriodToString(times.period));
-               if(!PivotsCalculatePivots(times,PD.Settings.PivotTypeDay,PD.PivotsDay))
+               PivotsDeleteObjects(PD,PivotsPivotPeriodToString(times.period));
+               if(!PivotsCalculatePivots(PD,times,PD.Settings.PivotTypeDay,PD.PivotsDay))
                   return false;
                PD.Settings.lastdaytime=PD.Settings.currentdaytime;
             }
@@ -182,12 +182,12 @@ bool PivotsGetPivots(datetime timeref)
 
          if(PD.Settings.PivotTypeFourHour>NONE)
          {
-            times=PivotsCalculatePivotRange(FOURHOUR);
+            times=PivotsCalculatePivotRange(PD,FOURHOUR);
             PD.Settings.currenth4time=times.start;
             if(PD.Settings.currenth4time!=PD.Settings.lasth4time)
             {
-               PivotsDeleteObjects(PivotsPivotPeriodToString(times.period));
-               if(!PivotsCalculatePivots(times,PD.Settings.PivotTypeFourHour,PD.PivotsFourHour))
+               PivotsDeleteObjects(PD,PivotsPivotPeriodToString(times.period));
+               if(!PivotsCalculatePivots(PD,times,PD.Settings.PivotTypeFourHour,PD.PivotsFourHour))
                   return false;
                PD.Settings.lasth4time=PD.Settings.currenth4time;
             }
@@ -195,9 +195,9 @@ bool PivotsGetPivots(datetime timeref)
 
          if(PD.Settings.PivotTypeHour>NONE)
          {
-            times=PivotsCalculatePivotRange(HOUR);
-            PivotsDeleteObjects(PivotsPivotPeriodToString(times.period));
-            if(!PivotsCalculatePivots(times,PD.Settings.PivotTypeHour,PD.PivotsHour))
+            times=PivotsCalculatePivotRange(PD,HOUR);
+            PivotsDeleteObjects(PD,PivotsPivotPeriodToString(times.period));
+            if(!PivotsCalculatePivots(PD,times,PD.Settings.PivotTypeHour,PD.PivotsHour))
                return false;
          }
 
@@ -212,7 +212,7 @@ bool PivotsGetPivots(datetime timeref)
 }
 
 
-bool PivotsCalculatePivots(TypePivotsTimeRange& times, TypePivotsType type, TypePivots& p)
+bool PivotsCalculatePivots(TypePivotsData& PD, TypePivotsTimeRange& times, TypePivotsType type, TypePivots& p)
 {
    int count;
    double Highx[],Lowx[],Closex[],Openx[],HighDay,LowDay,CloseDay,OpenDay;
@@ -234,7 +234,7 @@ bool PivotsCalculatePivots(TypePivotsTimeRange& times, TypePivotsType type, Type
    p.MM=0;
    p.MMM=0;
 
-   count=CopyHigh(NULL,PERIOD_H1,times.start,times.end,Highx);
+   count=CopyHigh(PD.Settings.symbol,PERIOD_H1,times.start,times.end,Highx);
    if(count<=0)
       return false;
 #ifdef __MQL5__
@@ -243,7 +243,7 @@ bool PivotsCalculatePivots(TypePivotsTimeRange& times, TypePivotsType type, Type
 #ifdef __MQL4__
    HighDay=Highx[ArrayMaximum(Highx,count,0)];
 #endif
-   count=CopyLow(NULL,PERIOD_H1,times.start,times.end,Lowx);
+   count=CopyLow(PD.Settings.symbol,PERIOD_H1,times.start,times.end,Lowx);
    if(count<=0)
       return false;
 #ifdef __MQL5__
@@ -252,11 +252,11 @@ bool PivotsCalculatePivots(TypePivotsTimeRange& times, TypePivotsType type, Type
 #ifdef __MQL4__
    LowDay=Lowx[ArrayMinimum(Lowx,count,0)];
 #endif
-   count=CopyClose(NULL,PERIOD_H1,times.end,1,Closex);
+   count=CopyClose(PD.Settings.symbol,PERIOD_H1,times.end,1,Closex);
    if(count<=0)
       return false;
    CloseDay=Closex[0];
-   count=CopyOpen(NULL,_Period,times.end+1,1,Openx);
+   count=CopyOpen(PD.Settings.symbol,PERIOD_H1,times.end+1,1,Openx);
    if(count<=0)
       return false;
    OpenDay=Openx[0];
@@ -350,23 +350,23 @@ bool PivotsCalculatePivots(TypePivotsTimeRange& times, TypePivotsType type, Type
 
    if(PD.Settings.draw)
    {
-      PivotsCreateLine(times,pivot,PD.Settings.colorPivot,"PP",type);
-      PivotsCreateLine(times,support1,PD.Settings.colorS1,"S1",type);
-      PivotsCreateLine(times,resistance1,PD.Settings.colorR1,"R1",type);
-      PivotsCreateLine(times,support2,PD.Settings.colorS2,"S2",type);
-      PivotsCreateLine(times,resistance2,PD.Settings.colorR2,"R2",type);
-      PivotsCreateLine(times,support3,PD.Settings.colorS3,"S3",type);
-      PivotsCreateLine(times,resistance3,PD.Settings.colorR3,"R3",type);
-      PivotsCreateLine(times,support4,PD.Settings.colorS4,"S4",type);
-      PivotsCreateLine(times,resistance4,PD.Settings.colorR4,"R4",type);
-      PivotsCreateLine(times,support5,PD.Settings.colorS5,"S5",type);
-      PivotsCreateLine(times,resistance5,PD.Settings.colorR5,"R5",type);
+      PivotsCreateLine(PD,times,pivot,PD.Settings.colorPivot,"PP",type);
+      PivotsCreateLine(PD,times,support1,PD.Settings.colorS1,"S1",type);
+      PivotsCreateLine(PD,times,resistance1,PD.Settings.colorR1,"R1",type);
+      PivotsCreateLine(PD,times,support2,PD.Settings.colorS2,"S2",type);
+      PivotsCreateLine(PD,times,resistance2,PD.Settings.colorR2,"R2",type);
+      PivotsCreateLine(PD,times,support3,PD.Settings.colorS3,"S3",type);
+      PivotsCreateLine(PD,times,resistance3,PD.Settings.colorR3,"R3",type);
+      PivotsCreateLine(PD,times,support4,PD.Settings.colorS4,"S4",type);
+      PivotsCreateLine(PD,times,resistance4,PD.Settings.colorR4,"R4",type);
+      PivotsCreateLine(PD,times,support5,PD.Settings.colorS5,"S5",type);
+      PivotsCreateLine(PD,times,resistance5,PD.Settings.colorR5,"R5",type);
       if((times.period==WEEK && PD.Settings.PivotTypeWeekMidPoints) || (times.period==DAY && PD.Settings.PivotTypeDayMidPoints) || (times.period==FOURHOUR && PD.Settings.PivotTypeFourHourMidPoints) || (times.period==HOUR && PD.Settings.PivotTypeHourMidPoints))
       {
-         PivotsCreateLine(times,mminus,PD.Settings.colormidpoints,"M-",type);
-         PivotsCreateLine(times,mminusminus,PD.Settings.colormidpoints,"M--",type);
-         PivotsCreateLine(times,mplus,PD.Settings.colormidpoints,"M+",type);
-         PivotsCreateLine(times,mplusplus,PD.Settings.colormidpoints,"M++",type);
+         PivotsCreateLine(PD,times,mminus,PD.Settings.colormidpoints,"M-",type);
+         PivotsCreateLine(PD,times,mminusminus,PD.Settings.colormidpoints,"M--",type);
+         PivotsCreateLine(PD,times,mplus,PD.Settings.colormidpoints,"M+",type);
+         PivotsCreateLine(PD,times,mplusplus,PD.Settings.colormidpoints,"M++",type);
       }
    }
 
@@ -374,14 +374,14 @@ bool PivotsCalculatePivots(TypePivotsTimeRange& times, TypePivotsType type, Type
 }
 
 
-bool PivotsFindWeekDayStart(datetime timeref)
+bool PivotsFindWeekDayStart(TypePivotsData& PD, datetime timeref)
 {
    if(PD.Settings.weekstarttime>0 && PD.Settings.weekstarttime<=timeref && PD.Settings.weekstarttime>timeref-518400)
       return true;
    int bars=200;
    datetime dtarr[];
    ArraySetAsSeries(dtarr,true);
-   if(CopyTime(_Symbol,PERIOD_H1,timeref,bars,dtarr)==bars)
+   if(CopyTime(PD.Settings.symbol,PERIOD_H1,timeref,bars,dtarr)==bars)
    {
       datetime ref=dtarr[0];
       for(int i=1;i<bars;i++)
@@ -406,7 +406,7 @@ bool PivotsFindWeekDayStart(datetime timeref)
 }
 
 
-TypePivotsTimeRange PivotsCalculatePivotRange(TypePivotsPeriod period)
+TypePivotsTimeRange PivotsCalculatePivotRange(TypePivotsData& PD, TypePivotsPeriod period)
 {
    TypePivotsTimeRange times;
    times.start=0;
@@ -500,7 +500,7 @@ string PivotsPivotTypeToString(TypePivotsType type)
 }
 
 
-void PivotsCreateLine(TypePivotsTimeRange& time, double price, color clr, string level, TypePivotsType type, ENUM_LINE_STYLE style = STYLE_DOT, int width = 1)
+void PivotsCreateLine(TypePivotsData& PD, TypePivotsTimeRange& time, double price, color clr, string level, TypePivotsType type, ENUM_LINE_STYLE style = STYLE_DOT, int width = 1)
 {
    if(time.period==HOUR) style=PD.Settings.LineStyleHour;
    if(time.period==FOURHOUR) style=PD.Settings.LineStyleFourHour;
@@ -552,7 +552,7 @@ double PivotsGetLevelByString(TypePivots& pivots, string level)
 }
 
 
-void PivotsDeleteObjects(string namespace="")
+void PivotsDeleteObjects(TypePivotsData& PD, string namespace="")
 {
    ObjectsDeleteAll(0,PD.Settings.objectnamespace + (StringLen(namespace)==0 ? "" : " " + namespace));
    ChartRedraw();
