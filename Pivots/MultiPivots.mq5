@@ -46,36 +46,37 @@ bool newbar=false;
 long firstbar=0;
 long lastfirstbar=-1;
 bool istesting;
+TypePivotsData pivotsdata;
 
 
 void OnInit()
 {
-   PD.Settings.draw=PlotIndexGetInteger(0,PLOT_SHOW_DATA);
-   PD.Settings.objectnamespace=short_name;
-   PD.Settings.colorPivot=colorPivot;
-   PD.Settings.colorS1=colorS1;
-   PD.Settings.colorR1=colorR1;
-   PD.Settings.colorS2=colorS2;
-   PD.Settings.colorR2=colorR2;
-   PD.Settings.colorS3=colorS3;
-   PD.Settings.colorR3=colorR3;
-   PD.Settings.colorS4=colorS4;
-   PD.Settings.colorR4=colorR4;
-   PD.Settings.colorS5=colorS5;
-   PD.Settings.colorR5=colorR5;
-   PD.Settings.colormidpoints=colormidpoints;
-   PD.Settings.PivotTypeHour=PivotTypeHour;
-   PD.Settings.PivotTypeFourHour=PivotTypeFourHour;
-   PD.Settings.PivotTypeDay=PivotTypeDay;
-   PD.Settings.PivotTypeWeek=PivotTypeWeek;
-   PD.Settings.PivotTypeHourMidPoints=PivotTypeHourMidPoints;
-   PD.Settings.PivotTypeFourHourMidPoints=PivotTypeFourHourMidPoints;
-   PD.Settings.PivotTypeDayMidPoints=PivotTypeDayMidPoints;
-   PD.Settings.PivotTypeWeekMidPoints=PivotTypeWeekMidPoints;
-   PD.Settings.LineStyleHour=LineStyleHour;
-   PD.Settings.LineStyleFourHour=LineStyleFourHour;
-   PD.Settings.LineStyleDay=LineStyleDay;
-   PD.Settings.LineStyleDay=LineStyleWeek;
+   pivotsdata.Settings.draw=PlotIndexGetInteger(0,PLOT_SHOW_DATA);
+   pivotsdata.Settings.objectnamespace=short_name;
+   pivotsdata.Settings.colorPivot=colorPivot;
+   pivotsdata.Settings.colorS1=colorS1;
+   pivotsdata.Settings.colorR1=colorR1;
+   pivotsdata.Settings.colorS2=colorS2;
+   pivotsdata.Settings.colorR2=colorR2;
+   pivotsdata.Settings.colorS3=colorS3;
+   pivotsdata.Settings.colorR3=colorR3;
+   pivotsdata.Settings.colorS4=colorS4;
+   pivotsdata.Settings.colorR4=colorR4;
+   pivotsdata.Settings.colorS5=colorS5;
+   pivotsdata.Settings.colorR5=colorR5;
+   pivotsdata.Settings.colormidpoints=colormidpoints;
+   pivotsdata.Settings.PivotTypeHour=PivotTypeHour;
+   pivotsdata.Settings.PivotTypeFourHour=PivotTypeFourHour;
+   pivotsdata.Settings.PivotTypeDay=PivotTypeDay;
+   pivotsdata.Settings.PivotTypeWeek=PivotTypeWeek;
+   pivotsdata.Settings.PivotTypeHourMidPoints=PivotTypeHourMidPoints;
+   pivotsdata.Settings.PivotTypeFourHourMidPoints=PivotTypeFourHourMidPoints;
+   pivotsdata.Settings.PivotTypeDayMidPoints=PivotTypeDayMidPoints;
+   pivotsdata.Settings.PivotTypeWeekMidPoints=PivotTypeWeekMidPoints;
+   pivotsdata.Settings.LineStyleHour=LineStyleHour;
+   pivotsdata.Settings.LineStyleFourHour=LineStyleFourHour;
+   pivotsdata.Settings.LineStyleDay=LineStyleDay;
+   pivotsdata.Settings.LineStyleDay=LineStyleWeek;
    
    istesting=MQLInfoInteger(MQL_TESTER);
    EventSetTimer(1);
@@ -85,7 +86,7 @@ void OnInit()
 void OnDeinit(const int reason)
 {
    EventKillTimer();
-   PivotsDeleteObjects();
+   PivotsDeleteObjects(pivotsdata);
 }
 
   
@@ -119,7 +120,7 @@ void OnTimer()
       if(CopyTime(_Symbol,_Period,(int)firstbar,1,arr1)<1)
          return;
          
-      if(!PD.Calculate(arr1[0]))
+      if(!pivotsdata.Calculate(arr1[0]))
          return;
          
       lastfirstbar=firstbar;
@@ -153,15 +154,15 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             if(!PlotIndexGetInteger(0,PLOT_SHOW_DATA))
             {
                PlotIndexSetInteger(0,PLOT_SHOW_DATA,true);
-               PD.Settings.draw=true;
-               PD.Settings.Init();
+               pivotsdata.Settings.draw=true;
+               pivotsdata.Settings.Init();
                newbar=true;
             }
             else
             {
                PlotIndexSetInteger(0,PLOT_SHOW_DATA,false);
-               PD.Settings.draw=false;
-               PD.Settings.Init();
+               pivotsdata.Settings.draw=false;
+               pivotsdata.Settings.Init();
                newbar=true;
             }
             ctrl_pressed = false;
