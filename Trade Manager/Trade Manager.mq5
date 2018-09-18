@@ -295,6 +295,7 @@ void SetGlobalVariables()
    GlobalVariableSet(namespace+"closedlosses",WS.closedlosses);
    GlobalVariableSet(namespace+"peakgain",WS.peakgain);
    GlobalVariableSet(namespace+"peakpips",WS.peakpips);
+   GlobalVariableSet(namespace+"OpenLots",_OpenLots);
 }
 
 
@@ -312,6 +313,9 @@ void GetGlobalVariables()
    varname=namespace+"peakpips";
    if(GlobalVariableCheck(varname))
       WS.peakpips=GlobalVariableGet(varname);
+   varname=namespace+"OpenLots";
+   if(GlobalVariableCheck(varname))
+      _OpenLots=GlobalVariableGet(varname);
 }
 
 
