@@ -116,6 +116,48 @@ struct TypeWorkingState
 };
 TypeWorkingState WS;
 
+struct TypeTradeInfo
+{
+   int orderindex;
+   int type;
+   double volume;
+   double openprice;
+   double points;
+   double gain;
+   long magicnumber;
+   long orderticket;
+   TypeTradeInfo()
+   {
+      orderindex=-1;
+      type=NULL;
+      volume=0;
+      openprice=0;
+      points=0;
+      gain=0;
+      magicnumber=0;
+      orderticket=0;
+   }
+};
+
+struct TypePairsTradesInfo
+{
+   string pair;
+   double buyvolume;
+   double sellvolume;
+   double gain;
+   double gainpips;
+   TypeTradeInfo tradeinfo[];
+   TypePairsTradesInfo()
+   {
+      pair="";
+      buyvolume=0;
+      sellvolume=0;
+      gain=0;
+      gainpips=0;
+      ArrayResize(tradeinfo,0);
+   }
+};
+
 struct TypeBasketInfo
 {
    double gain;
@@ -129,7 +171,9 @@ struct TypeBasketInfo
    double buyvolume;
    double sellvolume;
    int managedorders;
-   string pairsintrades[];
+   TypePairsTradesInfo pairsintrades[];
+   int largestlossindex;
+   double largestloss;
    void Init()
    {
       gain=0;
@@ -144,6 +188,8 @@ struct TypeBasketInfo
       sellvolume=0;
       managedorders=0;
       ArrayResize(pairsintrades,0);
+      largestlossindex=-1;
+      largestloss=0;
    };
 };
 TypeBasketInfo BI;
@@ -223,10 +269,11 @@ void OnTick()
 void OnTimer()
 {
    int lastctrlspan=(int)(TimeLocal()-lastctrl);
-   if(lastctrlspan>1)
+   if(lastctrlspan>1&&ctrlon)
    {
       DeleteLevels();
       DeleteLegend();
+      ctrlon=false;
    }
    Manage();
 }
@@ -337,11 +384,10 @@ bool IsOrderToManage()
 
 void ManageOrders()
 {
-   int cnt, ordertotal=OrdersTotalX(), largestlossindex=-1;
-   double largestloss=0;
+   int cnt, ordertotal=OrdersTotalX();
 
    BI.Init();
-   
+
    for(cnt=ordertotal-1;cnt>=0;cnt--)
    {
       if(OrderSelectX(cnt))
@@ -349,104 +395,78 @@ void ManageOrders()
          if(IsOrderToManage())
          {
             double tickvalue=TickValue();
-            double gainpips=(OrderProfitNet()/OrderLotsX())/tickvalue;
-            
-            if(_StopLossPips>0&&(gainpips+_StopLossPips)<0)
+            double gain=OrderProfitNet();
+            double gainpips=(gain/OrderLotsX())/tickvalue;
+
+            TypeTradeInfo ti;
+            ti.orderindex=cnt;
+
+            BI.managedorders++;
+            int pidx=AddPairsInTrades(OrderSymbolX());
+
+            BI.pairsintrades[pidx].gainpips+=gainpips/pipsfactor;
+
+            long om=OrderMagicNumberX();
+            if(om>=basemagicnumber+hedgeoffsetmagicnumber)
+               om-=hedgeoffsetmagicnumber;
+            if(om>=basemagicnumber&&om>=WS.currentbasemagicnumber)
+               WS.currentbasemagicnumber=(om+1);
+
+            double BESL=0;
+            bool NeedSetSL=false;
+            int hedgeordertype=0;
+            if(OrderTypeSell())
             {
-               //if(HedgeAtStopLoss)
-               //   OpenOrder(hedgeordertype,OrderLotsX());
-               //else
-               
-               CloseSelectedOrder();
+               ti.type=OP_SELL;
+               hedgeordertype=OP_BUY;
+               BESL=OrderOpenPriceX()-(_AboveBEPips*Point());
+               BI.sells++;
+               BI.sellvolume+=OrderLotsX();
+               BI.pairsintrades[pidx].sellvolume+=OrderLotsX();
+               if(OrderStopLossX()==0||OrderStopLossX()>BESL)
+                  NeedSetSL=true;
+            }
+            if(OrderTypeBuy())
+            {
+               ti.type=OP_BUY;
+               hedgeordertype=OP_SELL;
+               BESL=OrderOpenPriceX()+(_AboveBEPips*Point());
+               BI.buys++;
+               BI.buyvolume+=OrderLotsX();
+               BI.pairsintrades[pidx].buyvolume+=OrderLotsX();
+               if(OrderStopLossX()==0||OrderStopLossX()<BESL)
+                  NeedSetSL=true;
+            }
+
+            BI.pairsintrades[pidx].gain+=gain;
+            if(gain<0&&gain<BI.largestloss)
+            {
+               BI.largestlossindex=cnt;
+               BI.largestloss=gain;
+            }
+            BI.gain+=gain;
+
+            if(gainpips<0)
+            {
+               BI.gainpipsminus+=gainpips*OrderLotsX()*tickvalue;
+               BI.volumeminus+=OrderLotsX()*tickvalue;
             }
             else
             {
-               long om=OrderMagicNumberX();
-               if(om>=basemagicnumber+hedgeoffsetmagicnumber)
-                  om-=hedgeoffsetmagicnumber;
-               if(om>=basemagicnumber&&om>=WS.currentbasemagicnumber)
-                  WS.currentbasemagicnumber=(om+1);
-
-               double BESL=0;
-               bool NeedSetSL=false;
-               int hedgeordertype=0;
-               if(OrderTypeSell())
-               {
-                  hedgeordertype=OP_BUY;
-                  BESL=OrderOpenPriceX()-(_AboveBEPips*Point());
-                  BI.sells++;
-                  BI.sellvolume+=OrderLotsX();
-                  if(OrderStopLossX()==0||OrderStopLossX()>BESL)
-                     NeedSetSL=true;
-               }
-               if(OrderTypeBuy())
-               {
-                  hedgeordertype=OP_SELL;
-                  BESL=OrderOpenPriceX()+(_AboveBEPips*Point());
-                  BI.buys++;
-                  BI.buyvolume+=OrderLotsX();
-                  if(OrderStopLossX()==0||OrderStopLossX()<BESL)
-                     NeedSetSL=true;
-               }
-
-               double ordergain=OrderProfitNet();
-               if(ordergain<0&&ordergain<largestloss)
-               {
-                  largestlossindex=cnt;
-                  largestloss=ordergain;
-               }
-               BI.gain+=ordergain;
-
-               BI.managedorders++;
-               AddPairsInTrades(OrderSymbolX());
-
-               if(gainpips<0)
-               {
-                  BI.gainpipsminus+=gainpips*OrderLotsX()*tickvalue;
-                  BI.volumeminus+=OrderLotsX()*tickvalue;
-               }
-               else
-               {
-                  BI.gainpipsplus+=gainpips*OrderLotsX()*tickvalue;
-                  BI.volumeplus+=OrderLotsX()*tickvalue;
-               }
-               
-               if(WS.StopMode==HardSingle&&gainpips>=_BreakEvenAfterPips&&NeedSetSL)
-                  SetOrderSL(BESL);
+               BI.gainpipsplus+=gainpips*OrderLotsX()*tickvalue;
+               BI.volumeplus+=OrderLotsX()*tickvalue;
             }
-         }
-      }
-   }
-   if(BI.managedorders>0)
-   {
-      BI.gainpips=(BI.gainpipsplus+BI.gainpipsminus)/(BI.volumeplus+BI.volumeminus);
+            
+            if(WS.StopMode==HardSingle&&gainpips>=_BreakEvenAfterPips&&NeedSetSL)
+               SetOrderSL(BESL);
 
-      if(BI.gainpips>WS.peakpips)
-         WS.peakpips=BI.gainpips;
-      
-      if(BI.gain>WS.peakgain)
-         WS.peakgain=BI.gain;
-
-      if(StopLossPercentBalance>0)
-      {
-         if((BI.gain)+((AccountBalanceX()/100)*StopLossPercentBalance)<0)
-         {
-            if(StopLossPercentBalanceAction==CloseWorstTrade)
-            {
-               if(OrderSelectX(largestlossindex)&&IsAutoTradingEnabled())
-               {
-                  if(CloseSelectedOrder())
-                  {
-                     WS.closedlosses+=largestloss;
-                     BI.managedorders--;
-                  }
-               }
-            }
-            else if(StopLossPercentBalanceAction==CloseAllTrades)
-            {
-               CloseAllInternal();
-               BI.managedorders=0;
-            }
+            ti.volume=OrderLotsX();
+            ti.openprice=OrderOpenPriceX();
+            ti.points=gainpips;
+            ti.gain=gain;
+            ti.magicnumber=OrderMagicNumberX();
+            ti.orderticket=OrderTicketX();
+            AddTrade(BI.pairsintrades[pidx].tradeinfo,ti);
          }
       }
    }
@@ -479,37 +499,75 @@ void ManageBasket()
       return;
    }
 
-   if(ActivateTrailing&&BI.gainpips>=_StartTrailingPips)
+   bool closeall=false;
+
+   BI.gainpips=(BI.gainpipsplus+BI.gainpipsminus)/(BI.volumeplus+BI.volumeminus);
+
+   WS.peakpips=MathMax(BI.gainpips,WS.peakpips);
+   
+   WS.peakgain=MathMax(BI.gain,WS.peakgain);
+
+   int size1=ArraySize(BI.pairsintrades);
+   for(int i=0; i<size1; i++)
    {
-      WS.TrailingActivated=true;
+      int size2=ArraySize(BI.pairsintrades[i].tradeinfo);
+      for(int j=0; j<size2; j++)
+      {
+         TypeTradeInfo ti=BI.pairsintrades[i].tradeinfo[j];
+         if(_StopLossPips>0&&(ti.points+_StopLossPips)<=0)
+         {
+            if(OrderSelectX(ti.orderindex)&&IsAutoTradingEnabled())
+            {
+               if(CloseSelectedOrder())
+               {
+                  WS.closedlosses+=ti.gain;
+               }
+            }
+         }
+      }
    }
 
-   if(WS.TrailingActivated)
+   if(StopLossPercentBalance>0)
    {
-      if(BI.gain<GetTrailingLimit())
-         CloseAllInternal();
+      if((BI.gain)+((AccountBalanceX()/100)*StopLossPercentBalance)<=0)
+      {
+         if(StopLossPercentBalanceAction==CloseWorstTrade)
+         {
+            if(OrderSelectX(BI.largestlossindex)&&IsAutoTradingEnabled())
+            {
+               if(CloseSelectedOrder())
+               {
+                  WS.closedlosses+=BI.largestloss;
+               }
+            }
+         }
+         else if(StopLossPercentBalanceAction==CloseAllTrades)
+         {
+            closeall=true;
+         }
+      }
    }
+
+   if(ActivateTrailing&&BI.gainpips>=_StartTrailingPips)
+      WS.TrailingActivated=true;
+
+   if(WS.TrailingActivated&&BI.gain<GetTrailingLimit())
+      closeall=true;
    
-   if(WS.closebasketatBE)
-   {
-      if(BI.gain>=0)
-         CloseAllInternal();
-   }
-   if(WS.ManualBEStopLocked)
-   {
-      if(BI.gain<=0)
-         CloseAllInternal();
-   }
+   if(WS.closebasketatBE&&BI.gain>=0)
+      closeall=true;
+
+   if(WS.ManualBEStopLocked&&BI.gain<=0)
+      closeall=true;
    
    if(WS.StopMode==SoftBasket&&_BreakEvenAfterPips>0&&WS.peakpips>=_BreakEvenAfterPips)
-   {
       WS.SoftBEStopLocked=true;   
-   }
    
    if(WS.SoftBEStopLocked&&BI.gainpips<_AboveBEPips)
-   {
-      CloseAllInternal();   
-   }
+      closeall=true;
+
+   if(closeall)
+      CloseAllInternal();
 }
 
 
@@ -521,9 +579,10 @@ double GetTrailingLimit()
 
 void DisplayText()
 {
-   DeleteText();
    if(!ShowInfo)
       return;
+
+   DeleteText();
 
    if(tickchar=="")
       tickchar="-";
@@ -636,7 +695,24 @@ void DisplayText()
          rowindex++;
       for(int i=0; i<asize; i++)
       {
-         CreateLabel(rowindex,FontSize,TextColor,BI.pairsintrades[i],"-SymbolButton");
+         CreateLabel(rowindex,FontSize,TextColor,BI.pairsintrades[i].pair,"-TMSymbolButton");
+
+         string pairtext="";
+
+         if(BI.pairsintrades[i].buyvolume>0)
+            pairtext+=DoubleToString(BI.pairsintrades[i].buyvolume,2)+" Buy";
+         if(BI.pairsintrades[i].sellvolume>0)
+            pairtext+=" "+DoubleToString(BI.pairsintrades[i].sellvolume,2)+" Sell";
+
+         pairtext+=" "+DoubleToString(BI.pairsintrades[i].gain,2);
+
+         //pairtext+=" "+DoubleToString(BI.pairsintrades[i].gainpips,2);
+
+         color pairstextcolor=MediumSeaGreen;
+         if(BI.pairsintrades[i].gain<0)
+            pairstextcolor=DeepPink;
+
+         CreateLabel(rowindex,FontSize,pairstextcolor,pairtext,"",60);
          rowindex++;
       }
    }
@@ -650,13 +726,13 @@ void DisplayText()
 }
 
 
-void CreateLabel(int RI, int fontsize, color c, string text, string group="")
+void CreateLabel(int RI, int fontsize, color c, string text, string group="", int xshift=0)
 {
    string objname=namespace+"-"+"Text"+IntegerToString(RI+1)+group;
    ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
    ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
    ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
-   ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,5);
+   ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,5+xshift);
    ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,20+(TextGap*RI));
    ObjectSetInteger(0,objname,OBJPROP_COLOR,c);
    ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,fontsize);
@@ -848,31 +924,42 @@ void OpenSell(double volume=NULL)
 }
 
 
-void AddPairsInTrades(string tradedsymbol)
+void AddTrade(TypeTradeInfo& ti[], TypeTradeInfo& tiin)
 {
-   int asize=ArraySize(BI.pairsintrades);
+   int asize=ArraySize(ti);
+   ArrayResize(ti,asize+1);
+   ti[asize].orderindex=tiin.orderindex;
+   ti[asize].type=tiin.type;
+   ti[asize].volume=tiin.volume;
+   ti[asize].openprice=tiin.openprice;
+   ti[asize].points=tiin.points;
+   ti[asize].gain=tiin.gain;
+   ti[asize].magicnumber=tiin.magicnumber;
+   ti[asize].orderticket=tiin.orderticket;
+}
+
+
+int AddPairsInTrades(string tradedsymbol)
+{
+   int asize=ArraySize(BI.pairsintrades), idx=-1;
    string symbol=StringSubstr(tradedsymbol,0,6);
    bool found=false;
    for(int i=0; i<asize; i++)
    {
-      if(BI.pairsintrades[i]==symbol)
+      if(BI.pairsintrades[i].pair==symbol)
+      {
          found=true;
+         idx=i;
+         break;
+      }
    }
    if(!found)
    {
       ArrayResize(BI.pairsintrades,asize+1);
-      BI.pairsintrades[asize]=symbol;
+      BI.pairsintrades[asize].pair=symbol;
+      idx=asize;
    }
-}
-
-
-void CloseAll()
-{
-   while(working)
-   {}
-   working=true;
-   CloseAllInternal();
-   working=false;
+   return idx;
 }
 
 
@@ -927,11 +1014,12 @@ bool IsAutoTradingEnabled()
 
 
 static datetime lastctrl=0;
+static bool ctrlon=false;
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
    if(id==CHARTEVENT_OBJECT_CLICK)
    {
-      if(StringFind(sparam,"-SymbolButton")>-1)
+      if(StringFind(sparam,"-TMSymbolButton")>-1)
          SwitchSymbol(ObjectGetString(0,sparam,OBJPROP_TEXT));
    }
    
@@ -942,6 +1030,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          lastctrl=TimeLocal();
          DrawLevels();
          DisplayLegend();
+         ctrlon=true;
       }
       if(TimeLocal()-lastctrl<2)
       {
