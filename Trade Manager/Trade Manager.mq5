@@ -30,6 +30,7 @@ input double AboveBEPips = 1;
 input double StartTrailingPips = 7;
 input double StopLossPips = 0;
 input bool HedgeAtStopLoss = false;
+input double HedgeVolumeFactor = 1;
 input double StopLossPercentBalance = 0;
 input TypeStopLossPercentBalanceAction StopLossPercentBalanceAction = CloseWorstTrade;
 input bool ActivateTrailing = true;
@@ -518,9 +519,18 @@ void ManageBasket()
          {
             if(OrderSelectX(ti.orderindex)&&IsAutoTradingEnabled())
             {
-               if(CloseSelectedOrder())
+               if(HedgeAtStopLoss)
                {
-                  WS.closedlosses+=ti.gain;
+                  long hedgemagicnumber=GetHedgeMagicNumber(BI.pairsintrades[i].tradeinfo,ti);
+                  if(hedgemagicnumber>-1)
+                     OpenOrder(HedgeType(ti.type),(ti.volume*HedgeVolumeFactor),hedgemagicnumber,BI.pairsintrades[i].pair);
+               }
+               else
+               {
+                  if(CloseSelectedOrder())
+                  {
+                     WS.closedlosses+=ti.gain;
+                  }
                }
             }
          }
@@ -871,53 +881,94 @@ void DeleteAllObjects()
 }
 
 
-void OpenOrder(int type, double volume=NULL)
+long GetHedgeMagicNumber(TypeTradeInfo& tradeinfo[], TypeTradeInfo& tiin)
 {
-   if(type==OP_BUY)
-      OpenBuy(volume);
-   if(type==OP_SELL)
-      OpenSell(volume);
+   long ret=-1;
+   if(tiin.magicnumber<(basemagicnumber+hedgeoffsetmagicnumber))
+   {
+      bool hedgefound=false;
+      int size=ArraySize(tradeinfo);
+      for(int i=0; i<size; i++)
+      {
+         if(tradeinfo[i].magicnumber==(tiin.magicnumber+hedgeoffsetmagicnumber))
+            hedgefound=true;
+      }
+      if(!hedgefound)
+         ret=tiin.magicnumber+hedgeoffsetmagicnumber;
+   }
+   return ret;
 }
 
 
-void OpenBuy(double volume=NULL)
+int HedgeType(int type)
+{
+   if(type==OP_BUY)
+      return OP_SELL;
+   if(type==OP_SELL)
+      return OP_BUY;
+   return -1;
+}
+
+
+void OpenOrder(int type, double volume=NULL, long magicnumber=NULL, string symbol=NULL)
+{
+   if(type==OP_BUY)
+      OpenBuy(volume,magicnumber,symbol);
+   if(type==OP_SELL)
+      OpenSell(volume,magicnumber,symbol);
+}
+
+
+void OpenBuy(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
 {
    double v=_OpenLots;
    if(volume!=NULL)
       v=volume;
+   long m=WS.currentbasemagicnumber;
+   if(magicnumber!=NULL)
+      m=magicnumber;
+   string s=Symbol();
+   if(symbol!=NULL)
+      s=symbol;
 #ifdef __MQL4__
-   int ret=OrderSend(Symbol(),OP_BUY,v,AskX(),5,0,0,namespace,WS.currentbasemagicnumber);
-   if(ret>-1)
+   int ret=OrderSend(s,OP_BUY,v,AskX(s),5,0,0,namespace,m);
+   if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
 #endif
 #ifdef __MQL5__
    CTrade trade;
-   trade.SetExpertMagicNumber(WS.currentbasemagicnumber);
-   bool ret=trade.PositionOpen(Symbol(),ORDER_TYPE_BUY,v,AskX(),NULL,NULL,namespace);
-   if(ret)
+   trade.SetExpertMagicNumber(m);
+   bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,AskX(s),NULL,NULL,namespace);
+   if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
 #endif
 }
 
 
-void OpenSell(double volume=NULL)
+void OpenSell(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
 {
    double v=_OpenLots;
    if(volume!=NULL)
       v=volume;
+   long m=WS.currentbasemagicnumber;
+   if(magicnumber!=NULL)
+      m=magicnumber;
+   string s=Symbol();
+   if(symbol!=NULL)
+      s=symbol;
 #ifdef __MQL4__
-   int ret=OrderSend(Symbol(),OP_SELL,v,BidX(),5,0,0,namespace,WS.currentbasemagicnumber);
-   if(ret>-1)
+   int ret=OrderSend(s,OP_SELL,v,BidX(s),5,0,0,namespace,m);
+   if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
 #endif
 #ifdef __MQL5__
    CTrade trade;
-   trade.SetExpertMagicNumber(WS.currentbasemagicnumber);
-   bool ret=trade.PositionOpen(Symbol(),ORDER_TYPE_SELL,v,BidX(),NULL,NULL,namespace);
-   if(ret)
+   trade.SetExpertMagicNumber(m);
+   bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,BidX(s),NULL,NULL,namespace);
+   if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
 #endif
@@ -1282,27 +1333,33 @@ double AccountFreeMarginX()
 }
 
 
-double AskX()
+double AskX(string symbol=NULL)
 {
+   string s=Symbol();
+   if(symbol!=NULL)
+      s=symbol;
 #ifdef __MQL4__
    return Ask;
 #endif
 #ifdef __MQL5__
    MqlTick last_tick;
-   SymbolInfoTick(Symbol(),last_tick);
+   SymbolInfoTick(s,last_tick);
    return last_tick.ask;
 #endif
 }
 
 
-double BidX()
+double BidX(string symbol=NULL)
 {
+   string s=Symbol();
+   if(symbol!=NULL)
+      s=symbol;
 #ifdef __MQL4__
    return Bid;
 #endif
 #ifdef __MQL5__
    MqlTick last_tick;
-   SymbolInfoTick(Symbol(),last_tick);
+   SymbolInfoTick(s,last_tick);
    return last_tick.bid;
 #endif
 }
