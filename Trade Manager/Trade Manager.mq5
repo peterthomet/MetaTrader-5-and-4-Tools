@@ -367,6 +367,24 @@ void GetGlobalVariables()
 }
 
 
+void SetGlobalHedged(long ticket)
+{
+   GlobalVariableSet(namespace+"Hedged"+IntegerToString(ticket),0);
+}
+
+
+bool GetGlobalHedged(long ticket)
+{
+   return GlobalVariableCheck(namespace+"Hedged"+IntegerToString(ticket));
+}
+
+
+void ClearGlobalHedged()
+{
+   GlobalVariablesDeleteAll(namespace+"Hedged");
+}
+
+
 bool IsOrderToManage()
 {
    bool manage=true,
@@ -479,6 +497,8 @@ void ManageBasket()
    if(BI.managedorders==0)
    {
       WS.Reset();
+      ClearGlobalHedged();
+      
       if(istesting)
       {
          MathSrand((int)TimeLocal());
@@ -523,7 +543,10 @@ void ManageBasket()
                {
                   long hedgemagicnumber=GetHedgeMagicNumber(BI.pairsintrades[i].tradeinfo,ti);
                   if(hedgemagicnumber>-1)
-                     OpenOrder(HedgeType(ti.type),(ti.volume*HedgeVolumeFactor),hedgemagicnumber,BI.pairsintrades[i].pair);
+                  {
+                     if(OpenOrder(HedgeType(ti.type),(ti.volume*HedgeVolumeFactor),hedgemagicnumber,BI.pairsintrades[i].pair))
+                        SetGlobalHedged(ti.orderticket);
+                  }
                }
                else
                {
@@ -884,7 +907,7 @@ void DeleteAllObjects()
 long GetHedgeMagicNumber(TypeTradeInfo& tradeinfo[], TypeTradeInfo& tiin)
 {
    long ret=-1;
-   if(tiin.magicnumber<(basemagicnumber+hedgeoffsetmagicnumber))
+   if(tiin.magicnumber<(basemagicnumber+hedgeoffsetmagicnumber)&&!GetGlobalHedged(tiin.orderticket))
    {
       bool hedgefound=false;
       int size=ArraySize(tradeinfo);
@@ -910,16 +933,17 @@ int HedgeType(int type)
 }
 
 
-void OpenOrder(int type, double volume=NULL, long magicnumber=NULL, string symbol=NULL)
+bool OpenOrder(int type, double volume=NULL, long magicnumber=NULL, string symbol=NULL)
 {
    if(type==OP_BUY)
-      OpenBuy(volume,magicnumber,symbol);
+      return OpenBuy(volume,magicnumber,symbol);
    if(type==OP_SELL)
-      OpenSell(volume,magicnumber,symbol);
+      return OpenSell(volume,magicnumber,symbol);
+   return false;
 }
 
 
-void OpenBuy(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
+bool OpenBuy(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
 {
    double v=_OpenLots;
    if(volume!=NULL)
@@ -935,6 +959,7 @@ void OpenBuy(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
    if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
+   return (ret>-1);
 #endif
 #ifdef __MQL5__
    CTrade trade;
@@ -943,11 +968,12 @@ void OpenBuy(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
+   return ret;
 #endif
 }
 
 
-void OpenSell(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
+bool OpenSell(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
 {
    double v=_OpenLots;
    if(volume!=NULL)
@@ -963,6 +989,7 @@ void OpenSell(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
    if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
+   return (ret>-1);
 #endif
 #ifdef __MQL5__
    CTrade trade;
@@ -971,6 +998,7 @@ void OpenSell(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
+   return ret;
 #endif
 }
 
