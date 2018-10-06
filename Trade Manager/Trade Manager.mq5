@@ -19,12 +19,26 @@
    };
 #endif
 
+enum TypeInstance
+{
+   Instance1=1,
+   Instance2=2,
+   Instance3=3,
+   Instance4=4,
+   Instance5=5,
+   Instance6=6,
+   Instance7=7,
+   Instance8=8,
+   Instance9=9
+};
+
 enum TypeStopLossPercentBalanceAction
 {
    CloseWorstTrade,
    CloseAllTrades
 };
 
+input TypeInstance Instance = 1;
 input double BreakEvenAfterPips = 5;
 input double AboveBEPips = 1;
 input double StartTrailingPips = 7;
@@ -38,6 +52,7 @@ input double TrailingFactor = 0.6;
 input double OpenLots = 0.01;
 input bool ShowInfo = true;
 input color TextColor = Gray;
+input color TextColorBold = Black;
 input int FontSize = 9;
 input int TextGap = 16;
 input bool ManageOwnTradesOnly = true;
@@ -48,8 +63,10 @@ input bool DrawLevelsAllCharts = true;
 input bool DrawBackgroundPanel = true;
 input int BackgroundPanelWidth = 200;
 input color BackgroundPanelColor = clrNONE;
+input bool MT5CommissionPerDeal = true;
 
-string namespace="Trade Manager";
+string appname="Trade Manager";
+string namespace="";
 bool working=false;
 double pipsfactor;
 datetime lasttick;
@@ -59,7 +76,7 @@ bool istesting;
 bool initerror;
 string ExtraChars = "";
 string tickchar="";
-int basemagicnumber=50000000;
+int basemagicnumber=0;
 int hedgeoffsetmagicnumber=10000;
 int closeallcommand=false;
 double _BreakEvenAfterPips;
@@ -199,6 +216,10 @@ TypeBasketInfo BI;
 void OnInit()
 {
    initerror=false;
+   
+   namespace=appname+" "+IntegerToString(Instance)+" ";
+
+   basemagicnumber=10000001*Instance;
 
    istesting=MQLInfoInteger(MQL_TESTER);
 
@@ -223,7 +244,7 @@ void OnInit()
 
    if(DrawBackgroundPanel)
    {
-      string objname=namespace+"-"+"Panel";
+      string objname=namespace+"Panel";
       ObjectCreate(0,objname,OBJ_RECTANGLE_LABEL,0,0,0,0,0);
       ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
       ObjectSetInteger(0,objname,OBJPROP_BORDER_TYPE,BORDER_FLAT);
@@ -544,7 +565,7 @@ void ManageBasket()
                   long hedgemagicnumber=GetHedgeMagicNumber(BI.pairsintrades[i].tradeinfo,ti);
                   if(hedgemagicnumber>-1)
                   {
-                     if(OpenOrder(HedgeType(ti.type),(ti.volume*HedgeVolumeFactor),hedgemagicnumber,BI.pairsintrades[i].pair))
+                     if(OpenOrder(HedgeType(ti.type),(ti.volume*HedgeVolumeFactor),hedgemagicnumber,BI.pairsintrades[i].pair+ExtraChars))
                         SetGlobalHedged(ti.orderticket);
                   }
                }
@@ -728,7 +749,10 @@ void DisplayText()
          rowindex++;
       for(int i=0; i<asize; i++)
       {
-         CreateLabel(rowindex,FontSize,TextColor,BI.pairsintrades[i].pair,"-TMSymbolButton");
+         color paircolor=TextColor;
+         if(BI.pairsintrades[i].pair+ExtraChars==Symbol())
+            paircolor=TextColorBold;
+         CreateLabel(rowindex,FontSize,paircolor,BI.pairsintrades[i].pair,"-TMSymbolButton");
 
          string pairtext="";
 
@@ -761,7 +785,7 @@ void DisplayText()
 
 void CreateLabel(int RI, int fontsize, color c, string text, string group="", int xshift=0)
 {
-   string objname=namespace+"-"+"Text"+IntegerToString(RI+1)+group;
+   string objname=namespace+"Text"+IntegerToString(RI+1)+group;
    ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
    ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
    ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
@@ -793,20 +817,20 @@ void DrawLevels()
 
 void DrawLevels(long chartid)
 {
-   //CreateLevel(chartid,namespace+"-"+"Level1",MediumSeaGreen,Bid-(AboveBEPips*Point));
-   //CreateLevel(chartid,namespace+"-"+"Level2",DeepPink,Bid-(BreakEvenAfterPips*Point));
-   //CreateLevel(chartid,namespace+"-"+"Level3",MediumSeaGreen,Ask+(AboveBEPips*Point));
-   //CreateLevel(chartid,namespace+"-"+"Level4",DeepPink,Ask+(BreakEvenAfterPips*Point));
+   //CreateLevel(chartid,namespace+"Level1",MediumSeaGreen,Bid-(AboveBEPips*Point));
+   //CreateLevel(chartid,namespace+"Level2",DeepPink,Bid-(BreakEvenAfterPips*Point));
+   //CreateLevel(chartid,namespace+"Level3",MediumSeaGreen,Ask+(AboveBEPips*Point));
+   //CreateLevel(chartid,namespace+"Level4",DeepPink,Ask+(BreakEvenAfterPips*Point));
 
    if(_StopLossPips>0)
    {
-      //CreateRectangle(chartid,namespace+"-"+"Rectangle1",WhiteSmoke,Ask+(StopLossPips*Point),Bid-(StopLossPips*Point));
-      CreateLevel(chartid,namespace+"-"+"Level1",DeepPink,AskX()+(_StopLossPips*Point()));
-      CreateLevel(chartid,namespace+"-"+"Level2",DeepPink,BidX()-(_StopLossPips*Point()));
+      //CreateRectangle(chartid,namespace+"Rectangle1",WhiteSmoke,Ask+(StopLossPips*Point),Bid-(StopLossPips*Point));
+      CreateLevel(chartid,namespace+"Level1",DeepPink,AskX()+(_StopLossPips*Point()));
+      CreateLevel(chartid,namespace+"Level2",DeepPink,BidX()-(_StopLossPips*Point()));
    }
 
-   CreateRectangle(chartid,namespace+"-"+"Rectangle10",WhiteSmoke,AskX()+(_BreakEvenAfterPips*Point()),BidX()-(_BreakEvenAfterPips*Point()));
-   CreateRectangle(chartid,namespace+"-"+"Rectangle11",WhiteSmoke,AskX()+(_AboveBEPips*Point()),BidX()-(_AboveBEPips*Point()));
+   CreateRectangle(chartid,namespace+"Rectangle10",WhiteSmoke,AskX()+(_BreakEvenAfterPips*Point()),BidX()-(_BreakEvenAfterPips*Point()));
+   CreateRectangle(chartid,namespace+"Rectangle11",WhiteSmoke,AskX()+(_AboveBEPips*Point()),BidX()-(_AboveBEPips*Point()));
 
    ChartRedraw(chartid);
 }
@@ -845,10 +869,10 @@ void CreateRectangle(long chartid, string objname, color c, double price1, doubl
 
 void DisplayLegend()
 {
-   CreateLegend(namespace+"-"+"Legend1",5+(int)MathFloor(TextGap*2.4),"Hotkeys: Press Ctrl plus");
-   CreateLegend(namespace+"-"+"Legend2",5+(int)MathFloor(TextGap*1.6),"1 Open Buy | 3 Open Sell | 0 Close All");
-   CreateLegend(namespace+"-"+"Legend3",5+(int)MathFloor(TextGap*0.8),"5 Hard SL | 6 Soft SL | 8 Close at BE");
-   CreateLegend(namespace+"-"+"Legend4",5+(int)MathFloor(TextGap*0),"; Decrease Volume | : Increase Volume");
+   CreateLegend(namespace+"Legend1",5+(int)MathFloor(TextGap*2.4),"Hotkeys: Press Ctrl plus");
+   CreateLegend(namespace+"Legend2",5+(int)MathFloor(TextGap*1.6),"1 Open Buy | 3 Open Sell | 0 Close All");
+   CreateLegend(namespace+"Legend3",5+(int)MathFloor(TextGap*0.8),"5 Hard SL | 6 Soft SL | 8 Close at BE");
+   CreateLegend(namespace+"Legend4",5+(int)MathFloor(TextGap*0),"; Decrease Volume | : Increase Volume");
 }
 
 
@@ -868,7 +892,7 @@ void CreateLegend(string objname, int y, string text)
 
 void DeleteLegend()
 {
-   ObjectsDeleteAll(0,namespace+"-"+"Legend");
+   ObjectsDeleteAll(0,namespace+"Legend");
 }
 
 
@@ -881,20 +905,20 @@ void DeleteLevels()
       {
          if(ChartSymbol(chartid)==Symbol())
          {
-            ObjectsDeleteAll(chartid,namespace+"-"+"Level");
-            ObjectsDeleteAll(chartid,namespace+"-"+"Rectangle");
+            ObjectsDeleteAll(chartid,namespace+"Level");
+            ObjectsDeleteAll(chartid,namespace+"Rectangle");
          }
          chartid=ChartNext(chartid);
       }
    }
    else
-      ObjectsDeleteAll(0,namespace+"-"+"Level");
+      ObjectsDeleteAll(0,namespace+"Level");
 }
 
 
 void DeleteText()
 {
-   ObjectsDeleteAll(0,namespace+"-"+"Text");
+   ObjectsDeleteAll(0,namespace+"Text");
 }
 
 
@@ -954,8 +978,9 @@ bool OpenBuy(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
    string s=Symbol();
    if(symbol!=NULL)
       s=symbol;
+   string c=namespace+IntegerToString(m);
 #ifdef __MQL4__
-   int ret=OrderSend(s,OP_BUY,v,AskX(s),5,0,0,namespace,m);
+   int ret=OrderSend(s,OP_BUY,v,AskX(s),5,0,0,c,m);
    if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
@@ -964,7 +989,7 @@ bool OpenBuy(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
 #ifdef __MQL5__
    CTrade trade;
    trade.SetExpertMagicNumber(m);
-   bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,AskX(s),NULL,NULL,namespace);
+   bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,AskX(s),NULL,NULL,c);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -984,8 +1009,9 @@ bool OpenSell(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
    string s=Symbol();
    if(symbol!=NULL)
       s=symbol;
+   string c=namespace+IntegerToString(m);
 #ifdef __MQL4__
-   int ret=OrderSend(s,OP_SELL,v,BidX(s),5,0,0,namespace,m);
+   int ret=OrderSend(s,OP_SELL,v,BidX(s),5,0,0,c,m);
    if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
@@ -994,7 +1020,7 @@ bool OpenSell(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
 #ifdef __MQL5__
    CTrade trade;
    trade.SetExpertMagicNumber(m);
-   bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,BidX(s),NULL,NULL,namespace);
+   bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,BidX(s),NULL,NULL,c);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -1267,6 +1293,8 @@ double OrderProfitNet()
          double LotsIn=HistoryDealGetDouble(Ticket,DEAL_VOLUME);
          if(LotsIn>0)
             commission=HistoryDealGetDouble(Ticket,DEAL_COMMISSION)*PositionGetDouble(POSITION_VOLUME)/LotsIn;
+         if(MT5CommissionPerDeal)
+            commission=commission*2;
       }
    }
    return PositionGetDouble(POSITION_PROFIT)+PositionGetDouble(POSITION_SWAP)+commission;
