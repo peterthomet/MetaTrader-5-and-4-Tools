@@ -45,6 +45,7 @@ input double StartTrailingPips = 7;
 input double StopLossPips = 0;
 input bool HedgeAtStopLoss = false;
 input double HedgeVolumeFactor = 1;
+input double HedgeFlatAtLevel = 5;
 input double StopLossPercentBalance = 0;
 input TypeStopLossPercentBalanceAction StopLossPercentBalanceAction = CloseWorstTrade;
 input bool ActivateTrailing = true;
@@ -76,6 +77,7 @@ bool istesting;
 bool initerror;
 string ExtraChars = "";
 string tickchar="";
+int magicnumberfloor=0;
 int basemagicnumber=0;
 int hedgeoffsetmagicnumber=10000;
 int closeallcommand=false;
@@ -91,48 +93,6 @@ enum BEStopModes
    HardSingle=2,
    SoftBasket=3
 };
-
-struct TypeWorkingState
-{
-   BEStopModes StopMode;
-   bool closebasketatBE;
-   bool ManualBEStopLocked;
-   bool SoftBEStopLocked;
-   double closedlosses;
-   double peakgain;
-   double peakpips;
-   bool TrailingActivated;
-   long currentbasemagicnumber;
-   void Init()
-   {
-      closebasketatBE=false;
-      ManualBEStopLocked=false;
-      SoftBEStopLocked=false;
-      StopMode=SoftBasket;
-      closedlosses=0;
-      peakgain=0;
-      peakpips=0;
-      TrailingActivated=false;
-      currentbasemagicnumber=basemagicnumber;
-   };
-   void Reset()
-   {
-      closebasketatBE=false;
-      ManualBEStopLocked=false;
-      SoftBEStopLocked=false;
-      closedlosses=0;
-      peakgain=0;
-      peakpips=0;
-      TrailingActivated=false;
-      currentbasemagicnumber=basemagicnumber;
-   };
-   void ResetLocks()
-   {
-      ManualBEStopLocked=false;
-      SoftBEStopLocked=false;
-   };
-};
-TypeWorkingState WS;
 
 struct TypeTradeInfo
 {
@@ -157,6 +117,64 @@ struct TypeTradeInfo
    }
 };
 
+struct TypeTradeReference
+{
+   long magicnumber;
+   double points;
+   double gain;
+   TypeTradeReference()
+   {
+      magicnumber=0;
+      points=0;
+      gain=0;
+   }
+};
+
+struct TypeWorkingState
+{
+   BEStopModes StopMode;
+   bool closebasketatBE;
+   bool ManualBEStopLocked;
+   bool SoftBEStopLocked;
+   double peakgain;
+   double peakpips;
+   bool TrailingActivated;
+   long currentbasemagicnumber;
+   TypeTradeReference tradereference[];
+   double globalgain;
+   void Init()
+   {
+      closebasketatBE=false;
+      ManualBEStopLocked=false;
+      SoftBEStopLocked=false;
+      StopMode=SoftBasket;
+      peakgain=0;
+      peakpips=0;
+      TrailingActivated=false;
+      currentbasemagicnumber=basemagicnumber;
+      ArrayResize(tradereference,0);
+      globalgain=0;
+   };
+   void Reset()
+   {
+      closebasketatBE=false;
+      ManualBEStopLocked=false;
+      SoftBEStopLocked=false;
+      peakgain=0;
+      peakpips=0;
+      TrailingActivated=false;
+      currentbasemagicnumber=basemagicnumber;
+      ArrayResize(tradereference,0);
+      globalgain=0;
+   };
+   void ResetLocks()
+   {
+      ManualBEStopLocked=false;
+      SoftBEStopLocked=false;
+   };
+};
+TypeWorkingState WS;
+
 struct TypePairsTradesInfo
 {
    string pair;
@@ -180,6 +198,7 @@ struct TypeBasketInfo
 {
    double gain;
    double gainpips;
+   double gainpipsglobal;
    double gainpipsplus;
    double gainpipsminus;
    double volumeplus;
@@ -196,6 +215,7 @@ struct TypeBasketInfo
    {
       gain=0;
       gainpips=0;
+      gainpipsglobal=0;
       gainpipsplus=0;
       gainpipsminus=0;
       volumeplus=0;
@@ -219,7 +239,9 @@ void OnInit()
    
    namespace=appname+" "+IntegerToString(Instance)+" ";
 
-   basemagicnumber=10000001*Instance;
+   magicnumberfloor=10000000*Instance;
+
+   basemagicnumber=magicnumberfloor+1;
 
    istesting=MQLInfoInteger(MQL_TESTER);
 
@@ -267,8 +289,9 @@ void OnInit()
       OpenBuy();
    }
 
-   if(!EventSetMillisecondTimer(200)&&!istesting)
-      initerror=true;
+   if(!istesting)
+      if(!EventSetMillisecondTimer(200))
+         initerror=true;
 }
 
 
@@ -317,11 +340,11 @@ void Manage()
 
 void SetBEClose()
 {
-   if(BI.gain<0)
+   if(WS.globalgain<0)
    {
       WS.closebasketatBE=!WS.closebasketatBE;
    }
-   if(BI.gain>=0)
+   if(WS.globalgain>=0)
    {
       WS.ManualBEStopLocked=!WS.ManualBEStopLocked;
    }
@@ -360,11 +383,26 @@ void SetHardStopMode()
 
 void SetGlobalVariables()
 {
+   string varname;
    GlobalVariableSet(namespace+"StopMode",WS.StopMode);
-   GlobalVariableSet(namespace+"closedlosses",WS.closedlosses);
    GlobalVariableSet(namespace+"peakgain",WS.peakgain);
    GlobalVariableSet(namespace+"peakpips",WS.peakpips);
    GlobalVariableSet(namespace+"OpenLots",_OpenLots);
+   GlobalVariableSet(namespace+"currentbasemagicnumber",WS.currentbasemagicnumber);
+   varname=namespace+"ManualBEStopLocked";
+   if(WS.ManualBEStopLocked)
+      GlobalVariableSet(varname,0);
+   else
+      GlobalVariableDel(varname);
+   varname=namespace+"closebasketatBE";
+   if(WS.closebasketatBE)
+      GlobalVariableSet(varname,0);
+   else
+      GlobalVariableDel(varname);
+
+   int asize=ArraySize(WS.tradereference);
+   for(int i=0; i<asize; i++)
+      GlobalVariableSet(namespace+"TradeReference"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].gain);
 }
 
 
@@ -373,9 +411,6 @@ void GetGlobalVariables()
    string varname=namespace+"StopMode";
    if(GlobalVariableCheck(varname))
       WS.StopMode=(BEStopModes)GlobalVariableGet(varname);
-   varname=namespace+"closedlosses";
-   if(GlobalVariableCheck(varname))
-      WS.closedlosses=GlobalVariableGet(varname);
    varname=namespace+"peakgain";
    if(GlobalVariableCheck(varname))
       WS.peakgain=GlobalVariableGet(varname);
@@ -385,24 +420,47 @@ void GetGlobalVariables()
    varname=namespace+"OpenLots";
    if(GlobalVariableCheck(varname))
       _OpenLots=GlobalVariableGet(varname);
+   varname=namespace+"currentbasemagicnumber";
+   if(GlobalVariableCheck(varname))
+      WS.currentbasemagicnumber=(int)GlobalVariableGet(varname);
+   varname=namespace+"ManualBEStopLocked";
+   if(GlobalVariableCheck(varname))
+      WS.ManualBEStopLocked=true;
+   varname=namespace+"closebasketatBE";
+   if(GlobalVariableCheck(varname))
+      WS.closebasketatBE=true;
+      
+   int varcount=GlobalVariablesTotal();
+   for(int i=0; i<varcount; i++)
+   {
+      string n=GlobalVariableName(i);
+      string s=namespace+"TradeReference";
+      int p=StringFind(n,s);
+      if(p==0)
+      {
+         int asize=ArraySize(WS.tradereference);
+         ArrayResize(WS.tradereference,asize+1);
+         WS.tradereference[asize].magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
+         WS.tradereference[asize].gain=GlobalVariableGet(n);
+      }
+   }
 }
 
 
-void SetGlobalHedged(long ticket)
+double GetGlobalReferencesGain()
 {
-   GlobalVariableSet(namespace+"Hedged"+IntegerToString(ticket),0);
+   double gain=0;
+   int asize=ArraySize(WS.tradereference);
+   for(int i=0; i<asize; i++)
+      gain+=WS.tradereference[i].gain;
+   return gain;
 }
 
 
-bool GetGlobalHedged(long ticket)
+void ClearGlobalReferences()
 {
-   return GlobalVariableCheck(namespace+"Hedged"+IntegerToString(ticket));
-}
-
-
-void ClearGlobalHedged()
-{
-   GlobalVariablesDeleteAll(namespace+"Hedged");
+   GlobalVariablesDeleteAll(namespace+"TradeReference");
+   GlobalVariablesDeleteAll(namespace+"currentbasemagicnumber");
 }
 
 
@@ -410,7 +468,7 @@ bool IsOrderToManage()
 {
    bool manage=true,
    ismagicnumber=(OrderMagicNumberX()==ManageMagicNumberOnly),
-   isinternalmagicnumber=(OrderMagicNumberX()>=basemagicnumber)&&(OrderMagicNumberX()<=basemagicnumber+(hedgeoffsetmagicnumber*2)),
+   isinternalmagicnumber=(OrderMagicNumberX()>=basemagicnumber)&&(OrderMagicNumberX()<=basemagicnumber+(hedgeoffsetmagicnumber*100)),
    isordernumber=(OrderTicketX()==ManageOrderNumberOnly);
    
    if((ManageMagicNumberOnly>0&&!ismagicnumber)||(ManageOwnTradesOnly&&ManageMagicNumberOnly==0&&!isinternalmagicnumber))
@@ -445,12 +503,6 @@ void ManageOrders()
             int pidx=AddPairsInTrades(OrderSymbolX());
 
             BI.pairsintrades[pidx].gainpips+=gainpips/pipsfactor;
-
-            long om=OrderMagicNumberX();
-            if(om>=basemagicnumber+hedgeoffsetmagicnumber)
-               om-=hedgeoffsetmagicnumber;
-            if(om>=basemagicnumber&&om>=WS.currentbasemagicnumber)
-               WS.currentbasemagicnumber=(om+1);
 
             double BESL=0;
             bool NeedSetSL=false;
@@ -518,7 +570,7 @@ void ManageBasket()
    if(BI.managedorders==0)
    {
       WS.Reset();
-      ClearGlobalHedged();
+      ClearGlobalReferences();
       
       if(istesting)
       {
@@ -542,12 +594,18 @@ void ManageBasket()
    }
 
    bool closeall=false;
+   
+   WS.globalgain=GetGlobalReferencesGain();
 
    BI.gainpips=(BI.gainpipsplus+BI.gainpipsminus)/(BI.volumeplus+BI.volumeminus);
-
-   WS.peakpips=MathMax(BI.gainpips,WS.peakpips);
    
-   WS.peakgain=MathMax(BI.gain,WS.peakgain);
+   BI.gainpipsglobal=0;
+   if(BI.gain!=0)
+      BI.gainpipsglobal=(BI.gainpips/BI.gain)*WS.globalgain;
+
+   WS.peakpips=MathMax(BI.gainpipsglobal,WS.peakpips);
+   
+   WS.peakgain=MathMax(WS.globalgain,WS.peakgain);
 
    int size1=ArraySize(BI.pairsintrades);
    for(int i=0; i<size1; i++)
@@ -563,17 +621,18 @@ void ManageBasket()
                if(HedgeAtStopLoss)
                {
                   long hedgemagicnumber=GetHedgeMagicNumber(BI.pairsintrades[i].tradeinfo,ti);
-                  if(hedgemagicnumber>-1)
+                  double hedgevolume=GetHedgeVolume(BI.pairsintrades[i].tradeinfo,ti);
+                  if(hedgemagicnumber>-1&&hedgevolume>0)
                   {
-                     if(OpenOrder(HedgeType(ti.type),(ti.volume*HedgeVolumeFactor),hedgemagicnumber,BI.pairsintrades[i].pair+ExtraChars))
-                        SetGlobalHedged(ti.orderticket);
+                     if(OpenOrder(HedgeType(ti.type),hedgevolume,hedgemagicnumber,BI.pairsintrades[i].pair+ExtraChars))
+                     {
+                     }
                   }
                }
                else
                {
                   if(CloseSelectedOrder())
                   {
-                     WS.closedlosses+=ti.gain;
                   }
                }
             }
@@ -591,7 +650,6 @@ void ManageBasket()
             {
                if(CloseSelectedOrder())
                {
-                  WS.closedlosses+=BI.largestloss;
                }
             }
          }
@@ -602,22 +660,22 @@ void ManageBasket()
       }
    }
 
-   if(ActivateTrailing&&BI.gainpips>=_StartTrailingPips)
+   if(ActivateTrailing&&BI.gainpipsglobal>=_StartTrailingPips)
       WS.TrailingActivated=true;
 
-   if(WS.TrailingActivated&&BI.gain<GetTrailingLimit())
+   if(WS.TrailingActivated&&WS.globalgain<GetTrailingLimit())
       closeall=true;
    
-   if(WS.closebasketatBE&&BI.gain>=0)
+   if(WS.closebasketatBE&&WS.globalgain>=0)
       closeall=true;
 
-   if(WS.ManualBEStopLocked&&BI.gain<=0)
+   if(WS.ManualBEStopLocked&&WS.globalgain<=0)
       closeall=true;
    
    if(WS.StopMode==SoftBasket&&_BreakEvenAfterPips>0&&WS.peakpips>=_BreakEvenAfterPips)
       WS.SoftBEStopLocked=true;   
    
-   if(WS.SoftBEStopLocked&&BI.gainpips<_AboveBEPips)
+   if(WS.SoftBEStopLocked&&BI.gainpipsglobal<_AboveBEPips)
       closeall=true;
 
    if(closeall)
@@ -695,10 +753,10 @@ void DisplayText()
          rowindex++;
       }
    
-      CreateLabel(rowindex,FontSize,TextColor,"Pips: "+DoubleToString(BI.gainpips/pipsfactor,1));
+      CreateLabel(rowindex,FontSize,TextColor,"Pips: "+DoubleToString(BI.gainpipsglobal/pipsfactor,1));
       rowindex++;
    
-      CreateLabel(rowindex,FontSize,TextColor,"Percent: "+DoubleToString(BI.gain/(AccountBalanceX()/100),1));
+      CreateLabel(rowindex,FontSize,TextColor,"Percent: "+DoubleToString(WS.globalgain/(AccountBalanceX()/100),1));
       rowindex++;
    
       color gaincolor=MediumSeaGreen;
@@ -708,10 +766,11 @@ void DisplayText()
       rowindex++;
       rowindex++;
       
-      if(WS.closedlosses<0)
+      double globalgain=NormalizeDouble(WS.globalgain,2);
+      if(globalgain!=NormalizeDouble(BI.gain,2))
       {
          color closedlossescolor=MediumSeaGreen;
-         double gaintotal=WS.closedlosses+BI.gain;
+         double gaintotal=globalgain;
          if(gaintotal<0)
             closedlossescolor=DeepPink;
          CreateLabel(rowindex,FontSize,closedlossescolor,DoubleToString(gaintotal,2));
@@ -762,8 +821,6 @@ void DisplayText()
             pairtext+=" "+DoubleToString(BI.pairsintrades[i].sellvolume,2)+" Sell";
 
          pairtext+=" "+DoubleToString(BI.pairsintrades[i].gain,2);
-
-         //pairtext+=" "+DoubleToString(BI.pairsintrades[i].gainpips,2);
 
          color pairstextcolor=MediumSeaGreen;
          if(BI.pairsintrades[i].gain<0)
@@ -842,8 +899,8 @@ void CreateLevel(long chartid, string objname, color c, double price)
    {
       ObjectCreate(chartid,objname,OBJ_HLINE,0,0,0);
       ObjectSetInteger(chartid,objname,OBJPROP_COLOR,c);
-      ObjectSetInteger(chartid,objname,OBJPROP_WIDTH,1);
-      ObjectSetInteger(chartid,objname,OBJPROP_STYLE,STYLE_DOT);
+      ObjectSetInteger(chartid,objname,OBJPROP_WIDTH,2);
+      ObjectSetInteger(chartid,objname,OBJPROP_STYLE,STYLE_SOLID);
       ObjectSetInteger(chartid,objname,OBJPROP_BACK,true);
    }
    ObjectSetDouble(chartid,objname,OBJPROP_PRICE,price);
@@ -928,22 +985,57 @@ void DeleteAllObjects()
 }
 
 
+long GetHedgeLevel(long mn)
+{
+   long t1=mn-magicnumberfloor;
+   return (long)MathFloor(t1/hedgeoffsetmagicnumber);
+}
+
+
+long GetMagicNumberFraction(long mn)
+{
+   long t1=mn-magicnumberfloor;
+   long t2=(long)MathFloor(t1/hedgeoffsetmagicnumber);
+   long t3=t1-(hedgeoffsetmagicnumber*t2);
+   if(t3<0)
+      t3=0;
+   return t3;
+}
+
+
+double GetHedgeVolume(TypeTradeInfo& tradeinfo[], TypeTradeInfo& tiin)
+{
+   double ret=0;
+   long mn=GetMagicNumberFraction(tiin.magicnumber);
+   double sells=0, buys=0, factor=HedgeVolumeFactor;
+   long hedgelevel=GetHedgeLevel(tiin.magicnumber);
+   if(hedgelevel>=(HedgeFlatAtLevel-1))
+      factor=1;
+   int size=ArraySize(tradeinfo);
+   for(int i=0; i<size; i++)
+   {
+      if(GetMagicNumberFraction(tradeinfo[i].magicnumber)==mn)
+      {
+         if(tradeinfo[i].type==OP_BUY)
+            buys+=tradeinfo[i].volume;
+         if(tradeinfo[i].type==OP_SELL)
+            sells+=tradeinfo[i].volume;
+      }
+   }
+   if(tiin.type==OP_BUY)
+      ret=(buys*factor)-sells;
+   if(tiin.type==OP_SELL)
+      ret=(sells*factor)-buys;
+   return ret;
+}
+
+
 long GetHedgeMagicNumber(TypeTradeInfo& tradeinfo[], TypeTradeInfo& tiin)
 {
-   long ret=-1;
-   if(tiin.magicnumber<(basemagicnumber+hedgeoffsetmagicnumber)&&!GetGlobalHedged(tiin.orderticket))
-   {
-      bool hedgefound=false;
-      int size=ArraySize(tradeinfo);
-      for(int i=0; i<size; i++)
-      {
-         if(tradeinfo[i].magicnumber==(tiin.magicnumber+hedgeoffsetmagicnumber))
-            hedgefound=true;
-      }
-      if(!hedgefound)
-         ret=tiin.magicnumber+hedgeoffsetmagicnumber;
-   }
-   return ret;
+   long r=tiin.magicnumber+hedgeoffsetmagicnumber;
+   if(TradeReferenceExists(r))
+      r=-1;
+   return r;
 }
 
 
@@ -1029,8 +1121,50 @@ bool OpenSell(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
 }
 
 
+void AddTradeReference(TypeTradeInfo& tiin)
+{
+   int asize=ArraySize(WS.tradereference);
+   bool found=false;
+   for(int i=0; i<asize; i++)
+   {
+      if(WS.tradereference[i].magicnumber==tiin.magicnumber)
+      {
+         found=true;
+         WS.tradereference[i].gain=tiin.gain;
+         WS.tradereference[i].points=tiin.points;
+         break;
+      }
+   }
+   if(!found)
+   {
+      ArrayResize(WS.tradereference,asize+1);
+      WS.tradereference[asize].magicnumber=tiin.magicnumber;
+      WS.tradereference[asize].gain=tiin.gain;
+      WS.tradereference[asize].points=tiin.points;
+   }
+}
+
+
+bool TradeReferenceExists(long magicnumber)
+{
+   int asize=ArraySize(WS.tradereference);
+   bool found=false;
+   for(int i=0; i<asize; i++)
+   {
+      if(WS.tradereference[i].magicnumber==magicnumber)
+      {
+         found=true;
+         break;
+      }
+   }
+   return found;
+}
+
+
 void AddTrade(TypeTradeInfo& ti[], TypeTradeInfo& tiin)
 {
+   AddTradeReference(tiin);
+
    int asize=ArraySize(ti);
    ArrayResize(ti,asize+1);
    ti[asize].orderindex=tiin.orderindex;
