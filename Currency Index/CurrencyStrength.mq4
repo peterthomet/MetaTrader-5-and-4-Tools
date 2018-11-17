@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------
-// CurrencyStrength.mq4
+// CurrencyStrength.mq5/mql4
 // Peter Thomet, getYournet.ch
 // Price and RSI Calculations copied from Corr_RSI.mq4 - mladen
 // --------------------------------------------------------------------------
@@ -12,7 +12,9 @@
 #property indicator_plots 8
 
 #include <MovingAverages.mqh>
-//#include <SmoothAlgorithms.mqh> 
+#ifdef __MQL5__
+#include <SmoothAlgorithms.mqh>
+#endif
 
 enum enPrices
 {
@@ -65,6 +67,7 @@ input bool switch_symbol_on_signal = false; //Switch Symbol on Signal
 input bool test_forward_trading = false; //Test Forward Trading
 input bool alert_momentum = false; //Alert Momentum
 input bool show_strongest = false; //Show Strongest Move
+input bool show_values = true; //Show Values
 input int test_trading_candle_expiration = 3; //Test Trading Candle Expiration
 input bool switch_symbol_on_click_all_charts = false; //On Click Switch Symbol at all Charts
 
@@ -122,6 +125,8 @@ double EURUSD[], // quotes
        NZDrsi[],
        UpDn[]; // buffers of intermediate data rsi
 
+double LastValues[8][2];
+
 int y_pos = 4; // Y coordinate variable for the informatory objects  
 datetime arrTime[28]; // Array with the last known time of a zero valued bar (needed for synchronization)  
 int bars_tf[28]; // To check the number of available bars in different currency pairs  
@@ -138,9 +143,13 @@ bool istesting;
 datetime lasttestevent;
 datetime lastalert;
 int _BarsToCalculate;
+bool MoveToCursor;
+int CursorBarIndex=0;
 string ExtraChars = "";
-//CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
-//CJJMA jjmaUSD;
+#ifdef __MQL5__
+CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
+CJJMA jjmaUSD;
+#endif
 
 struct TypeUpdown
 {
@@ -168,6 +177,7 @@ TypeSignal tradesignal={false,NULL,0,"",""};
 
 void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, string currency=NULL, color col=NULL)
 {
+#ifdef __MQL4__
    SetIndexStyle(idx, DRAW_NONE);
    if(data_type==INDICATOR_DATA)
    {
@@ -179,13 +189,16 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
       SetIndexLabel(idx, "");
    }
    SetIndexLabel(idx, NULL);
-   
+#endif
    SetIndexBuffer(idx,buffer,data_type);
    ArraySetAsSeries(buffer,true);
    ArrayInitialize(buffer,EMPTY_VALUE);
    if(currency!=NULL)
    {
       PlotIndexSetString(idx,PLOT_LABEL,currency+"plot");
+#ifdef __MQL5__
+      PlotIndexSetInteger(idx,PLOT_SHOW_DATA,false);
+#endif
       PlotIndexSetInteger(idx,PLOT_DRAW_BEGIN,_BarsToCalculate);
       PlotIndexSetInteger(idx,PLOT_DRAW_TYPE,DRAW_LINE);
       PlotIndexSetInteger(idx,PLOT_LINE_COLOR,col);
@@ -193,7 +206,9 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
       bool showlabel=true;
       if(StringFind(Symbol(),currency,0)!=-1 || all_solid)
       {
+#ifdef __MQL4__
         SetIndexStyle(idx, DRAW_LINE, STYLE_SOLID, wid_main, col);
+#endif
         PlotIndexSetInteger(idx,PLOT_LINE_WIDTH,wid_main);
         PlotIndexSetInteger(idx,PLOT_LINE_STYLE,STYLE_SOLID);
       }
@@ -207,7 +222,9 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
          else
          {
             PlotIndexSetInteger(idx,PLOT_DRAW_TYPE,DRAW_LINE);
+#ifdef __MQL4__
             SetIndexStyle(idx, DRAW_LINE, STYLE_SOLID, wid_standard, col);
+#endif
             PlotIndexSetInteger(idx,PLOT_LINE_WIDTH,wid_standard);
             PlotIndexSetInteger(idx,PLOT_LINE_STYLE,style_slave);
          }
@@ -298,13 +315,18 @@ void OnInit()
    InitBuffer(51,CHFJPY,INDICATOR_CALCULATIONS);
 
    SetIndexBuffer(52,UpDn,INDICATOR_CALCULATIONS);
+#ifdef __MQL4__
    SetIndexStyle(52, DRAW_NONE);
    SetIndexLabel(52, NULL);
+#endif
    ArraySetAsSeries(UpDn,true);
    ArrayInitialize(UpDn,EMPTY_VALUE);
 
    if(!istesting)
+   {
       EventSetTimer(1);
+      ChartSetInteger(0,CHART_EVENT_MOUSE_MOVE,true);
+   }
 }
 
 
@@ -376,7 +398,7 @@ void StrongestMove(int range)
    //if(!show_strongest)
    //   return;
 
-   TypeUpdown ud={0,0,"","",false,false};
+   TypeUpdown ud={-100,100,"","",false,false};
 
    CheckUpDown("USD",ud,USDplot,range);
    CheckUpDown("EUR",ud,EURplot,range);
@@ -432,10 +454,135 @@ void StrongestMove(int range)
 }
 
 
+string GetCurrency(int row)
+{
+   if(row==1) return "USD";
+   if(row==2) return "EUR";
+   if(row==3) return "GBP";
+   if(row==4) return "JPY";
+   if(row==5) return "CHF";
+   if(row==6) return "CAD";
+   if(row==7) return "AUD";
+   if(row==8) return "NZD";
+   return "";
+}
+
+
+int GetValueIndex(int row)
+{
+   int idx;
+   for(idx=0; idx<8; idx++)
+      if(LastValues[idx][1]==row)
+         break;
+   return idx;
+}
+
+
+void SetValues(int idx, double& values[])
+{
+   LastValues[idx][0]=values[0]-values[1];
+   LastValues[idx][1]=idx+1;
+}
+
+
+void ShowTradeSets()
+{
+   string s1=GetCurrency((int)LastValues[7][1]);
+   string s2=GetCurrency((int)LastValues[6][1]);
+   string w1=GetCurrency((int)LastValues[0][1]);
+   string w2=GetCurrency((int)LastValues[1][1]);
+   
+   string pair;
+   pair=NormalizePairing(s1+w1);
+   ShowTradeSet(1,1,pair,StringFind(pair,s1)==0);
+   pair=NormalizePairing(s1+w2);
+   ShowTradeSet(1,2,pair,StringFind(pair,s1)==0);
+   pair=NormalizePairing(s2+w1);
+   ShowTradeSet(1,3,pair,StringFind(pair,s2)==0);
+   pair=NormalizePairing(s2+w2);
+   ShowTradeSet(1,4,pair,StringFind(pair,s2)==0);
+}
+
+
+void ShowTradeSet(int col, int row, string text, bool buy)
+{
+   color _color=DimGray;
+   if(buy)
+      _color=DodgerBlue;
+   int xdistance=((col-1)*62)+6;
+   int ydistance=((row-1)*16)+20;
+   string oname = namespace+"-SymbolButton-TradeSet-"+IntegerToString(col)+"-"+IntegerToString(row);
+   ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
+   ObjectSetInteger(0,oname,OBJPROP_CORNER,CORNER_LEFT_UPPER);
+   ObjectSetInteger(0,oname,OBJPROP_ANCHOR,ANCHOR_LEFT_UPPER);
+   ObjectSetInteger(0,oname,OBJPROP_XDISTANCE,xdistance);
+   ObjectSetInteger(0,oname,OBJPROP_YDISTANCE,ydistance);
+   ObjectSetString(0,oname,OBJPROP_TEXT,text);
+   ObjectSetInteger(0,oname,OBJPROP_COLOR,_color);
+   ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,9);
+}
+
+
+void ShowValues()
+{
+   SetValues(0,USDplot);
+   SetValues(1,EURplot);
+   SetValues(2,GBPplot);
+   SetValues(3,JPYplot);
+   SetValues(4,CHFplot);
+   SetValues(5,CADplot);
+   SetValues(6,AUDplot);
+   SetValues(7,NZDplot);
+
+   ArraySort(LastValues);
+
+   if(!show_values)
+      return;
+
+   ShowValue(1,1);
+   ShowValue(1,2);
+   ShowValue(1,3);
+   ShowValue(1,4);
+   ShowValue(1,5);
+   ShowValue(1,6);
+   ShowValue(1,7);
+   ShowValue(1,8);
+}
+
+
+void ShowValue(int col, int row)
+{
+   int idx=GetValueIndex(row);
+   double value=LastValues[idx][0];
+   color _color=DimGray;
+   if(idx>5)
+      _color=MediumSeaGreen;
+   if(idx<2)
+      _color=DeepPink;
+   //_color=DimGray;
+   string text=DoubleToString(value*1000,0);
+   //text="|||||||||";
+   int xdistance=(col-1)*62+35;
+   int ydistance=(row-1)*16+4;
+   string oname = namespace+"-Value-"+IntegerToString(col)+"-"+IntegerToString(row);
+   ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
+   ObjectSetInteger(0,oname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,oname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,oname,OBJPROP_XDISTANCE,xdistance);
+   ObjectSetInteger(0,oname,OBJPROP_YDISTANCE,ydistance);
+   ObjectSetString(0,oname,OBJPROP_TEXT,text);
+   ObjectSetInteger(0,oname,OBJPROP_COLOR,_color);
+   ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,9);
+}
+
+
 void AddSymbolButton(int col, int row, string text, color _color=DimGray)
 {
-   int xdistance=(col-1)*62+93;
-   int ydistance=(row-1)*16+4;
+   int xoffset=93;
+   if(show_values)
+      xoffset=117;
+   int xdistance=((col-1)*62)+xoffset;
+   int ydistance=((row-1)*16)+4;
    string oname = namespace+"-SymbolButton-"+IntegerToString(col)+"-"+IntegerToString(row);
    ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
    ObjectSetInteger(0,oname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
@@ -507,6 +654,8 @@ void OnTimer()
       for(int i=1; i<=strongcount; i++)
          StrongestMove(i);
       //CalculateAlert();
+      ShowValues();
+      ShowTradeSets();
       fullinit=false;
    }
    if(currentticktime != lastticktime)
@@ -539,8 +688,12 @@ int OnCalculate(const int rates_total,
                 const long& volume[], 
                 const int& spread[]) 
 {
-   //currentticktime=TimeTradeServer();
+#ifdef __MQL5__
+   currentticktime=TimeTradeServer();
+#endif
+#ifdef __MQL4__
    currentticktime=TimeCurrent();
+#endif
    if(prev_calculated<rates_total)
    {
       fullinit=true;
@@ -775,46 +928,70 @@ bool CalculateIndex()
       prev = _BarsToCalculate-(i+1);
       idx = _BarsToCalculate-1-i;
       if(IncludeCurrency("USD"))
-         //if(i>sml && ma_period>1)
-            //USDplot[i]=xmaUSD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, USDx[i], idx, false);
-         //else
+#ifdef __MQL5__
+         if(i>sml && ma_period>1)
+            USDplot[i]=xmaUSD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, USDx[i], idx, false);
+         else
+#endif
             USDplot[i]=USDx[i];
          //USDplot[i]=jjmaUSD.JJMASeries(0, prev, total, 0, 100, ma_period, USDx[i], idx, false);
+         USDplot[i]+=1000;
       if(IncludeCurrency("EUR"))
-         //if(i>sml && ma_period>1)
-            //EURplot[i]=xmaEUR.XMASeries(0, prev, total, MODE_T3, 0, ma_period, EURx[i], idx, false);
-         //else
+#ifdef __MQL5__
+         if(i>sml && ma_period>1)
+            EURplot[i]=xmaEUR.XMASeries(0, prev, total, MODE_T3, 0, ma_period, EURx[i], idx, false);
+         else
+#endif
             EURplot[i]=EURx[i];
+         EURplot[i]+=1000;
       if(IncludeCurrency("GBP"))
-         //if(i>sml && ma_period>1)
-            //GBPplot[i]=xmaGBP.XMASeries(0, prev, total, MODE_T3, 0, ma_period, GBPx[i], idx, false);
-         //else
+#ifdef __MQL5__
+         if(i>sml && ma_period>1)
+            GBPplot[i]=xmaGBP.XMASeries(0, prev, total, MODE_T3, 0, ma_period, GBPx[i], idx, false);
+         else
+#endif
             GBPplot[i]=GBPx[i];
+         GBPplot[i]+=1000;
       if(IncludeCurrency("CHF"))
-         //if(i>sml && ma_period>1)
-            //CHFplot[i]=xmaCHF.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CHFx[i], idx, false);
-         //else
+#ifdef __MQL5__
+         if(i>sml && ma_period>1)
+            CHFplot[i]=xmaCHF.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CHFx[i], idx, false);
+         else
+#endif
             CHFplot[i]=CHFx[i];
+         CHFplot[i]+=1000;
       if(IncludeCurrency("JPY"))
-         //if(i>sml && ma_period>1)
-            //JPYplot[i]=xmaJPY.XMASeries(0, prev, total, MODE_T3, 0, ma_period, JPYx[i], idx, false);
-         //else
+#ifdef __MQL5__
+         if(i>sml && ma_period>1)
+            JPYplot[i]=xmaJPY.XMASeries(0, prev, total, MODE_T3, 0, ma_period, JPYx[i], idx, false);
+         else
+#endif
             JPYplot[i]=JPYx[i];
+         JPYplot[i]+=1000;
       if(IncludeCurrency("CAD"))
-         //if(i>sml && ma_period>1)
-            //CADplot[i]=xmaCAD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CADx[i], idx, false);
-         //else
+#ifdef __MQL5__
+         if(i>sml && ma_period>1)
+            CADplot[i]=xmaCAD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, CADx[i], idx, false);
+         else
+#endif
             CADplot[i]=CADx[i];
+         CADplot[i]+=1000;
       if(IncludeCurrency("AUD"))
-         //if(i>sml && ma_period>1)
-            //AUDplot[i]=xmaAUD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, AUDx[i], idx, false);
-         //else
+#ifdef __MQL5__
+         if(i>sml && ma_period>1)
+            AUDplot[i]=xmaAUD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, AUDx[i], idx, false);
+         else
+#endif
             AUDplot[i]=AUDx[i];
+         AUDplot[i]+=1000;
       if(IncludeCurrency("NZD"))
-         //if(i>sml && ma_period>1)
-            //NZDplot[i]=xmaNZD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, NZDx[i], idx, false);
-         //else
+#ifdef __MQL5__
+         if(i>sml && ma_period>1)
+            NZDplot[i]=xmaNZD.XMASeries(0, prev, total, MODE_T3, 0, ma_period, NZDx[i], idx, false);
+         else
+#endif
             NZDplot[i]=NZDx[i];
+         NZDplot[i]+=1000;
    }
    return(true);
 }
@@ -1095,8 +1272,46 @@ double GetPrice(int tprice, MqlRates& rates[], int i)
 }
 
 
+static bool ctrl_pressed = false;
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
+   if(id==CHARTEVENT_KEYDOWN)
+   {
+      if (ctrl_pressed == false && lparam == 17)
+      {
+         ctrl_pressed = true;
+      }
+      else if (ctrl_pressed == true)
+      {
+         if (lparam == 57)
+         {
+            MoveToCursor=!MoveToCursor;
+            ctrl_pressed = false;
+         }
+      }
+   }
+   if(id==CHARTEVENT_MOUSE_MOVE)
+   {
+      int x=(int)lparam;
+      int y=(int)dparam;
+      datetime dt=0;
+      double price=0;
+      int window=0;
+      if(ChartXYToTimePrice(0,x,y,window,dt,price))
+      {
+         dt=dt-(PeriodSeconds()/2);
+         datetime Arr[],time1;
+         if(CopyTime(Symbol(),Period(),0,1,Arr)==1)
+         {
+            time1=Arr[0];
+            if(CopyTime(Symbol(),Period(),dt,time1,Arr)>0)
+            {
+               CursorBarIndex=ArraySize(Arr)-1;
+               //PrintFormat("Window=%d X=%d  Y=%d  =>  Time=%s  Price=%G Barindex=%i",window,x,y,TimeToString(dt),price,CursorBarIndex);
+            }
+         }
+      }
+   }
    if(id==CHARTEVENT_OBJECT_CLICK)
    {
       if(StringFind(sparam,"-SymbolButton")>-1)
