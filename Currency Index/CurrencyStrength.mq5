@@ -10,12 +10,14 @@
 #property indicator_buffers 9
 #property indicator_plots 8
 
-#include <MovingAverages.mqh>
+//#include <MovingAverages.mqh>
 #ifdef __MQL5__
 //#include <SmoothAlgorithms.mqh>
 #endif
 
-enum enPrices
+#define CS_INDICATOR_MODE
+
+enum CS_Prices
 {
    pr_close,      // Close
    pr_open,       // Open
@@ -41,10 +43,9 @@ enum enPrices
    pr_hatbiased2  // Heiken ashi trend biased (extreme) price
 };
 
-input enPrices PriceType = pr_close; // Price Type
-input int ma_period = 0; // MA Period
-input int ma_smoothing = 3; // MA Smoothing
-input int BarsToCalculate = 30; // Number of Bars to calculate
+input ENUM_TIMEFRAMES TimeFrame = PERIOD_CURRENT; // Timeframe
+input CS_Prices PriceType = pr_close; // Price Type
+input int BarsCalculate = 30; // Number of Bars to calculate
 input int ZeroPoint = 30; // Zero Point
 
 input color Color_USD = MediumSeaGreen;            // USD line color
@@ -74,7 +75,38 @@ struct TypeCurrency
    string name;
    double index[];
 };
-TypeCurrency Currency[8];
+
+struct TypeTrade
+{
+   string name;
+   bool buy;
+};
+
+struct TypeCurrencies
+{
+   TypeCurrency Currency[8];
+   double LastValues[8][2];
+   TypeTrade Trade[4];
+   TypeCurrencies()
+   {
+      Currency[0].name="USD";
+      Currency[1].name="EUR";
+      Currency[2].name="GBP";
+      Currency[3].name="JPY";
+      Currency[4].name="CHF";
+      Currency[5].name="CAD";
+      Currency[6].name="AUD";
+      Currency[7].name="NZD";
+   }
+   int GetValueIndex(int row)
+   {
+      int idx;
+      for(idx=0; idx<8; idx++)
+         if(LastValues[idx][1]==row)
+            break;
+      return idx;
+   }
+};
 
 struct TypePair
 {
@@ -87,8 +119,86 @@ struct TypePairs
    TypePair Pair[28];
    bool anytimechanged;
    datetime maxtime;
+   TypePairs()
+   {
+      Pair[0].name="EURUSD";
+      Pair[1].name="GBPUSD";
+      Pair[2].name="USDCHF";
+      Pair[3].name="USDJPY";
+      Pair[4].name="USDCAD";
+      Pair[5].name="AUDUSD";
+      Pair[6].name="NZDUSD";
+      Pair[7].name="EURNZD";
+      Pair[8].name="EURCAD";
+      Pair[9].name="EURAUD";
+      Pair[10].name="EURJPY";
+      Pair[11].name="EURCHF";
+      Pair[12].name="EURGBP";
+      Pair[13].name="GBPNZD";
+      Pair[14].name="GBPAUD";
+      Pair[15].name="GBPCAD";
+      Pair[16].name="GBPJPY";
+      Pair[17].name="GBPCHF";
+      Pair[18].name="CADJPY";
+      Pair[19].name="CADCHF";
+      Pair[20].name="AUDCAD";
+      Pair[21].name="NZDCAD";
+      Pair[22].name="AUDCHF";
+      Pair[23].name="AUDJPY";
+      Pair[24].name="AUDNZD";
+      Pair[25].name="NZDJPY";
+      Pair[26].name="NZDCHF";
+      Pair[27].name="CHFJPY";
+   }
+   string NormalizePairing(string pair)
+   {
+      string p=pair;
+      for(int i=0; i<28; i++)
+      {
+         if(StringSubstr(p,3,3)+StringSubstr(p,0,3)==Pair[i].name)
+         {
+            p=Pair[i].name;
+            break;
+         }
+      }
+      return p;
+   }
 };
-TypePairs Pairs;
+
+struct TypeCurrencyStrength
+{
+   ENUM_TIMEFRAMES timeframe;
+   int bars;
+   int start;
+   string extrachars;
+   CS_Prices pricetype;
+   bool recalculate;
+   TypeCurrencies Currencies;
+   TypePairs Pairs;
+   TypeCurrencyStrength()
+   {
+      timeframe=PERIOD_CURRENT;
+      bars=10;
+      start=0;
+      extrachars=StringSubstr(Symbol(),6);
+      pricetype=pr_close;
+      recalculate=false;
+   }
+   void Init(int _Bars, int Zero, string ExtraChars, ENUM_TIMEFRAMES TimeFrameCustom)
+   {
+      bars=_Bars;
+      for(int i=0; i<8; i++)
+         ArrayResize(Currencies.Currency[i].index,bars);
+
+      if(Zero<bars&&Zero>=0)
+         start=(bars-1)-Zero;
+
+      extrachars=ExtraChars;
+      
+      timeframe=TimeFrameCustom;
+   }
+};
+TypeCurrencyStrength CS;
 
 double USDplot[],
        EURplot[],
@@ -100,13 +210,9 @@ double USDplot[],
        NZDplot[],
        UpDn[];
 
-double LastValues[8][2];
-
 int y_pos = 4;
-string namespace = "CurrencyStrength";
-bool incalculation = false;
-bool fullinit = true;
-bool repaint = false;
+string namespace="CurrencyStrength";
+bool incalculation=false;
 datetime lastticktime;
 datetime currentticktime;
 int sameticktimecount=0;
@@ -114,10 +220,8 @@ bool timerenabled=true;
 bool istesting;
 datetime lasttestevent;
 datetime lastalert;
-int _BarsToCalculate;
 bool MoveToCursor;
 int CursorBarIndex=0;
-string ExtraChars = "";
 #ifdef __MQL5__
 //CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 //CJJMA jjmaUSD;
@@ -171,7 +275,7 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
 #ifdef __MQL5__
       PlotIndexSetInteger(idx,PLOT_SHOW_DATA,false);
 #endif
-      PlotIndexSetInteger(idx,PLOT_DRAW_BEGIN,_BarsToCalculate);
+      PlotIndexSetInteger(idx,PLOT_DRAW_BEGIN,BarsCalculate);
       PlotIndexSetInteger(idx,PLOT_DRAW_TYPE,DRAW_LINE);
       PlotIndexSetInteger(idx,PLOT_LINE_COLOR,col);
       PlotIndexSetDouble(idx,PLOT_EMPTY_VALUE,EMPTY_VALUE);
@@ -211,11 +315,6 @@ void OnInit()
 {
    istesting=MQLInfoInteger(MQL_TESTER);
    
-   _BarsToCalculate = BarsToCalculate;
-   //_BarsToCalculate = BarsToCalculate+30;
-
-   ExtraChars = StringSubstr(Symbol(), 6);
-   
    IndicatorSetInteger(INDICATOR_DIGITS,5);
 
    string nameInd="CurrencyStrength";
@@ -238,46 +337,12 @@ void OnInit()
    ArraySetAsSeries(UpDn,true);
    ArrayInitialize(UpDn,EMPTY_VALUE);
 
-   Pairs.Pair[0].name="EURUSD";
-   Pairs.Pair[1].name="GBPUSD";
-   Pairs.Pair[2].name="USDCHF";
-   Pairs.Pair[3].name="USDJPY";
-   Pairs.Pair[4].name="USDCAD";
-   Pairs.Pair[5].name="AUDUSD";
-   Pairs.Pair[6].name="NZDUSD";
-   Pairs.Pair[7].name="EURNZD";
-   Pairs.Pair[8].name="EURCAD";
-   Pairs.Pair[9].name="EURAUD";
-   Pairs.Pair[10].name="EURJPY";
-   Pairs.Pair[11].name="EURCHF";
-   Pairs.Pair[12].name="EURGBP";
-   Pairs.Pair[13].name="GBPNZD";
-   Pairs.Pair[14].name="GBPAUD";
-   Pairs.Pair[15].name="GBPCAD";
-   Pairs.Pair[16].name="GBPJPY";
-   Pairs.Pair[17].name="GBPCHF";
-   Pairs.Pair[18].name="CADJPY";
-   Pairs.Pair[19].name="CADCHF";
-   Pairs.Pair[20].name="AUDCAD";
-   Pairs.Pair[21].name="NZDCAD";
-   Pairs.Pair[22].name="AUDCHF";
-   Pairs.Pair[23].name="AUDJPY";
-   Pairs.Pair[24].name="AUDNZD";
-   Pairs.Pair[25].name="NZDJPY";
-   Pairs.Pair[26].name="NZDCHF";
-   Pairs.Pair[27].name="CHFJPY";
-
-   Currency[0].name="USD";
-   Currency[1].name="EUR";
-   Currency[2].name="GBP";
-   Currency[3].name="JPY";
-   Currency[4].name="CHF";
-   Currency[5].name="CAD";
-   Currency[6].name="AUD";
-   Currency[7].name="NZD";
-   
-   for(int i=0; i<8; i++)
-      ArrayResize(Currency[i].index,_BarsToCalculate);
+   CS.Init(
+      BarsCalculate,
+      ZeroPoint,
+      StringSubstr(Symbol(),6),
+      TimeFrame
+      );
 
    if(!istesting)
    {
@@ -303,7 +368,7 @@ void CalculateAlert()
       return;
 
    datetime dtarr[1];
-   if(CopyTime(_Symbol,_Period,0,1,dtarr)!=1)
+   if(CopyTime(Symbol(),Period(),0,1,dtarr)!=1)
       return;
 
    int alertsecondsbefore=60;
@@ -318,12 +383,12 @@ void CalculateAlert()
       bool eurdown = EURplot[1]<EURplot[2] && EURplot[0]<=EURplot[1]-(EURplot[2]-EURplot[1]);
       if(usdup && eurdown)
       {
-         Alert(_Symbol + " Down Momentum");
+         Alert(Symbol() + " Down Momentum");
          lastalert=dtarr[0];
       }
       if(usddown && eurup)
       {
-         Alert(_Symbol + " Up Momentum");
+         Alert(Symbol() + " Up Momentum");
          lastalert=dtarr[0];
       }
    }
@@ -365,14 +430,14 @@ void StrongestMove(int range)
    
    bool signal=false;
    color c=DimGray;
-   string pair=NormalizePairing(ud.up+ud.dn);
+   string pair=CS.Pairs.NormalizePairing(ud.up+ud.dn);
    bool up=false;
    if(StringFind(pair,ud.up)==0)
    {
       c=DodgerBlue;
       up=true;
    }
-   if(StringFind(pair+ExtraChars,Symbol())==0)
+   if(StringFind(pair+CS.extrachars,Symbol())==0)
    {
       if(up)
          UpDn[range-1]=1;
@@ -385,12 +450,12 @@ void StrongestMove(int range)
    }
    if(ud.isupreversal && ud.isdnreversal)
    {
-      if(PeriodSeconds()-(TimeCurrent()-Pairs.maxtime)<=20 && !tradesignal.open && test_forward_trading && range==1)
+      if(PeriodSeconds()-(TimeCurrent()-CS.Pairs.maxtime)<=20 && !tradesignal.open && test_forward_trading && range==1)
       {
          signal=true;
          tradesignal.open=true;
          tradesignal.candles=test_trading_candle_expiration;
-         tradesignal.candleendtime=Pairs.maxtime+(PeriodSeconds()*tradesignal.candles);
+         tradesignal.candleendtime=CS.Pairs.maxtime+(PeriodSeconds()*tradesignal.candles);
          tradesignal.pair=pair;
          tradesignal.direction="up";
          if(StringFind(pair,ud.up)==0)
@@ -403,42 +468,6 @@ void StrongestMove(int range)
    if(signal && switch_symbol_on_signal)
       SwitchSymbol(pair);
 
-}
-
-
-int GetValueIndex(int row)
-{
-   int idx;
-   for(idx=0; idx<8; idx++)
-      if(LastValues[idx][1]==row)
-         break;
-   return idx;
-}
-
-
-void SetValues(int idx, double& values[])
-{
-   LastValues[idx][0]=values[0]-values[1];
-   LastValues[idx][1]=idx+1;
-}
-
-
-void ShowTradeSets()
-{
-   string s1=Currency[((int)LastValues[7][1])-1].name;
-   string s2=Currency[((int)LastValues[6][1])-1].name;
-   string w1=Currency[((int)LastValues[0][1])-1].name;
-   string w2=Currency[((int)LastValues[1][1])-1].name;
-   
-   string pair;
-   pair=NormalizePairing(s1+w1);
-   ShowTradeSet(1,1,pair,StringFind(pair,s1)==0);
-   pair=NormalizePairing(s1+w2);
-   ShowTradeSet(1,2,pair,StringFind(pair,s1)==0);
-   pair=NormalizePairing(s2+w1);
-   ShowTradeSet(1,3,pair,StringFind(pair,s2)==0);
-   pair=NormalizePairing(s2+w2);
-   ShowTradeSet(1,4,pair,StringFind(pair,s2)==0);
 }
 
 
@@ -461,37 +490,10 @@ void ShowTradeSet(int col, int row, string text, bool buy)
 }
 
 
-void ShowValues()
-{
-   SetValues(0,USDplot);
-   SetValues(1,EURplot);
-   SetValues(2,GBPplot);
-   SetValues(3,JPYplot);
-   SetValues(4,CHFplot);
-   SetValues(5,CADplot);
-   SetValues(6,AUDplot);
-   SetValues(7,NZDplot);
-
-   ArraySort(LastValues);
-
-   if(!show_values)
-      return;
-
-   ShowValue(1,1);
-   ShowValue(1,2);
-   ShowValue(1,3);
-   ShowValue(1,4);
-   ShowValue(1,5);
-   ShowValue(1,6);
-   ShowValue(1,7);
-   ShowValue(1,8);
-}
-
-
 void ShowValue(int col, int row)
 {
-   int idx=GetValueIndex(row);
-   double value=LastValues[idx][0];
+   int idx=CS.Currencies.GetValueIndex(row);
+   double value=CS.Currencies.LastValues[idx][0];
    color _color=DimGray;
    if(idx>5)
       _color=MediumSeaGreen;
@@ -533,21 +535,6 @@ void AddSymbolButton(int col, int row, string text, color _color=DimGray)
 }
 
 
-string NormalizePairing(string pair)
-{
-   string p=pair;
-   for(int i=0; i<28; i++)
-   {
-      if(StringSubstr(p,3,3)+StringSubstr(p,0,3)==Pairs.Pair[i].name)
-      {
-         p=Pairs.Pair[i].name;
-         break;
-      }
-   }
-   return p;
-}
-
-
 void OnTimer()
 {
    if(incalculation || !timerenabled)
@@ -560,17 +547,24 @@ void OnTimer()
       lasttestevent=curtime;
    }
    incalculation=true;
-   if(CalculateIndex())
+   if(CS_CalculateIndex(CS))
    {
+      WriteComment(" ");
+
       int strongcount=20;
-      if(BarsToCalculate<strongcount-1)
-         strongcount=BarsToCalculate-1;
+      if(BarsCalculate<strongcount-1)
+         strongcount=BarsCalculate-1;
       for(int i=1; i<=strongcount; i++)
          StrongestMove(i);
       //CalculateAlert();
-      ShowValues();
-      ShowTradeSets();
-      fullinit=false;
+
+      if(show_values)
+         for(int j=1; j<=8; j++)
+            ShowValue(1,j);
+
+      for(int t=0; t<4; t++)
+         ShowTradeSet(1,t+1,CS.Currencies.Trade[t].name,CS.Currencies.Trade[t].buy);
+
       ChartRedraw();
    }
    if(currentticktime != lastticktime)
@@ -584,7 +578,6 @@ void OnTimer()
       if(sameticktimecount>=30)
       {
          timerenabled=false;
-         fullinit=true;
          Print("Timer Stopped - No Data Feed Available");
       }
    }
@@ -611,8 +604,7 @@ int OnCalculate(const int rates_total,
 #endif
    if(prev_calculated<rates_total)
    {
-      repaint=true;
-      fullinit=true;
+      CS.recalculate=true;
 
       if(prev_calculated==0)
       {
@@ -627,7 +619,7 @@ int OnCalculate(const int rates_total,
       }
       else
       {
-         for(int i=0; i<=_BarsToCalculate; i++)
+         for(int i=0; i<=BarsCalculate; i++)
          {
             USDplot[i]=EMPTY_VALUE;
             EURplot[i]=EMPTY_VALUE;
@@ -647,75 +639,67 @@ int OnCalculate(const int rates_total,
 }
 
 
-bool CalculateIndex()
+bool CS_CalculateIndex(TypeCurrencyStrength& cs)
 {
-   int limit=_BarsToCalculate;
-   int start=_BarsToCalculate-1;
-   if(ZeroPoint<start && ZeroPoint>=0)
-      start=ZeroPoint;
+   int limit=cs.bars;
 
-   if(fullinit)
-      limit=_BarsToCalculate;
-   else
-      limit=1;
-
-   Pairs.anytimechanged=false;
-   Pairs.maxtime=0;
+   cs.Pairs.anytimechanged=false;
+   cs.Pairs.maxtime=0;
 
    bool failed=false;
    for(int i=0; i<28; i++)
    {
-      if(!GetRates(Pairs.Pair[i]))
-      {
+      if(!CS_GetRates(cs.Pairs.Pair[i],cs))
          failed=true;
-         break;
-      }
    }
    if(failed)
       return(false);
 
-   WriteComment(" ");
-
-   if(Pairs.anytimechanged||repaint)
-      limit=_BarsToCalculate;
+   if(cs.Pairs.anytimechanged||cs.recalculate)
+      limit=cs.bars;
    else
       limit=1;
 
-   int start2=(_BarsToCalculate-1)-start;
-   for(int y=_BarsToCalculate-limit;y<_BarsToCalculate;y++)
+   for(int y=cs.bars-limit;y<cs.bars;y++)
    {
       for(int z=0; z<8; z++)
       {
-         string cn=Currency[z].name;
+         string cn=cs.Currencies.Currency[z].name;
          if(IncludeCurrency(cn))
          {
-            Currency[z].index[y]=0;
-            if(y!=start2)
+            cs.Currencies.Currency[z].index[y]=0;
+            if(y!=cs.start)
             {
                for(int x=0; x<28; x++)
                {
-                  bool isbase=(StringSubstr(Pairs.Pair[x].name,0,3)==cn);
-                  bool isquote=(StringSubstr(Pairs.Pair[x].name,3,3)==cn);
+                  bool isbase=(StringSubstr(cs.Pairs.Pair[x].name,0,3)==cn);
+                  bool isquote=(StringSubstr(cs.Pairs.Pair[x].name,3,3)==cn);
                   if(isbase||isquote)
                   {
-                     int firstgap=(int)(Pairs.maxtime-Pairs.Pair[x].rates[_BarsToCalculate-1].time);
-                     int shift=(firstgap/PeriodSeconds(PERIOD_CURRENT));
+                     int firstgap=(int)(cs.Pairs.maxtime-cs.Pairs.Pair[x].rates[cs.bars-1].time);
+                     int shift=(firstgap/PeriodSeconds(cs.timeframe));
 
-                     if((y+shift)>(_BarsToCalculate-1))
-                        shift=(_BarsToCalculate-1)-y;
+                     if((y+shift)>(cs.bars-1))
+                        shift=(cs.bars-1)-y;
 
-                     double pi=GetPrice(PriceType,Pairs.Pair[x].rates,y+shift);
-                     double ps=GetPrice(PriceType,Pairs.Pair[x].rates,start2+shift);
+                     double pi=CS_GetPrice(PriceType,cs.Pairs.Pair[x].rates,y+shift);
+                     double ps=CS_GetPrice(PriceType,cs.Pairs.Pair[x].rates,cs.start+shift);
                      if(isbase)
-                        Currency[z].index[y]+=(pi-ps)/ps*100;
+                        cs.Currencies.Currency[z].index[y]+=(pi-ps)/ps*100;
                      if(isquote)
-                        Currency[z].index[y]-=(pi-ps)/ps*100;
+                        cs.Currencies.Currency[z].index[y]-=(pi-ps)/ps*100;
                   }
                }
-               Currency[z].index[y]=Currency[z].index[y]/7;
+               cs.Currencies.Currency[z].index[y]=cs.Currencies.Currency[z].index[y]/7;
             }
-            int ti=(_BarsToCalculate-1)-y;
-            double va=Currency[z].index[y]+1000;
+            if(y==(cs.bars-1))
+            {
+               cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y]-cs.Currencies.Currency[z].index[y-1];
+               cs.Currencies.LastValues[z][1]=z+1;
+            }
+#ifdef CS_INDICATOR_MODE
+            int ti=(cs.bars-1)-y;
+            double va=cs.Currencies.Currency[z].index[y]+1000;
             if(cn=="USD") USDplot[ti]=va;
             if(cn=="EUR") EURplot[ti]=va;
             if(cn=="GBP") GBPplot[ti]=va;
@@ -724,10 +708,38 @@ bool CalculateIndex()
             if(cn=="CAD") CADplot[ti]=va;
             if(cn=="AUD") AUDplot[ti]=va;
             if(cn=="NZD") NZDplot[ti]=va;
+#endif
          }
       }
    }
-   repaint=false;
+   
+   ArraySort(cs.Currencies.LastValues);
+
+   string s1=cs.Currencies.Currency[((int)cs.Currencies.LastValues[7][1])-1].name;
+   string s2=cs.Currencies.Currency[((int)cs.Currencies.LastValues[6][1])-1].name;
+   string w1=cs.Currencies.Currency[((int)cs.Currencies.LastValues[0][1])-1].name;
+   string w2=cs.Currencies.Currency[((int)cs.Currencies.LastValues[1][1])-1].name;
+
+   string pair;
+
+   pair=cs.Pairs.NormalizePairing(s1+w1);
+   cs.Currencies.Trade[0].name=pair;
+   cs.Currencies.Trade[0].buy=StringFind(pair,s1)==0;
+
+   pair=cs.Pairs.NormalizePairing(s1+w2);
+   cs.Currencies.Trade[1].name=pair;
+   cs.Currencies.Trade[1].buy=StringFind(pair,s1)==0;
+
+   pair=cs.Pairs.NormalizePairing(s2+w1);
+   cs.Currencies.Trade[2].name=pair;
+   cs.Currencies.Trade[2].buy=StringFind(pair,s2)==0;
+
+   pair=cs.Pairs.NormalizePairing(s2+w2);
+   cs.Currencies.Trade[3].name=pair;
+   cs.Currencies.Trade[3].buy=StringFind(pair,s2)==0;
+
+   cs.recalculate=false;
+
    return(true);
 }
 
@@ -748,7 +760,7 @@ bool IncludeCurrency(string currency)
 }
 
 
-bool GetRates(TypePair& p)
+bool CS_GetRates(TypePair& p, TypeCurrencyStrength& cs)
 {
    if(!IncludePair(p.name))
       return true;
@@ -757,28 +769,28 @@ bool GetRates(TypePair& p)
    int rcount=ArraySize(p.rates);
    datetime newesttime=0;
    datetime oldesttime=0;
-   if(rcount<_BarsToCalculate)
+   if(rcount<cs.bars)
    {
-      Pairs.anytimechanged=true;
+      cs.Pairs.anytimechanged=true;
    }
    else
    {
       oldesttime=p.rates[0].time;
-      newesttime=p.rates[_BarsToCalculate-1].time;
+      newesttime=p.rates[cs.bars-1].time;
    }
    
-   copied=CopyRates(p.name+ExtraChars,PERIOD_CURRENT,0,_BarsToCalculate,p.rates);
-   if(copied<_BarsToCalculate)
+   copied=CopyRates(p.name+cs.extrachars,cs.timeframe,0,cs.bars,p.rates);
+   if(copied<cs.bars)
    {
       WriteComment("Loading... "+p.name);
       ret=false;
    }
    else
    {
-      if(p.rates[0].time!=oldesttime || p.rates[_BarsToCalculate-1].time!=newesttime)
-         Pairs.anytimechanged=true;
+      if(p.rates[0].time!=oldesttime || p.rates[cs.bars-1].time!=newesttime)
+         cs.Pairs.anytimechanged=true;
 
-      Pairs.maxtime=MathMax(Pairs.maxtime,p.rates[_BarsToCalculate-1].time);
+      cs.Pairs.maxtime=MathMax(cs.Pairs.maxtime,p.rates[cs.bars-1].time);
    
       CheckTrade(p.name,p.rates,copied);
    }
@@ -891,7 +903,7 @@ int WriteComment(string text)
 }
 
 
-double GetPrice(int tprice, MqlRates& rates[], int i)
+double CS_GetPrice(int tprice, MqlRates& rates[], int i)
 {
   if (tprice>=pr_haclose)
    {
@@ -1010,7 +1022,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          else
          {
-            SwitchSymbol(NormalizePairing(z+currencyclicked));
+            SwitchSymbol(CS.Pairs.NormalizePairing(z+currencyclicked));
             currencyclicked=NULL;
          }
       }
@@ -1031,11 +1043,11 @@ void SwitchSymbol(string tosymbol)
          while(chartid>-1)
          {
             if(chartid!=ChartID())
-               ChartSetSymbolPeriod(chartid,tosymbol+ExtraChars,ChartPeriod(chartid));
+               ChartSetSymbolPeriod(chartid,tosymbol+CS.extrachars,ChartPeriod(chartid));
             chartid=ChartNext(chartid);
          }
       }
-      ChartSetSymbolPeriod(0,tosymbol+ExtraChars,0);
+      ChartSetSymbolPeriod(0,tosymbol+CS.extrachars,0);
       AddSymbolButton(2, 1, currentsymbol);
    }
 }
