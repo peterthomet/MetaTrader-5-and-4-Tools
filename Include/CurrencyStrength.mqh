@@ -131,6 +131,7 @@ struct TypeCurrencyStrength
    ENUM_TIMEFRAMES timeframe;
    int bars;
    int start;
+   int offset;
    string extrachars;
    CS_Prices pricetype;
    bool recalculate;
@@ -142,6 +143,7 @@ struct TypeCurrencyStrength
       timeframe=PERIOD_CURRENT;
       bars=10;
       start=0;
+      offset=0;
       extrachars=StringSubstr(Symbol(),6);
       pricetype=pr_close;
       recalculate=false;
@@ -179,12 +181,18 @@ struct TypeCurrencyStrength
 };
 
 
-bool CS_CalculateIndex(TypeCurrencyStrength& cs)
+bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
 {
    int limit=cs.bars;
 
    cs.Pairs.anytimechanged=false;
    cs.Pairs.maxtime=0;
+
+   if(cs.offset!=Offset)
+   {
+      cs.offset=Offset;
+      cs.recalculate=true;
+   }
 
    bool failed=false;
    for(int i=0; i<28; i++)
@@ -238,7 +246,7 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs)
                cs.Currencies.LastValues[z][1]=z+1;
             }
 #ifdef CS_INDICATOR_MODE
-            int ti=(cs.bars-1)-y;
+            int ti=((cs.bars-1)-y)+cs.offset;
             double va=cs.Currencies.Currency[z].index[y]+1000;
             if(cn=="USD") USDplot[ti]=va;
             if(cn=="EUR") EURplot[ti]=va;
@@ -303,7 +311,7 @@ bool CS_GetRates(TypePair& p, TypeCurrencyStrength& cs)
       newesttime=p.rates[cs.bars-1].time;
    }
    
-   copied=CopyRates(p.name+cs.extrachars,cs.timeframe,0,cs.bars,p.rates);
+   copied=CopyRates(p.name+cs.extrachars,cs.timeframe,cs.offset,cs.bars,p.rates);
    if(copied<cs.bars)
    {
 #ifdef CS_INDICATOR_MODE

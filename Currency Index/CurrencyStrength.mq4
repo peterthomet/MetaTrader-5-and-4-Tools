@@ -69,6 +69,9 @@ datetime lasttestevent;
 datetime lastalert;
 bool MoveToCursor;
 int CursorBarIndex=0;
+bool CrossHair=false;
+int offset=0;
+int lastoffset=0;
 #ifdef __MQL5__
 //CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 //CJJMA jjmaUSD;
@@ -211,55 +214,20 @@ void OnDeinit(const int reason)
 }
 
 
-void CalculateAlert()
-{
-   if(!alert_momentum || Symbol()!="EURUSD")
-      return;
-
-   datetime dtarr[1];
-   if(CopyTime(Symbol(),Period(),0,1,dtarr)!=1)
-      return;
-
-   int alertsecondsbefore=60;
-   if(PeriodSeconds()==60)
-      alertsecondsbefore=40;
-
-   if(PeriodSeconds()-(TimeCurrent()-dtarr[0])<=alertsecondsbefore && lastalert!=dtarr[0])
-   {
-      bool usdup = USDplot[1]>USDplot[2] && USDplot[0]>=USDplot[1]+(USDplot[1]-USDplot[2]);
-      bool usddown = USDplot[1]<USDplot[2] && USDplot[0]<=USDplot[1]-(USDplot[2]-USDplot[1]);
-      bool eurup = EURplot[1]>EURplot[2] && EURplot[0]>=EURplot[1]+(EURplot[1]-EURplot[2]);
-      bool eurdown = EURplot[1]<EURplot[2] && EURplot[0]<=EURplot[1]-(EURplot[2]-EURplot[1]);
-      if(usdup && eurdown)
-      {
-         Alert(Symbol() + " Down Momentum");
-         lastalert=dtarr[0];
-      }
-      if(usddown && eurup)
-      {
-         Alert(Symbol() + " Up Momentum");
-         lastalert=dtarr[0];
-      }
-   }
-
-
-}
-
-
 void CheckUpDown(string currency, TypeUpdown& ud, double& arr[], int range)
 {
-   double diff=arr[0]-arr[range];
+   double diff=arr[0+offset]-arr[range+offset];
    if(diff>ud.maxup)
    {
       ud.maxup=diff;
       ud.up=currency;
-      ud.isupreversal=arr[0]-arr[1]>0&&arr[0]-arr[1]>arr[1]-arr[2];
+      ud.isupreversal=arr[0+offset]-arr[1+offset]>0&&arr[0+offset]-arr[1+offset]>arr[1+offset]-arr[2+offset];
    }
    if(diff<ud.maxdn)
    {
       ud.maxdn=diff;
       ud.dn=currency;
-      ud.isdnreversal=arr[0]-arr[1]<0&&arr[0]-arr[1]<arr[1]-arr[2];
+      ud.isdnreversal=arr[0+offset]-arr[1+offset]<0&&arr[0+offset]-arr[1+offset]<arr[1+offset]-arr[2+offset];
    }
 }
 
@@ -396,7 +364,7 @@ void OnTimer()
       lasttestevent=curtime;
    }
    incalculation=true;
-   if(CS_CalculateIndex(CS))
+   if(CS_CalculateIndex(CS,offset))
    {
       WriteComment(" ");
 
@@ -405,7 +373,6 @@ void OnTimer()
          strongcount=BarsCalculate-1;
       for(int i=1; i<=strongcount; i++)
          StrongestMove(i);
-      //CalculateAlert();
 
       if(show_values)
          for(int j=1; j<=8; j++)
@@ -413,6 +380,8 @@ void OnTimer()
 
       for(int t=0; t<4; t++)
          ShowTradeSet(1,t+1,CS.Currencies.Trade[t].name,CS.Currencies.Trade[t].buy);
+
+      lastoffset=offset;
 
       ChartRedraw();
    }
@@ -445,12 +414,8 @@ int OnCalculate(const int rates_total,
                 const long& volume[], 
                 const int& spread[]) 
 {
-#ifdef __MQL5__
-   currentticktime=TimeTradeServer();
-#endif
-#ifdef __MQL4__
-   currentticktime=TimeCurrent();
-#endif
+   SetTickTime();
+   
    if(prev_calculated<rates_total)
    {
       CS.recalculate=true;
@@ -467,24 +432,42 @@ int OnCalculate(const int rates_total,
          ArrayInitialize(NZDplot,EMPTY_VALUE);
       }
       else
-      {
-         for(int i=0; i<=BarsCalculate; i++)
-         {
-            USDplot[i]=EMPTY_VALUE;
-            EURplot[i]=EMPTY_VALUE;
-            GBPplot[i]=EMPTY_VALUE;
-            CHFplot[i]=EMPTY_VALUE;
-            JPYplot[i]=EMPTY_VALUE;
-            CADplot[i]=EMPTY_VALUE;
-            AUDplot[i]=EMPTY_VALUE;
-            NZDplot[i]=EMPTY_VALUE;
-         }
-      }
+         ClearUnusedBuffers();
    }
    timerenabled=true;
    if(istesting)
       OnTimer();
    return(rates_total);
+}
+
+
+void SetTickTime()
+{
+#ifdef __MQL5__
+   currentticktime=TimeTradeServer();
+#endif
+#ifdef __MQL4__
+   currentticktime=TimeCurrent();
+#endif
+}
+
+
+void ClearUnusedBuffers()
+{
+   for(int i=0; i<=(BarsCalculate+lastoffset); i++)
+   {
+      if(i<offset||i>=BarsCalculate+offset)
+      {
+         USDplot[i]=EMPTY_VALUE;
+         EURplot[i]=EMPTY_VALUE;
+         GBPplot[i]=EMPTY_VALUE;
+         CHFplot[i]=EMPTY_VALUE;
+         JPYplot[i]=EMPTY_VALUE;
+         CADplot[i]=EMPTY_VALUE;
+         AUDplot[i]=EMPTY_VALUE;
+         NZDplot[i]=EMPTY_VALUE;
+      }
+   }
 }
 
 
@@ -613,24 +596,43 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
    }
    if(id==CHARTEVENT_MOUSE_MOVE)
    {
-      int x=(int)lparam;
-      int y=(int)dparam;
-      datetime dt=0;
-      double price=0;
-      int window=0;
-      if(ChartXYToTimePrice(0,x,y,window,dt,price))
+      if(sparam=="16")
+         CrossHair=true;
+      else if(sparam!="0")
+         CrossHair=false;
+
+      if(CrossHair)
       {
-         dt=dt-(PeriodSeconds()/2);
-         datetime Arr[],time1;
-         if(CopyTime(Symbol(),Period(),0,1,Arr)==1)
+         int x=(int)lparam;
+         int y=(int)dparam;
+         datetime dt=0;
+         double price=0;
+         int window=0;
+         if(ChartXYToTimePrice(0,x,y,window,dt,price))
          {
-            time1=Arr[0];
-            if(CopyTime(Symbol(),Period(),dt,time1,Arr)>0)
+            dt=dt-(PeriodSeconds()/2);
+            datetime Arr[],time1;
+            if(CopyTime(Symbol(),Period(),0,1,Arr)==1)
             {
-               CursorBarIndex=ArraySize(Arr)-1;
-               //PrintFormat("Window=%d X=%d  Y=%d  =>  Time=%s  Price=%G Barindex=%i",window,x,y,TimeToString(dt),price,CursorBarIndex);
+               time1=Arr[0];
+               if(CopyTime(Symbol(),Period(),dt,time1,Arr)>0)
+               {
+                  CursorBarIndex=ArraySize(Arr)-1;
+                  //PrintFormat("Window=%d X=%d  Y=%d  =>  Time=%s  Price=%G Barindex=%i SParam=%s",window,x,y,TimeToString(dt),price,CursorBarIndex,sparam);
+               }
             }
          }
+      }
+      else
+         CursorBarIndex=0;
+      
+      if(offset!=CursorBarIndex)
+      {
+         SetTickTime();
+         offset=CursorBarIndex;
+         CS.recalculate=true;
+         ClearUnusedBuffers();
+         timerenabled=true;
       }
    }
    if(id==CHARTEVENT_OBJECT_CLICK)
