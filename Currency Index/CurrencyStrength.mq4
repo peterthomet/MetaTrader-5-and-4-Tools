@@ -63,7 +63,7 @@ bool incalculation=false;
 datetime lastticktime;
 datetime currentticktime;
 int sameticktimecount=0;
-bool timerenabled=true;
+bool timerenabled=false;
 bool istesting;
 datetime lasttestevent;
 datetime lastalert;
@@ -201,6 +201,9 @@ void OnInit()
       EventSetTimer(1);
       ChartSetInteger(0,CHART_EVENT_MOUSE_MOVE,true);
    }
+
+   //ChartSetDouble(0,CHART_SHIFT_SIZE,25);
+
 }
 
 
@@ -432,7 +435,17 @@ int OnCalculate(const int rates_total,
          ArrayInitialize(NZDplot,EMPTY_VALUE);
       }
       else
+      {
+         USDplot[0]=USDplot[1];
+         EURplot[0]=EURplot[1];
+         GBPplot[0]=GBPplot[1];
+         CHFplot[0]=CHFplot[1];
+         JPYplot[0]=JPYplot[1];
+         CADplot[0]=CADplot[1];
+         AUDplot[0]=AUDplot[1];
+         NZDplot[0]=NZDplot[1];
          ClearUnusedBuffers();
+      }
    }
    timerenabled=true;
    if(istesting)
@@ -596,10 +609,17 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
    }
    if(id==CHARTEVENT_MOUSE_MOVE)
    {
-      if(sparam=="16")
+      if(sparam=="24")
          CrossHair=true;
-      else if(sparam!="0")
+      if(!CrossHair&&sparam=="9"&&CursorBarIndex>0)
+         CursorBarIndex=0;
+      if(CrossHair&&sparam=="9")
          CrossHair=false;
+      if(CrossHair&&sparam=="1")
+      {
+         CrossHair=false;
+         CursorBarIndex=0;
+      }
 
       if(CrossHair)
       {
@@ -623,8 +643,6 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             }
          }
       }
-      else
-         CursorBarIndex=0;
       
       if(offset!=CursorBarIndex)
       {

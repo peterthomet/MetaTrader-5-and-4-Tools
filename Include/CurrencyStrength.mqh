@@ -136,6 +136,7 @@ struct TypeCurrencyStrength
    CS_Prices pricetype;
    bool recalculate;
    bool currentpairsonly;
+   int syncmasterindex;
    TypeCurrencies Currencies;
    TypePairs Pairs;
    TypeCurrencyStrength()
@@ -148,6 +149,16 @@ struct TypeCurrencyStrength
       pricetype=pr_close;
       recalculate=false;
       currentpairsonly=false;
+      syncmasterindex=0;
+      string thissymbol=StringSubstr(Symbol(),0,6);
+      for(int i=0; i<28; i++)
+      {
+         if(Pairs.Pair[i].name==thissymbol)
+         {
+            syncmasterindex=i;
+            break;
+         }
+      }
    }
    void Init(int _Bars, int Zero, string ExtraChars, ENUM_TIMEFRAMES TimeFrameCustom, bool CurrentPairsOnly, CS_Prices _PriceType)
    {
@@ -229,7 +240,9 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
 
                      if((y+shift)>(cs.bars-1))
                         shift=(cs.bars-1)-y;
-
+// ??????????
+if(cs.offset>0)
+   shift=0;
                      double pi=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,y+shift);
                      double ps=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,cs.start+shift);
                      if(isbase)
@@ -309,6 +322,7 @@ bool CS_GetRates(TypePair& p, TypeCurrencyStrength& cs)
    {
       oldesttime=p.rates[0].time;
       newesttime=p.rates[cs.bars-1].time;
+      //Print(p.name+" "+TimeToString(oldesttime));
    }
    
    copied=CopyRates(p.name+cs.extrachars,cs.timeframe,cs.offset,cs.bars,p.rates);
