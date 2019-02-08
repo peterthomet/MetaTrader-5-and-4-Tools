@@ -68,9 +68,10 @@ bool istesting;
 datetime lasttestevent;
 datetime lastalert;
 bool MoveToCursor;
-int CursorBarIndex=0;
 bool CrossHair=false;
 int offset=0;
+datetime offsettimeref=0;
+datetime offsettime=0;
 int lastoffset=0;
 #ifdef __MQL5__
 //CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
@@ -196,6 +197,10 @@ void OnInit()
    ArraySetAsSeries(UpDn,true);
    ArrayInitialize(UpDn,EMPTY_VALUE);
 
+   int offsetread=(int)GlobalVariableGet(namespace+IntegerToString(ChartID())+"_offset");
+   if(offsetread>0)
+      offset=BarIndexByTime(offsetread);
+   
    if(!istesting)
    {
       EventSetTimer(1);
@@ -214,6 +219,10 @@ void OnDeinit(const int reason)
    if(reason!=REASON_CHARTCHANGE)
       ObjectsDeleteAll(0,namespace,ChartWindowFind());
    EventKillTimer();
+   int offsetwrite=0;
+   if(offset>0)
+      offsetwrite=(int)offsettime;
+   GlobalVariableSet(namespace+IntegerToString(ChartID())+"_offset",offsetwrite);
 }
 
 
@@ -366,10 +375,27 @@ void OnTimer()
          return;
       lasttestevent=curtime;
    }
+   
+   if(offset>0)
+   {
+      datetime Arr[],currentbartime;
+      if(CopyTime(Symbol(),Period(),0,1,Arr)==1)
+      {
+         currentbartime=Arr[0];
+         if(currentbartime!=offsettimeref)
+            offset=BarIndexByTime(offsettime);
+      }
+      else
+         return;
+   }
+   
    incalculation=true;
    if(CS_CalculateIndex(CS,offset))
    {
       WriteComment(" ");
+      
+      if(offset>0)
+         timerenabled=false;
 
       int strongcount=20;
       if(BarsCalculate<strongcount-1)
@@ -418,7 +444,7 @@ int OnCalculate(const int rates_total,
                 const int& spread[]) 
 {
    SetTickTime();
-   
+
    if(prev_calculated<rates_total)
    {
       CS.recalculate=true;
@@ -444,10 +470,12 @@ int OnCalculate(const int rates_total,
          CADplot[0]=CADplot[1];
          AUDplot[0]=AUDplot[1];
          NZDplot[0]=NZDplot[1];
-         ClearUnusedBuffers();
+         if(offset==0)
+            ClearUnusedBuffers();
       }
    }
-   timerenabled=true;
+   if(offset==0||prev_calculated==0)
+      timerenabled=true;
    if(istesting)
       OnTimer();
    return(rates_total);
@@ -609,16 +637,18 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
    }
    if(id==CHARTEVENT_MOUSE_MOVE)
    {
+      int currentoffset=offset;
+
       if(sparam=="24")
          CrossHair=true;
-      if(!CrossHair&&sparam=="9"&&CursorBarIndex>0)
-         CursorBarIndex=0;
+      if(!CrossHair&&sparam=="9"&&offset>0)
+         offset=0;
       if(CrossHair&&sparam=="9")
          CrossHair=false;
       if(CrossHair&&sparam=="1")
       {
          CrossHair=false;
-         CursorBarIndex=0;
+         offset=0;
       }
 
       if(CrossHair)
@@ -630,24 +660,14 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          int window=0;
          if(ChartXYToTimePrice(0,x,y,window,dt,price))
          {
-            dt=dt-(PeriodSeconds()/2);
-            datetime Arr[],time1;
-            if(CopyTime(Symbol(),Period(),0,1,Arr)==1)
-            {
-               time1=Arr[0];
-               if(CopyTime(Symbol(),Period(),dt,time1,Arr)>0)
-               {
-                  CursorBarIndex=ArraySize(Arr)-1;
-                  //PrintFormat("Window=%d X=%d  Y=%d  =>  Time=%s  Price=%G Barindex=%i SParam=%s",window,x,y,TimeToString(dt),price,CursorBarIndex,sparam);
-               }
-            }
+            //PrintFormat("Window=%d X=%d  Y=%d  =>  Time=%s  Price=%G SParam=%s",window,x,y,TimeToString(dt),price,sparam);
+            offset=BarIndexByTime(dt-(PeriodSeconds()/2));
          }
       }
       
-      if(offset!=CursorBarIndex)
+      if(offset!=currentoffset)
       {
          SetTickTime();
-         offset=CursorBarIndex;
          CS.recalculate=true;
          ClearUnusedBuffers();
          timerenabled=true;
@@ -674,6 +694,30 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
       }
    }
+}
+
+
+int BarIndexByTime(datetime start)
+{
+   int ret=0;
+   datetime Arr[],end;
+   if(CopyTime(Symbol(),Period(),0,1,Arr)==1)
+   {
+      end=Arr[0];
+      offsettime=start;
+      offsettimeref=end;
+      return Bars(Symbol(),Period(),start,end)-1;
+      
+      //if(CopyTime(Symbol(),Period(),start,end,Arr)>0)
+      //{
+         //ret=ArraySize(Arr)-1;
+         //int CursorBarIndex2=Bars(Symbol(),Period(),dt,time1)-1;
+         //Print(CursorBarIndex2);
+         //PrintFormat("BarTime=%s",TimeToString(Arr[0]));
+         //PrintFormat("Window=%d X=%d  Y=%d  =>  Time=%s  Price=%G Barindex=%i SParam=%s",window,x,y,TimeToString(dt),price,CursorBarIndex,sparam);
+      //}
+   }
+   return ret;
 }
 
 

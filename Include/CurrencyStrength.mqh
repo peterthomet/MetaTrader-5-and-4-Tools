@@ -73,6 +73,7 @@ struct TypePair
 {
    string name;
    MqlRates rates[];
+   int ratescount;
 };
 
 struct TypePairs
@@ -206,10 +207,13 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
    }
 
    bool failed=false;
+   if(!CS_GetRates(cs.Pairs.Pair[cs.syncmasterindex],cs,true))
+      failed=true;
    for(int i=0; i<28; i++)
    {
-      if(!CS_GetRates(cs.Pairs.Pair[i],cs))
-         failed=true;
+      if(i!=cs.syncmasterindex)
+         if(!CS_GetRates(cs.Pairs.Pair[i],cs))
+            failed=true;
    }
    if(failed)
       return(false);
@@ -219,8 +223,12 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
    else
       limit=1;
 
+   datetime starttimeref=cs.Pairs.Pair[cs.syncmasterindex].rates[cs.start].time;
+
    for(int y=cs.bars-limit;y<cs.bars;y++)
    {
+      datetime itemtimeref=cs.Pairs.Pair[cs.syncmasterindex].rates[y].time;
+   
       for(int z=0; z<8; z++)
       {
          string cn=cs.Currencies.Currency[z].name;
@@ -235,16 +243,25 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                   bool isquote=(StringSubstr(cs.Pairs.Pair[x].name,3,3)==cn);
                   if(isbase||isquote)
                   {
-                     int firstgap=(int)(cs.Pairs.maxtime-cs.Pairs.Pair[x].rates[cs.bars-1].time);
-                     int shift=(firstgap/PeriodSeconds(cs.timeframe));
+                     int itemshift=CS_GetIndexShift(cs.Pairs.Pair[x],cs,itemtimeref,y,"Item");
+                     int startshift=CS_GetIndexShift(cs.Pairs.Pair[x],cs,starttimeref,cs.start,"Start");
+                     
+                     //if(cs.Pairs.Pair[x].rates[y].time!=itemtimeref)
+                     //   PrintFormat("Time not Reftime %s",cs.Pairs.Pair[x].name);
 
-                     if((y+shift)>(cs.bars-1))
-                        shift=(cs.bars-1)-y;
+                     //if(cs.Pairs.Pair[x].rates[cs.start].time!=starttimeref)
+                     //   PrintFormat("StartTime not RefStartTime %s",cs.Pairs.Pair[x].name);
+
+                     //int firstgap=(int)(cs.Pairs.maxtime-cs.Pairs.Pair[x].rates[cs.bars-1].time);
+                     //int shift=(firstgap/PeriodSeconds(cs.timeframe));
+
+                     //if((y+shift)>(cs.bars-1))
+                     //   shift=(cs.bars-1)-y;
 // ??????????
-if(cs.offset>0)
-   shift=0;
-                     double pi=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,y+shift);
-                     double ps=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,cs.start+shift);
+//if(cs.offset>0)
+//   shift=0;
+                     double pi=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,y+itemshift);
+                     double ps=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,cs.start+startshift);
                      if(isbase)
                         cs.Currencies.Currency[z].index[y]+=(pi-ps)/ps*100;
                      if(isquote)
@@ -305,28 +322,78 @@ if(cs.offset>0)
 }
 
 
-bool CS_GetRates(TypePair& p, TypeCurrencyStrength& cs)
+int CS_GetIndexShift(TypePair& p, TypeCurrencyStrength& cs, datetime timeref, int index, string purpose)
+{
+   int ret=0;
+   int oneperiodseconds=PeriodSeconds(cs.timeframe);
+
+   if(index>(p.ratescount-1))
+      ret=(p.ratescount-1)-index;
+
+   while(p.rates[index+ret].time>timeref&&(index+ret)>=0)
+      ret--;
+
+   while(p.rates[index+ret].time<timeref&&(index+ret)<(p.ratescount-1))
+      ret++;
+
+   //if(ret!=0) PrintFormat("Shift %s %s %d %d",purpose,p.name,index,ret);
+
+   return ret;
+}
+
+
+bool CS_GetRates(TypePair& p, TypeCurrencyStrength& cs, bool master=false)
 {
    if(!cs.IncludePair(p.name))
       return true;
    bool ret = true;
-   int copied;
+   int copied=0;
    int rcount=ArraySize(p.rates);
+   //PrintFormat("Array Size %s : %d",p.name,rcount);
    datetime newesttime=0;
    datetime oldesttime=0;
-   if(rcount<cs.bars)
+   if(rcount==0)
    {
       cs.Pairs.anytimechanged=true;
    }
    else
    {
       oldesttime=p.rates[0].time;
-      newesttime=p.rates[cs.bars-1].time;
+      newesttime=p.rates[rcount-1].time;
       //Print(p.name+" "+TimeToString(oldesttime));
    }
    
-   copied=CopyRates(p.name+cs.extrachars,cs.timeframe,cs.offset,cs.bars,p.rates);
-   if(copied<cs.bars)
+   if(master)
+   {
+      copied=CopyRates(p.name+cs.extrachars,cs.timeframe,cs.offset,cs.bars,p.rates);
+   }
+   else
+   {
+      datetime refstarttime=cs.Pairs.Pair[cs.syncmasterindex].rates[0].time;
+      datetime starttime=refstarttime;
+      datetime endtime=cs.Pairs.Pair[cs.syncmasterindex].rates[cs.bars-1].time;
+      //starttime+=(PeriodSeconds(cs.timeframe)*1);
+      int readcount=0;
+      datetime readstarttime=INT_MAX;
+      while(readstarttime>refstarttime&&readcount<20&&!IsStopped())
+      {
+         copied=CopyRates(p.name+cs.extrachars,cs.timeframe,starttime,endtime,p.rates);
+         if(copied>0)
+            readstarttime=p.rates[0].time;
+         else
+            break;
+         if(readstarttime>refstarttime)
+            starttime-=PeriodSeconds(cs.timeframe);
+         readcount++;
+         
+         //if(readcount>1) PrintFormat("Additional Read %d %s with lower Time ",readcount,p.name);
+      }
+   }
+   p.ratescount=copied;
+
+   //Print("Copied "+p.name+":"+IntegerToString(copied));
+
+   if(copied<=0||(master&&copied<cs.bars))
    {
 #ifdef CS_INDICATOR_MODE
       WriteComment("Loading... "+p.name);
@@ -335,10 +402,10 @@ bool CS_GetRates(TypePair& p, TypeCurrencyStrength& cs)
    }
    else
    {
-      if(p.rates[0].time!=oldesttime || p.rates[cs.bars-1].time!=newesttime)
+      if(p.rates[0].time!=oldesttime || p.rates[copied-1].time!=newesttime)
          cs.Pairs.anytimechanged=true;
 
-      cs.Pairs.maxtime=MathMax(cs.Pairs.maxtime,p.rates[cs.bars-1].time);
+      cs.Pairs.maxtime=MathMax(cs.Pairs.maxtime,p.rates[copied-1].time);
    
 #ifdef CS_INDICATOR_MODE
       CheckTrade(p.name,p.rates,copied);
