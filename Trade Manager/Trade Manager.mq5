@@ -19,6 +19,11 @@
    };
 #endif
 
+#include <CurrencyStrength.mqh>
+#ifdef __MQL5__
+   //#include <CurrencyStrengthReadDB.mqh>
+#endif
+
 enum TypeInstance
 {
    Instance1=1,
@@ -46,6 +51,7 @@ input double StopLossPips = 0;
 input bool HedgeAtStopLoss = false;
 input double HedgeVolumeFactor = 1;
 input double HedgeFlatAtLevel = 5;
+input double TakeProfitPercentBalance = 0;
 input double StopLossPercentBalance = 0;
 input TypeStopLossPercentBalanceAction StopLossPercentBalanceAction = CloseWorstTrade;
 input bool ActivateTrailing = true;
@@ -65,6 +71,8 @@ input bool DrawBackgroundPanel = true;
 input int BackgroundPanelWidth = 200;
 input color BackgroundPanelColor = clrNONE;
 input bool MT5CommissionPerDeal = true;
+input int StartHour = 0;
+input int StartMinute = 0;
 
 string appname="Trade Manager";
 string namespace="";
@@ -142,6 +150,7 @@ struct TypeWorkingState
    long currentbasemagicnumber;
    TypeTradeReference tradereference[];
    double globalgain;
+   datetime lastorderexecution;
    void Init()
    {
       closebasketatBE=false;
@@ -154,6 +163,7 @@ struct TypeWorkingState
       currentbasemagicnumber=basemagicnumber;
       ArrayResize(tradereference,0);
       globalgain=0;
+      lastorderexecution=0;
    };
    void Reset()
    {
@@ -171,6 +181,11 @@ struct TypeWorkingState
    {
       ManualBEStopLocked=false;
       SoftBEStopLocked=false;
+   };
+   bool IsOrderPending()
+   {
+      int lastordertimediff = (int)TimeLocal()-(int)lastorderexecution;
+      return (lastordertimediff<=5);
    };
 };
 TypeWorkingState WS;
@@ -232,6 +247,8 @@ struct TypeBasketInfo
 };
 TypeBasketInfo BI;
 
+TypeCurrencyStrength CS[1];
+
 
 void OnInit()
 {
@@ -262,7 +279,8 @@ void OnInit()
 
    WS.Init();
    
-   GetGlobalVariables();
+   if(!istesting)
+      GetGlobalVariables();
 
    if(DrawBackgroundPanel)
    {
@@ -282,32 +300,65 @@ void OnInit()
       ObjectSetInteger(0,objname,OBJPROP_BGCOLOR,c);
    }
    
+   CS[0].Init(
+      10,
+      10,
+      StringSubstr(Symbol(),6),
+      PERIOD_D1,
+      false,
+      pr_close
+      );
    if(istesting)
-   {
-      OpenBuy();
-      OpenBuy();
-      OpenBuy();
-   }
+      CS_CalculateIndex(CS[0]);
+
+   //CS[1].Init(
+   //   10,
+   //   10,
+   //   StringSubstr(Symbol(),6),
+   //   PERIOD_M5,
+   //   false,
+   //   pr_close
+   //   );
 
    if(!istesting)
+   {
       if(!EventSetMillisecondTimer(200))
          initerror=true;
+   }
+   if(istesting)
+   {
+#ifdef __MQL5__
+      //OpenDBConnection();
+      //CloseDBConnection();
+#endif
+      EventSetTimer(10);
+   }
 }
 
 
 void OnDeinit(const int reason)
 {
    EventKillTimer();
+#ifdef __MQL5__
+   if(istesting)
+   {
+      //CloseDBConnection();
+   //if(!MQL5InfoInteger(MQL5_OPTIMIZATION))
+   }
+#endif
    if(!istesting)
+   {
       DeleteAllObjects();
-   SetGlobalVariables();
+      SetGlobalVariables();
+   }
 }
 
 
 void OnTick()
 {
    lasttick=TimeLocal();
-   Manage();
+   if(!istesting)
+      Manage();
 }
 
 
@@ -331,9 +382,11 @@ void Manage()
    working=true;
    if(closeallcommand)
       CloseAllInternal();
-   ManageOrders();
-   ManageBasket();
-   DisplayText();
+   if(ManageOrders())
+   {
+      ManageBasket();
+      DisplayText();
+   }
    working=false;
 }
 
@@ -480,7 +533,7 @@ bool IsOrderToManage()
 }
 
 
-void ManageOrders()
+bool ManageOrders()
 {
    int cnt, ordertotal=OrdersTotalX();
 
@@ -493,6 +546,8 @@ void ManageOrders()
          if(IsOrderToManage())
          {
             double tickvalue=TickValue();
+            if(tickvalue==0)
+               return false;
             double gain=OrderProfitNet();
             double gainpips=(gain/OrderLotsX())/tickvalue;
 
@@ -562,11 +617,15 @@ void ManageOrders()
          }
       }
    }
+   return true;
 }
 
 
 void ManageBasket()
 {
+   if(BI.managedorders==0&&WS.IsOrderPending())
+      return;
+
    if(BI.managedorders==0)
    {
       WS.Reset();
@@ -574,25 +633,15 @@ void ManageBasket()
       
       if(istesting)
       {
-         MathSrand((int)TimeLocal());
-         bool buy=(MathRand()%2);
-         buy=false;
-         if(buy)
-         {
-            OpenBuy();
-            OpenBuy();
-            OpenBuy();
-         }
-         else
-         {
-            OpenSell();
-            OpenSell();
-            OpenSell();
-         }
+
+#ifdef __MQL5__
+         #include <TradeManagerEntryTesting1.mqh>
+#endif
+
       }
       return;
    }
-
+   
    bool closeall=false;
    
    WS.globalgain=GetGlobalReferencesGain();
@@ -624,7 +673,7 @@ void ManageBasket()
                   double hedgevolume=GetHedgeVolume(BI.pairsintrades[i].tradeinfo,ti);
                   if(hedgemagicnumber>-1&&hedgevolume>0)
                   {
-                     if(OpenOrder(HedgeType(ti.type),hedgevolume,hedgemagicnumber,BI.pairsintrades[i].pair+ExtraChars))
+                     if(OpenOrder(HedgeType(ti.type),BI.pairsintrades[i].pair+ExtraChars,hedgevolume,hedgemagicnumber))
                      {
                      }
                   }
@@ -660,10 +709,13 @@ void ManageBasket()
       }
    }
 
-   if(ActivateTrailing&&BI.gainpipsglobal>=_StartTrailingPips)
+   if(ActivateTrailing&&_StartTrailingPips>0&&BI.gainpipsglobal>=_StartTrailingPips)
       WS.TrailingActivated=true;
 
-   if(WS.TrailingActivated&&WS.globalgain<GetTrailingLimit())
+   if(TakeProfitPercentBalance>0&&BI.gain/(AccountBalanceX()/100)>=TakeProfitPercentBalance)
+      closeall=true;
+
+   if(WS.TrailingActivated&&WS.globalgain<=GetTrailingLimit())
       closeall=true;
    
    if(WS.closebasketatBE&&WS.globalgain>=0)
@@ -1049,17 +1101,17 @@ int HedgeType(int type)
 }
 
 
-bool OpenOrder(int type, double volume=NULL, long magicnumber=NULL, string symbol=NULL)
+bool OpenOrder(int type, string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 {
    if(type==OP_BUY)
-      return OpenBuy(volume,magicnumber,symbol);
+      return OpenBuy(symbol,volume,magicnumber);
    if(type==OP_SELL)
-      return OpenSell(volume,magicnumber,symbol);
+      return OpenSell(symbol,volume,magicnumber);
    return false;
 }
 
 
-bool OpenBuy(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
+bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 {
    double v=_OpenLots;
    if(volume!=NULL)
@@ -1071,6 +1123,7 @@ bool OpenBuy(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
    if(symbol!=NULL)
       s=symbol;
    string c=namespace+IntegerToString(m);
+   WS.lastorderexecution=TimeLocal();
 #ifdef __MQL4__
    int ret=OrderSend(s,OP_BUY,v,AskX(s),5,0,0,c,m);
    if(ret>-1&&magicnumber==NULL)
@@ -1081,7 +1134,8 @@ bool OpenBuy(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
 #ifdef __MQL5__
    CTrade trade;
    trade.SetExpertMagicNumber(m);
-   bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,AskX(s),NULL,NULL,c);
+   //bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,AskX(s),NULL,NULL,c);
+   bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,0,NULL,NULL,c);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -1090,7 +1144,7 @@ bool OpenBuy(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
 }
 
 
-bool OpenSell(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
+bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 {
    double v=_OpenLots;
    if(volume!=NULL)
@@ -1102,6 +1156,7 @@ bool OpenSell(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
    if(symbol!=NULL)
       s=symbol;
    string c=namespace+IntegerToString(m);
+   WS.lastorderexecution=TimeLocal();
 #ifdef __MQL4__
    int ret=OrderSend(s,OP_SELL,v,BidX(s),5,0,0,c,m);
    if(ret>-1&&magicnumber==NULL)
@@ -1112,7 +1167,8 @@ bool OpenSell(double volume=NULL, long magicnumber=NULL, string symbol=NULL)
 #ifdef __MQL5__
    CTrade trade;
    trade.SetExpertMagicNumber(m);
-   bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,BidX(s),NULL,NULL,c);
+   //bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,BidX(s),NULL,NULL,c);
+   bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,0,NULL,NULL,c);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -1202,8 +1258,47 @@ int AddPairsInTrades(string tradedsymbol)
 }
 
 
+void WriteToClose()
+{
+#ifdef __MQL5__
+   if(istesting)
+   {
+      int total=OrdersTotalX();
+      int cnt=0;
+      for(cnt=total-1;cnt>=0;cnt--)
+      {
+         if(OrderSelectX(cnt))
+         {
+            if(IsOrderToManage())
+            {
+               datetime os=(datetime)PositionGetInteger(POSITION_TIME);
+               MqlDateTime dt;
+               TimeToStruct(os,dt);
+               if(dt.min==1)
+               {
+                  string wstr="";
+                  wstr+=PositionGetString(POSITION_SYMBOL);
+                  wstr+=" ";
+                  wstr+=IntegerToString(dt.min);
+                  wstr+=" ";
+                  wstr+=DoubleToString(OrderOpenPriceX(),5);
+                  int file_handle=FileOpen("Order-Log.txt",FILE_WRITE|FILE_READ|FILE_TXT);
+                  FileSeek(file_handle,0,SEEK_END);
+                  FileWriteString(file_handle,wstr+"\r\n");
+                  FileClose(file_handle);
+               }            
+            }
+         }
+      }
+   }
+#endif
+}
+
+
 void CloseAllInternal()
 {
+   //WriteToClose();
+   
    int total=OrdersTotalX();
    int cnt=0, delcnt=0;
 #ifdef __MQL4__
