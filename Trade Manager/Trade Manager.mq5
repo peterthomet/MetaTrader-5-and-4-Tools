@@ -47,6 +47,7 @@ input TypeInstance Instance = 1;
 input double BreakEvenAfterPips = 5;
 input double AboveBEPips = 1;
 input double StartTrailingPips = 7;
+input double TakeProfitPips = 0;
 input double StopLossPips = 0;
 input bool HedgeAtStopLoss = false;
 input double HedgeVolumeFactor = 1;
@@ -92,6 +93,7 @@ int closeallcommand=false;
 double _BreakEvenAfterPips;
 double _AboveBEPips;
 double _StartTrailingPips;
+double _TakeProfitPips;
 double _StopLossPips;
 double _OpenLots;
 
@@ -273,6 +275,7 @@ void OnInit()
 
    _BreakEvenAfterPips=BreakEvenAfterPips*pipsfactor;
    _AboveBEPips=AboveBEPips*pipsfactor;
+   _TakeProfitPips=TakeProfitPips*pipsfactor;
    _StopLossPips=StopLossPips*pipsfactor;
    _StartTrailingPips=StartTrailingPips*pipsfactor;
    _OpenLots=OpenLots;
@@ -663,6 +666,17 @@ void ManageBasket()
       for(int j=0; j<size2; j++)
       {
          TypeTradeInfo ti=BI.pairsintrades[i].tradeinfo[j];
+
+         if(_TakeProfitPips>0&&(ti.points-_TakeProfitPips)>=0)
+         {
+            if(OrderSelectX(ti.orderindex)&&IsAutoTradingEnabled())
+            {
+               if(CloseSelectedOrder())
+               {
+               }
+            }
+         }
+
          if(_StopLossPips>0&&(ti.points+_StopLossPips)<=0)
          {
             if(OrderSelectX(ti.orderindex)&&IsAutoTradingEnabled())
