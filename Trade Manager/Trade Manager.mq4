@@ -542,7 +542,7 @@ bool ManageOrders()
 
    BI.Init();
 
-   for(cnt=ordertotal-1;cnt>=0;cnt--)
+   for(cnt=0;cnt<ordertotal;cnt++)
    {
       if(OrderSelectX(cnt))
       {
