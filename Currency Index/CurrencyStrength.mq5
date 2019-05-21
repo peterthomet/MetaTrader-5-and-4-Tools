@@ -199,7 +199,10 @@ void OnInit()
 
    int offsetread=(int)GlobalVariableGet(namespace+IntegerToString(ChartID())+"_offset");
    if(offsetread>0)
-      offset=BarIndexByTime(offsetread);
+   {
+      offset=1;
+      offsettime=offsetread;
+   }
    
    if(!istesting)
    {
@@ -641,8 +644,6 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
       if(sparam=="24")
          CrossHair=true;
-      if(!CrossHair&&sparam=="9"&&offset>0)
-         offset=0;
       if(CrossHair&&sparam=="9")
          CrossHair=false;
       if(CrossHair&&sparam=="1")
