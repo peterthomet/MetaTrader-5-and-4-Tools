@@ -11,6 +11,9 @@ enum Command
    Clean,
    Pivots,
    Murrey,
+   ZigZag,
+   Engulfing,
+   HeikenAshi,
    Line,
    Candles,
    ZoomIn,
@@ -37,8 +40,8 @@ enum Command
    W1,
    MN
 };
-string CommandText[MN+1]={"Clean","Pivots","Murrey","Line","Candles","+","-","M1","M2","M3","M4","M5","M6","M10","M12","M15","M20","M30","H1","H2","H3","H4","H6","H8","H12","D1","W1","MN"};
-int CommandPeriod[MN+1]={0,0,0,0,0,0,0,PERIOD_M1,PERIOD_M2,PERIOD_M3,PERIOD_M4,PERIOD_M5,PERIOD_M6,PERIOD_M10,PERIOD_M12,PERIOD_M15,PERIOD_M20,PERIOD_M30,PERIOD_H1,PERIOD_H2,PERIOD_H3,PERIOD_H4,PERIOD_H6,PERIOD_H8,PERIOD_H12,PERIOD_D1,PERIOD_W1,PERIOD_MN1};
+string CommandText[MN+1]={"Clean","Pivots","Murrey","ZigZag","Engulfing","Heiken Ashi","Line","Candles","+","-","M1","M2","M3","M4","M5","M6","M10","M12","M15","M20","M30","H1","H2","H3","H4","H6","H8","H12","D1","W1","MN"};
+int CommandPeriod[MN+1]={0,0,0,0,0,0,0,0,0,0,PERIOD_M1,PERIOD_M2,PERIOD_M3,PERIOD_M4,PERIOD_M5,PERIOD_M6,PERIOD_M10,PERIOD_M12,PERIOD_M15,PERIOD_M20,PERIOD_M30,PERIOD_H1,PERIOD_H2,PERIOD_H3,PERIOD_H4,PERIOD_H6,PERIOD_H8,PERIOD_H12,PERIOD_D1,PERIOD_W1,PERIOD_MN1};
 
 
 void OnInit()
@@ -73,6 +76,9 @@ void OnInit()
    CreateButton(305,45,Clean);
    CreateButton(355,45,Pivots);
    CreateButton(405,45,Murrey);
+   CreateButton(460,45,ZigZag);
+   CreateButton(305,65,Engulfing);
+   CreateButton(380,65,HeikenAshi);
    
    ChartRedraw();
 }
@@ -135,6 +141,15 @@ void ExecuteCommand(int command)
          if(command==Murrey)
             if(!hassubwindows)
                ChartApplyTemplate(chartid,"Forex Murrey Math Small.tpl");
+         if(command==ZigZag)
+            if(!hassubwindows)
+               ChartApplyTemplate(chartid,"Forex ZigZag Small.tpl");
+         if(command==Engulfing)
+            if(!hassubwindows)
+               ChartApplyTemplate(chartid,"Engulfing.tpl");
+         if(command==HeikenAshi)
+            if(!hassubwindows)
+               ChartApplyTemplate(chartid,"HeikenAshi.tpl");
          if(command==Line)
             ChartSetInteger(chartid,CHART_MODE,CHART_LINE);
          if(command==Candles)
