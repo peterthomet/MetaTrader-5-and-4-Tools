@@ -24,6 +24,12 @@
    //#include <CurrencyStrengthReadDB.mqh>
 #endif
 
+enum TypeAutomation
+{
+   NoAutomation, // None
+   Dredging // Dredging System
+};
+
 enum TypeInstance
 {
    Instance1=1,
@@ -44,6 +50,7 @@ enum TypeStopLossPercentBalanceAction
 };
 
 input TypeInstance Instance = 1;
+input TypeAutomation Automation = NoAutomation;
 input double BreakEvenAfterPips = 5;
 input double AboveBEPips = 1;
 input double StartTrailingPips = 7;
@@ -311,8 +318,8 @@ void OnInit()
       false,
       pr_close
       );
-   if(istesting)
-      CS_CalculateIndex(CS[0]);
+   //if(istesting)
+      //CS_CalculateIndex(CS[0]);
 
    //CS[1].Init(
    //   10,
@@ -444,6 +451,8 @@ void SetGlobalVariables()
    GlobalVariableSet(namespace+"peakgain",WS.peakgain);
    GlobalVariableSet(namespace+"peakpips",WS.peakpips);
    GlobalVariableSet(namespace+"OpenLots",_OpenLots);
+   GlobalVariableSet(namespace+"StopLossPips",_StopLossPips);
+   GlobalVariableSet(namespace+"TakeProfitPips",_TakeProfitPips);
    GlobalVariableSet(namespace+"currentbasemagicnumber",WS.currentbasemagicnumber);
    varname=namespace+"ManualBEStopLocked";
    if(WS.ManualBEStopLocked)
@@ -476,6 +485,12 @@ void GetGlobalVariables()
    varname=namespace+"OpenLots";
    if(GlobalVariableCheck(varname))
       _OpenLots=GlobalVariableGet(varname);
+   varname=namespace+"StopLossPips";
+   if(GlobalVariableCheck(varname))
+      _StopLossPips=GlobalVariableGet(varname);
+   varname=namespace+"TakeProfitPips";
+   if(GlobalVariableCheck(varname))
+      _TakeProfitPips=GlobalVariableGet(varname);
    varname=namespace+"currentbasemagicnumber";
    if(GlobalVariableCheck(varname))
       WS.currentbasemagicnumber=(int)GlobalVariableGet(varname);
@@ -638,7 +653,9 @@ void ManageBasket()
       {
 
 #ifdef __MQL5__
-         #include <TradeManagerEntryTesting1.mqh>
+         //#include <TradeManagerEntryTesting1.mqh>
+         OpenBuy();
+         OpenSell();
 #endif
 
       }
@@ -673,6 +690,18 @@ void ManageBasket()
             {
                if(CloseSelectedOrder())
                {
+
+// EXPERIMENTAL
+                  if(istesting || Automation==Dredging)
+                  {
+                     if(j==size2-1||j==size2-2)
+                     {
+                        OpenBuy(BI.pairsintrades[i].pair);
+                        OpenSell(BI.pairsintrades[i].pair);
+                     }
+                  }
+
+
                }
             }
          }
@@ -804,6 +833,34 @@ void DisplayText()
 
    CreateLabel(rowindex,FontSize,TextColor,"Open Volume: "+DoubleToString(_OpenLots,2));
    rowindex++;
+
+   if(_StopLossPips>0)
+   {
+      double tickvalue;
+#ifdef __MQL4__
+      tickvalue=MarketInfo(Symbol(),MODE_TICKVALUE);
+#endif
+#ifdef __MQL5__
+      tickvalue=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
+#endif
+      double risk=((_StopLossPips*pipsfactor)*_OpenLots*tickvalue)/(AccountBalanceX()/100);
+      CreateLabel(rowindex,FontSize,TextColor,"Risk: "+DoubleToString(risk,1));
+      rowindex++;
+   }
+
+   if(_TakeProfitPips>0)
+   {
+      double tickvalue;
+#ifdef __MQL4__
+      tickvalue=MarketInfo(Symbol(),MODE_TICKVALUE);
+#endif
+#ifdef __MQL5__
+      tickvalue=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
+#endif
+      double reward=((_TakeProfitPips*pipsfactor)*_OpenLots*tickvalue)/(AccountBalanceX()/100);
+      CreateLabel(rowindex,FontSize,TextColor,"Reward: "+DoubleToString(reward,1));
+      rowindex++;
+   }
 
    if(BI.managedorders!=0)
    {
@@ -952,6 +1009,12 @@ void DrawLevels(long chartid)
       CreateLevel(chartid,namespace+"Level2",DeepPink,BidX()-(_StopLossPips*Point()));
    }
 
+   if(_TakeProfitPips>0)
+   {
+      CreateLevel(chartid,namespace+"Level3",SeaGreen,AskX()+(_TakeProfitPips*Point()));
+      CreateLevel(chartid,namespace+"Level4",SeaGreen,BidX()-(_TakeProfitPips*Point()));
+   }
+
    CreateRectangle(chartid,namespace+"Rectangle10",WhiteSmoke,AskX()+(_BreakEvenAfterPips*Point()),BidX()-(_BreakEvenAfterPips*Point()));
    CreateRectangle(chartid,namespace+"Rectangle11",WhiteSmoke,AskX()+(_AboveBEPips*Point()),BidX()-(_AboveBEPips*Point()));
 
@@ -959,13 +1022,13 @@ void DrawLevels(long chartid)
 }
 
 
-void CreateLevel(long chartid, string objname, color c, double price)
+void CreateLevel(long chartid, string objname, color c, double price, int width=2)
 {
    if(ObjectFind(chartid,objname)<0)
    {
       ObjectCreate(chartid,objname,OBJ_HLINE,0,0,0);
       ObjectSetInteger(chartid,objname,OBJPROP_COLOR,c);
-      ObjectSetInteger(chartid,objname,OBJPROP_WIDTH,2);
+      ObjectSetInteger(chartid,objname,OBJPROP_WIDTH,width);
       ObjectSetInteger(chartid,objname,OBJPROP_STYLE,STYLE_SOLID);
       ObjectSetInteger(chartid,objname,OBJPROP_BACK,true);
    }
@@ -1373,6 +1436,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
    
    if(id==CHARTEVENT_KEYDOWN)
    {
+      //Print(lparam);
       if(lparam==17)
       {
          lastctrl=TimeLocal();
@@ -1399,6 +1463,30 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             _OpenLots=MathMax(_OpenLots-0.01,0.01);
          if (lparam == 190)
             _OpenLots+=0.01;
+         if (lparam == 219)
+         {
+            _StopLossPips=MathMax(_StopLossPips-(0.1*pipsfactor),0);
+            if(_StopLossPips==0)
+               DeleteLevels();
+            DrawLevels();
+         }
+         if (lparam == 221)
+         {
+            _StopLossPips+=(0.1*pipsfactor);
+            DrawLevels();
+         }
+         if (lparam == 186)
+         {
+            _TakeProfitPips=MathMax(_TakeProfitPips-(0.1*pipsfactor),0);
+            if(_TakeProfitPips==0)
+               DeleteLevels();
+            DrawLevels();
+         }
+         if (lparam == 192)
+         {
+            _TakeProfitPips+=(0.1*pipsfactor);
+            DrawLevels();
+         }
       }
    }
 }
