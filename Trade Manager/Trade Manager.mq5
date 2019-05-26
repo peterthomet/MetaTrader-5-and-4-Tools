@@ -139,11 +139,15 @@ struct TypeTradeReference
    long magicnumber;
    double points;
    double gain;
+   double stoplosspips;
+   double takeprofitpips;
    TypeTradeReference()
    {
       magicnumber=0;
       points=0;
       gain=0;
+      stoplosspips=0;
+      takeprofitpips=0;
    }
 };
 
@@ -467,7 +471,11 @@ void SetGlobalVariables()
 
    int asize=ArraySize(WS.tradereference);
    for(int i=0; i<asize; i++)
-      GlobalVariableSet(namespace+"TradeReference"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].gain);
+   {
+      GlobalVariableSet(namespace+"TradeReference.gain"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].gain);
+      GlobalVariableSet(namespace+"TradeReference.stoplosspips"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].stoplosspips);
+      GlobalVariableSet(namespace+"TradeReference.takeprofitpips"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].takeprofitpips);
+   }
 }
 
 
@@ -505,14 +513,32 @@ void GetGlobalVariables()
    for(int i=0; i<varcount; i++)
    {
       string n=GlobalVariableName(i);
-      string s=namespace+"TradeReference";
-      int p=StringFind(n,s);
+      string s;
+      long magicnumber;
+      int p;
+
+      s=namespace+"TradeReference.gain";
+      p=StringFind(n,s);
       if(p==0)
       {
-         int asize=ArraySize(WS.tradereference);
-         ArrayResize(WS.tradereference,asize+1);
-         WS.tradereference[asize].magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
-         WS.tradereference[asize].gain=GlobalVariableGet(n);
+         magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
+         UpdateTradeReference(magicnumber,GlobalVariableGet(n));
+      }
+
+      s=namespace+"TradeReference.stoplosspips";
+      p=StringFind(n,s);
+      if(p==0)
+      {
+         magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
+         UpdateTradeReference(magicnumber,NULL,GlobalVariableGet(n));
+      }
+
+      s=namespace+"TradeReference.takeprofitpips";
+      p=StringFind(n,s);
+      if(p==0)
+      {
+         magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
+         UpdateTradeReference(magicnumber,NULL,NULL,GlobalVariableGet(n));
       }
    }
 }
@@ -683,8 +709,9 @@ void ManageBasket()
       for(int j=0; j<size2; j++)
       {
          TypeTradeInfo ti=BI.pairsintrades[i].tradeinfo[j];
+         TypeTradeReference tr=WS.tradereference[TradeReferenceIndex(ti.magicnumber)];
 
-         if(_TakeProfitPips>0&&(ti.points-_TakeProfitPips)>=0)
+         if(tr.takeprofitpips>0&&(ti.points-tr.takeprofitpips)>=0)
          {
             if(OrderSelectX(ti.orderindex)&&IsAutoTradingEnabled())
             {
@@ -706,7 +733,7 @@ void ManageBasket()
             }
          }
 
-         if(_StopLossPips>0&&(ti.points+_StopLossPips)<=0)
+         if(tr.stoplosspips>0&&(ti.points+tr.stoplosspips)<=0)
          {
             if(OrderSelectX(ti.orderindex)&&IsAutoTradingEnabled())
             {
@@ -755,7 +782,7 @@ void ManageBasket()
    if(ActivateTrailing&&_StartTrailingPips>0&&BI.gainpipsglobal>=_StartTrailingPips)
       WS.TrailingActivated=true;
 
-   if(TakeProfitPercentBalance>0&&BI.gain/(AccountBalanceX()/100)>=TakeProfitPercentBalance)
+   if(TakeProfitPercentBalance>0&&WS.globalgain/(AccountBalanceX()/100)>=TakeProfitPercentBalance)
       closeall=true;
 
    if(WS.TrailingActivated&&WS.globalgain<=GetTrailingLimit())
@@ -1162,7 +1189,7 @@ double GetHedgeVolume(TypeTradeInfo& tradeinfo[], TypeTradeInfo& tiin)
 long GetHedgeMagicNumber(TypeTradeInfo& tradeinfo[], TypeTradeInfo& tiin)
 {
    long r=tiin.magicnumber+hedgeoffsetmagicnumber;
-   if(TradeReferenceExists(r))
+   if(TradeReferenceIndex(r)>-1)
       r=-1;
    return r;
 }
@@ -1203,6 +1230,8 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
    WS.lastorderexecution=TimeLocal();
 #ifdef __MQL4__
    int ret=OrderSend(s,OP_BUY,v,AskX(s),5,0,0,c,m);
+   if(ret>-1)
+      NewTradeReference(m,true);
    if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
@@ -1213,6 +1242,8 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
    trade.SetExpertMagicNumber(m);
    //bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,AskX(s),NULL,NULL,c);
    bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,0,NULL,NULL,c);
+   if(ret)
+      NewTradeReference(m,true);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -1236,6 +1267,8 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
    WS.lastorderexecution=TimeLocal();
 #ifdef __MQL4__
    int ret=OrderSend(s,OP_SELL,v,BidX(s),5,0,0,c,m);
+   if(ret>-1)
+      NewTradeReference(m,true);
    if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
@@ -1246,6 +1279,8 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
    trade.SetExpertMagicNumber(m);
    //bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,BidX(s),NULL,NULL,c);
    bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,0,NULL,NULL,c);
+   if(ret)
+      NewTradeReference(m,true);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -1254,49 +1289,63 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 }
 
 
-void AddTradeReference(TypeTradeInfo& tiin)
+int NewTradeReference(long magicnumber, bool InitWithCurrentSettings)
 {
    int asize=ArraySize(WS.tradereference);
-   bool found=false;
-   for(int i=0; i<asize; i++)
+   ArrayResize(WS.tradereference,asize+1);
+   WS.tradereference[asize].magicnumber=magicnumber;
+   if(InitWithCurrentSettings)
    {
-      if(WS.tradereference[i].magicnumber==tiin.magicnumber)
-      {
-         found=true;
-         WS.tradereference[i].gain=tiin.gain;
-         WS.tradereference[i].points=tiin.points;
-         break;
-      }
+      WS.tradereference[asize].stoplosspips=_StopLossPips;
+      WS.tradereference[asize].takeprofitpips=_TakeProfitPips;
    }
-   if(!found)
-   {
-      ArrayResize(WS.tradereference,asize+1);
-      WS.tradereference[asize].magicnumber=tiin.magicnumber;
-      WS.tradereference[asize].gain=tiin.gain;
-      WS.tradereference[asize].points=tiin.points;
-   }
+   return asize;
 }
 
 
-bool TradeReferenceExists(long magicnumber)
+void UpdateTradeReference(TypeTradeInfo& tiin)
+{
+   int index=TradeReferenceIndex(tiin.magicnumber);
+   if(index==-1)
+      index=NewTradeReference(tiin.magicnumber,false);
+   WS.tradereference[index].gain=tiin.gain;
+   WS.tradereference[index].points=tiin.points;
+}
+
+
+void UpdateTradeReference(long magicnumber, double gain=NULL, double stoplosspips=NULL, double takeprofitpips=NULL)
+{
+   int index=TradeReferenceIndex(magicnumber);
+   if(index==-1)
+      index=NewTradeReference(magicnumber,false);
+   if(gain!=NULL)
+      WS.tradereference[index].gain=gain;
+   if(stoplosspips!=NULL)
+      WS.tradereference[index].stoplosspips=stoplosspips;
+   if(takeprofitpips!=NULL)
+      WS.tradereference[index].takeprofitpips=takeprofitpips;
+}
+
+
+int TradeReferenceIndex(long magicnumber)
 {
    int asize=ArraySize(WS.tradereference);
-   bool found=false;
+   int index=-1;
    for(int i=0; i<asize; i++)
    {
       if(WS.tradereference[i].magicnumber==magicnumber)
       {
-         found=true;
+         index=i;
          break;
       }
    }
-   return found;
+   return index;
 }
 
 
 void AddTrade(TypeTradeInfo& ti[], TypeTradeInfo& tiin)
 {
-   AddTradeReference(tiin);
+   UpdateTradeReference(tiin);
 
    int asize=ArraySize(ti);
    ArrayResize(ti,asize+1);
