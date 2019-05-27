@@ -862,33 +862,16 @@ void DisplayText()
    CreateLabel(rowindex,FontSize,TextColor,"Open Volume: "+DoubleToString(_OpenLots,2));
    rowindex++;
 
+   double tickvalue=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
+   int spreadpoints=(int)MathRound((AskX()-BidX())/Point());
    if(_StopLossPips>0)
    {
-      double tickvalue;
-      int spreadpoints=(int)MathRound((AskX()-BidX())/Point());
-#ifdef __MQL4__
-      tickvalue=MarketInfo(Symbol(),MODE_TICKVALUE);
-#endif
-#ifdef __MQL5__
-      tickvalue=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
-#endif
-      //double risk=(((_StopLossPips+spreadpoints)*_OpenLots*tickvalue)+NormalizeDouble(_OpenLots*CommissionPerLotPerRoundtrip,2))/(AccountBalanceX()/100);
       double risk=((_StopLossPips*_OpenLots*tickvalue))/(AccountBalanceX()/100);
       CreateLabel(rowindex,FontSize,TextColor,"Risk: "+DoubleToString(risk,1));
       rowindex++;
    }
-
    if(_TakeProfitPips>0)
    {
-      double tickvalue;
-      int spreadpoints=(int)MathRound((AskX()-BidX())/Point());
-#ifdef __MQL4__
-      tickvalue=MarketInfo(Symbol(),MODE_TICKVALUE);
-#endif
-#ifdef __MQL5__
-      tickvalue=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
-#endif
-      //double reward=(((_TakeProfitPips-spreadpoints)*_OpenLots*tickvalue)-NormalizeDouble(_OpenLots*CommissionPerLotPerRoundtrip,2))/(AccountBalanceX()/100);
       double reward=((_TakeProfitPips*_OpenLots*tickvalue))/(AccountBalanceX()/100);
       CreateLabel(rowindex,FontSize,TextColor,"Reward: "+DoubleToString(reward,1));
       rowindex++;
@@ -1034,16 +1017,13 @@ void DrawLevels(long chartid)
    //CreateLevel(chartid,namespace+"Level3",MediumSeaGreen,Ask+(AboveBEPips*Point));
    //CreateLevel(chartid,namespace+"Level4",DeepPink,Ask+(BreakEvenAfterPips*Point));
 
-
-   int commissionpoints=(int)NormalizeDouble(CommissionPerLotPerRoundtrip/SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE),0);
-
+   double tickvalue=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
+   int commissionpoints=(int)NormalizeDouble(CommissionPerLotPerRoundtrip/tickvalue,0);
    if(_StopLossPips>0)
    {
-      //CreateRectangle(chartid,namespace+"Rectangle1",WhiteSmoke,Ask+(StopLossPips*Point),Bid-(StopLossPips*Point));
       CreateLevel(chartid,namespace+"Level1",DeepPink,BidX()+((_StopLossPips-commissionpoints)*Point()));
       CreateLevel(chartid,namespace+"Level2",DeepPink,AskX()-((_StopLossPips-commissionpoints)*Point()));
    }
-
    if(_TakeProfitPips>0)
    {
       CreateLevel(chartid,namespace+"Level3",SeaGreen,BidX()+((_TakeProfitPips+commissionpoints)*Point()));
