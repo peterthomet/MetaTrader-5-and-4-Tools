@@ -104,6 +104,7 @@ double _StartTrailingPips;
 double _TakeProfitPips;
 double _StopLossPips;
 double _OpenLots;
+bool tradelevelsvisible;
 
 enum BEStopModes
 {
@@ -119,6 +120,7 @@ struct TypeTradeInfo
    double volume;
    double openprice;
    double points;
+   double commissionpoints;
    double gain;
    long magicnumber;
    long orderticket;
@@ -129,6 +131,7 @@ struct TypeTradeInfo
       volume=0;
       openprice=0;
       points=0;
+      commissionpoints=0;
       gain=0;
       magicnumber=0;
       orderticket=0;
@@ -142,6 +145,11 @@ struct TypeTradeReference
    double gain;
    double stoplosspips;
    double takeprofitpips;
+   double commissionpoints;
+   double openprice;
+   string pair;
+   int type;
+   datetime lastupdate;
    TypeTradeReference()
    {
       magicnumber=0;
@@ -149,6 +157,11 @@ struct TypeTradeReference
       gain=0;
       stoplosspips=0;
       takeprofitpips=0;
+      commissionpoints=0;
+      openprice=0;
+      pair="";
+      type=NULL;
+      lastupdate=0;
    }
 };
 
@@ -266,6 +279,8 @@ TypeCurrencyStrength CS[1];
 
 void OnInit()
 {
+   tradelevelsvisible=false;
+
    initerror=false;
    
    namespace=appname+" "+IntegerToString(Instance)+" ";
@@ -365,6 +380,7 @@ void OnDeinit(const int reason)
    {
       DeleteAllObjects();
       SetGlobalVariables();
+      ToggleTradeLevels(true);
    }
 }
 
@@ -611,7 +627,7 @@ bool ManageOrders()
             {
                ti.type=OP_SELL;
                hedgeordertype=OP_BUY;
-               BESL=OrderOpenPriceX()-(_AboveBEPips*Point());
+               BESL=OrderOpenPriceX()-(_AboveBEPips*SymbolInfoDouble(OrderSymbolX(),SYMBOL_POINT));
                BI.sells++;
                BI.sellvolume+=OrderLotsX();
                BI.pairsintrades[pidx].sellvolume+=OrderLotsX();
@@ -622,7 +638,7 @@ bool ManageOrders()
             {
                ti.type=OP_BUY;
                hedgeordertype=OP_SELL;
-               BESL=OrderOpenPriceX()+(_AboveBEPips*Point());
+               BESL=OrderOpenPriceX()+(_AboveBEPips*SymbolInfoDouble(OrderSymbolX(),SYMBOL_POINT));
                BI.buys++;
                BI.buyvolume+=OrderLotsX();
                BI.pairsintrades[pidx].buyvolume+=OrderLotsX();
@@ -655,10 +671,11 @@ bool ManageOrders()
             ti.volume=OrderLotsX();
             ti.openprice=OrderOpenPriceX();
             ti.points=gainpips;
+            ti.commissionpoints=NormalizeDouble((OrderCommissionSwap()/ti.volume)/tickvalue,0);
             ti.gain=gain;
             ti.magicnumber=OrderMagicNumberX();
             ti.orderticket=OrderTicketX();
-            AddTrade(BI.pairsintrades[pidx].tradeinfo,ti);
+            AddTrade(BI.pairsintrades[pidx],BI.pairsintrades[pidx].tradeinfo,ti);
          }
       }
    }
@@ -993,6 +1010,80 @@ void CreateLabel(int RI, int fontsize, color c, string text, string group="", in
 }
 
 
+void ToggleTradeLevels(bool disable=false)
+{
+   if(!tradelevelsvisible && !disable)
+   {
+      int asize=ArraySize(WS.tradereference);
+      for(int i=0; i<asize; i++)
+      {
+         if(WS.tradereference[i].pair+ExtraChars==Symbol() && TimeLocal()-WS.tradereference[i].lastupdate<2)
+         {
+            if(DrawLevelsAllCharts)
+            {
+               long chartid=ChartFirst();
+               while(chartid>-1)
+               {
+                  if(ChartSymbol(chartid)==Symbol())
+                     DrawTradeLevels(chartid,i);
+
+                  chartid=ChartNext(chartid);
+               }
+            }
+            else
+               DrawTradeLevels(0,i);
+         }
+      }
+      tradelevelsvisible=true;
+   }
+   else if(tradelevelsvisible)
+   {
+      if(DrawLevelsAllCharts)
+      {
+         long chartid=ChartFirst();
+         while(chartid>-1)
+         {
+            if(ChartSymbol(chartid)==Symbol())
+            {
+               ObjectsDeleteAll(chartid,namespace+"TradeLevel");
+            }
+            chartid=ChartNext(chartid);
+         }
+      }
+      else
+         ObjectsDeleteAll(0,namespace+"TradeLevel");
+
+      tradelevelsvisible=false;
+   }
+}
+
+
+void DrawTradeLevels(long chartid, int i)
+{
+   CreateLevel(chartid,namespace+"TradeLevelOpen"+IntegerToString(i),DodgerBlue,WS.tradereference[i].openprice);
+
+   double stopprice=0;
+   double commissionpoints=MathAbs(WS.tradereference[i].commissionpoints);
+   if(WS.tradereference[i].stoplosspips!=0)
+   {
+      if(WS.tradereference[i].type==OP_BUY)
+         stopprice=WS.tradereference[i].openprice-((WS.tradereference[i].stoplosspips-commissionpoints)*Point());
+      if(WS.tradereference[i].type==OP_SELL)
+         stopprice=WS.tradereference[i].openprice+((WS.tradereference[i].stoplosspips-commissionpoints)*Point());
+      CreateLevel(chartid,namespace+"TradeLevelStop"+IntegerToString(i),DeepPink,stopprice);
+   }
+   if(WS.tradereference[i].takeprofitpips!=0)
+   {
+      double takeprice=0;
+      if(WS.tradereference[i].type==OP_BUY)
+         takeprice=WS.tradereference[i].openprice+((WS.tradereference[i].takeprofitpips+commissionpoints)*Point());
+      if(WS.tradereference[i].type==OP_SELL)
+         takeprice=WS.tradereference[i].openprice-((WS.tradereference[i].takeprofitpips+commissionpoints)*Point());
+      CreateLevel(chartid,namespace+"TradeLevelTake"+IntegerToString(i),SeaGreen,takeprice);
+   }
+}
+
+
 void DrawLevels()
 {
    if(DrawLevelsAllCharts)
@@ -1291,13 +1382,18 @@ int NewTradeReference(long magicnumber, bool InitWithCurrentSettings)
 }
 
 
-void UpdateTradeReference(TypeTradeInfo& tiin)
+void UpdateTradeReference(TypePairsTradesInfo& piti, TypeTradeInfo& tiin)
 {
    int index=TradeReferenceIndex(tiin.magicnumber);
    if(index==-1)
       index=NewTradeReference(tiin.magicnumber,false);
    WS.tradereference[index].gain=tiin.gain;
    WS.tradereference[index].points=tiin.points;
+   WS.tradereference[index].openprice=tiin.openprice;
+   WS.tradereference[index].pair=piti.pair;
+   WS.tradereference[index].type=tiin.type;
+   WS.tradereference[index].commissionpoints=tiin.commissionpoints;
+   WS.tradereference[index].lastupdate=TimeLocal();
 }
 
 
@@ -1331,9 +1427,9 @@ int TradeReferenceIndex(long magicnumber)
 }
 
 
-void AddTrade(TypeTradeInfo& ti[], TypeTradeInfo& tiin)
+void AddTrade(TypePairsTradesInfo& piti, TypeTradeInfo& ti[], TypeTradeInfo& tiin)
 {
-   UpdateTradeReference(tiin);
+   UpdateTradeReference(piti,tiin);
 
    int asize=ArraySize(ti);
    ArrayResize(ti,asize+1);
@@ -1477,6 +1573,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       if(lparam==17)
       {
          lastctrl=TimeLocal();
+         ToggleTradeLevels(true);
          DrawLevels();
          DisplayLegend();
          ctrlon=true;
@@ -1525,6 +1622,10 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             DrawLevels();
          }
       }
+
+      if (lparam == 16)
+         ToggleTradeLevels();
+
    }
 }
 
@@ -1633,10 +1734,10 @@ double TickValue()
 }
 
 
-double OrderProfitNet()
+double OrderCommissionSwap()
 {
 #ifdef __MQL4__
-   return OrderProfit()+OrderCommission()+OrderSwap();
+   return OrderCommission()+OrderSwap();
 #endif
 #ifdef __MQL5__
    double commission=0;
@@ -1665,7 +1766,18 @@ double OrderProfitNet()
             commission=commission*2;
       }
    }
-   return PositionGetDouble(POSITION_PROFIT)+PositionGetDouble(POSITION_SWAP)+commission;
+   return PositionGetDouble(POSITION_SWAP)+commission;
+#endif
+}
+
+
+double OrderProfitNet()
+{
+#ifdef __MQL4__
+   return OrderProfit()+OrderCommissionSwap();
+#endif
+#ifdef __MQL5__
+   return PositionGetDouble(POSITION_PROFIT)+OrderCommissionSwap();
 #endif
 }
 
