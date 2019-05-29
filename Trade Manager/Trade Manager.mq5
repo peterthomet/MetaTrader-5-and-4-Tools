@@ -1680,7 +1680,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       {
          if (lparam == 219)
          {
-            double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
+            double breach=0-(WS.tradereference[selectedtradeindex].points-(1*pipsfactor));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
                return;
             WS.tradereference[selectedtradeindex].stoplosspips=MathMax(WS.tradereference[selectedtradeindex].stoplosspips-(0.1*pipsfactor),breach);
@@ -1693,7 +1693,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 221)
          {
-            double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
+            double breach=0-(WS.tradereference[selectedtradeindex].points-(1*pipsfactor));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
                WS.tradereference[selectedtradeindex].stoplosspips=breach;
             WS.tradereference[selectedtradeindex].stoplosspips+=(0.1*pipsfactor);
