@@ -105,6 +105,8 @@ double _TakeProfitPips;
 double _StopLossPips;
 double _OpenLots;
 bool tradelevelsvisible;
+int selectedtradeindex;
+const double DISABLEDPOINTS=1000000;
 
 enum BEStopModes
 {
@@ -155,8 +157,8 @@ struct TypeTradeReference
       magicnumber=0;
       points=0;
       gain=0;
-      stoplosspips=0;
-      takeprofitpips=0;
+      stoplosspips=DISABLEDPOINTS;
+      takeprofitpips=DISABLEDPOINTS;
       commissionpoints=0;
       openprice=0;
       pair="";
@@ -203,6 +205,7 @@ struct TypeWorkingState
       currentbasemagicnumber=basemagicnumber;
       ArrayResize(tradereference,0);
       globalgain=0;
+      ToggleTradeLevels(true);
    };
    void ResetLocks()
    {
@@ -303,7 +306,11 @@ void OnInit()
    _BreakEvenAfterPips=BreakEvenAfterPips*pipsfactor;
    _AboveBEPips=AboveBEPips*pipsfactor;
    _TakeProfitPips=TakeProfitPips*pipsfactor;
+   if(_TakeProfitPips==0)
+      _TakeProfitPips=DISABLEDPOINTS;
    _StopLossPips=StopLossPips*pipsfactor;
+   if(_StopLossPips==0)
+      _StopLossPips=DISABLEDPOINTS;
    _StartTrailingPips=StartTrailingPips*pipsfactor;
    _OpenLots=OpenLots;
 
@@ -729,7 +736,7 @@ void ManageBasket()
          TypeTradeInfo ti=BI.pairsintrades[i].tradeinfo[j];
          TypeTradeReference tr=WS.tradereference[TradeReferenceIndex(ti.magicnumber)];
 
-         if(tr.takeprofitpips>0&&(ti.points-tr.takeprofitpips)>=0)
+         if(tr.takeprofitpips!=DISABLEDPOINTS&&(ti.points-tr.takeprofitpips)>=0)
          {
             if(OrderSelectX(ti.orderindex)&&IsAutoTradingEnabled())
             {
@@ -751,7 +758,7 @@ void ManageBasket()
             }
          }
 
-         if(tr.stoplosspips>0&&(ti.points+tr.stoplosspips)<=0)
+         if(tr.stoplosspips!=DISABLEDPOINTS&&(ti.points+tr.stoplosspips)<=0)
          {
             if(OrderSelectX(ti.orderindex)&&IsAutoTradingEnabled())
             {
@@ -820,6 +827,12 @@ void ManageBasket()
 
    if(closeall)
       CloseAllInternal();
+      
+   if(tradelevelsvisible)
+   {
+      if(TimeLocal()-WS.tradereference[selectedtradeindex].lastupdate>1)
+         ToggleTradeLevels(false);
+   }
 }
 
 
@@ -881,13 +894,13 @@ void DisplayText()
 
    double tickvalue=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
    int spreadpoints=(int)MathRound((AskX()-BidX())/Point());
-   if(_StopLossPips>0)
+   if(_StopLossPips!=DISABLEDPOINTS)
    {
       double risk=((_StopLossPips*_OpenLots*tickvalue))/(AccountBalanceX()/100);
       CreateLabel(rowindex,FontSize,TextColor,"Risk: "+DoubleToString(risk,1));
       rowindex++;
    }
-   if(_TakeProfitPips>0)
+   if(_TakeProfitPips!=DISABLEDPOINTS)
    {
       double reward=((_TakeProfitPips*_OpenLots*tickvalue))/(AccountBalanceX()/100);
       CreateLabel(rowindex,FontSize,TextColor,"Reward: "+DoubleToString(reward,1));
@@ -1012,6 +1025,8 @@ void CreateLabel(int RI, int fontsize, color c, string text, string group="", in
 
 void ToggleTradeLevels(bool disable=false)
 {
+   selectedtradeindex=-1;
+
    if(!tradelevelsvisible && !disable)
    {
       int asize=ArraySize(WS.tradereference);
@@ -1019,42 +1034,57 @@ void ToggleTradeLevels(bool disable=false)
       {
          if(WS.tradereference[i].pair+ExtraChars==Symbol() && TimeLocal()-WS.tradereference[i].lastupdate<2)
          {
-            if(DrawLevelsAllCharts)
-            {
-               long chartid=ChartFirst();
-               while(chartid>-1)
-               {
-                  if(ChartSymbol(chartid)==Symbol())
-                     DrawTradeLevels(chartid,i);
-
-                  chartid=ChartNext(chartid);
-               }
-            }
-            else
-               DrawTradeLevels(0,i);
+            selectedtradeindex=i;
+            break;
          }
       }
-      tradelevelsvisible=true;
+      if(selectedtradeindex>-1)
+      {
+         tradelevelsvisible=true;
+         DrawSelectedTradeLevels();
+      }
    }
    else if(tradelevelsvisible)
    {
-      if(DrawLevelsAllCharts)
-      {
-         long chartid=ChartFirst();
-         while(chartid>-1)
-         {
-            if(ChartSymbol(chartid)==Symbol())
-            {
-               ObjectsDeleteAll(chartid,namespace+"TradeLevel");
-            }
-            chartid=ChartNext(chartid);
-         }
-      }
-      else
-         ObjectsDeleteAll(0,namespace+"TradeLevel");
-
+      DeleteSelectedTradeLevels();
       tradelevelsvisible=false;
    }
+}
+
+
+void DeleteSelectedTradeLevels()
+{
+   if(DrawLevelsAllCharts)
+   {
+      long chartid=ChartFirst();
+      while(chartid>-1)
+      {
+         if(ChartSymbol(chartid)==Symbol())
+            ObjectsDeleteAll(chartid,namespace+"TradeLevel");
+   
+         chartid=ChartNext(chartid);
+      }
+   }
+   else
+      ObjectsDeleteAll(0,namespace+"TradeLevel");
+}
+
+
+void DrawSelectedTradeLevels()
+{
+   if(DrawLevelsAllCharts)
+   {
+      long chartid=ChartFirst();
+      while(chartid>-1)
+      {
+         if(ChartSymbol(chartid)==Symbol())
+            DrawTradeLevels(chartid,selectedtradeindex);
+   
+         chartid=ChartNext(chartid);
+      }
+   }
+   else
+      DrawTradeLevels(0,selectedtradeindex);
 }
 
 
@@ -1064,7 +1094,7 @@ void DrawTradeLevels(long chartid, int i)
 
    double stopprice=0;
    double commissionpoints=MathAbs(WS.tradereference[i].commissionpoints);
-   if(WS.tradereference[i].stoplosspips!=0)
+   if(WS.tradereference[i].stoplosspips!=DISABLEDPOINTS)
    {
       if(WS.tradereference[i].type==OP_BUY)
          stopprice=WS.tradereference[i].openprice-((WS.tradereference[i].stoplosspips-commissionpoints)*Point());
@@ -1072,7 +1102,7 @@ void DrawTradeLevels(long chartid, int i)
          stopprice=WS.tradereference[i].openprice+((WS.tradereference[i].stoplosspips-commissionpoints)*Point());
       CreateLevel(chartid,namespace+"TradeLevelStop"+IntegerToString(i),DeepPink,stopprice);
    }
-   if(WS.tradereference[i].takeprofitpips!=0)
+   if(WS.tradereference[i].takeprofitpips!=DISABLEDPOINTS)
    {
       double takeprice=0;
       if(WS.tradereference[i].type==OP_BUY)
@@ -1081,6 +1111,8 @@ void DrawTradeLevels(long chartid, int i)
          takeprice=WS.tradereference[i].openprice-((WS.tradereference[i].takeprofitpips+commissionpoints)*Point());
       CreateLevel(chartid,namespace+"TradeLevelTake"+IntegerToString(i),SeaGreen,takeprice);
    }
+
+   ChartRedraw(chartid);
 }
 
 
@@ -1108,17 +1140,17 @@ void DrawLevels(long chartid)
    //CreateLevel(chartid,namespace+"Level3",MediumSeaGreen,Ask+(AboveBEPips*Point));
    //CreateLevel(chartid,namespace+"Level4",DeepPink,Ask+(BreakEvenAfterPips*Point));
 
-   double tickvalue=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
-   int commissionpoints=(int)NormalizeDouble(CommissionPerLotPerRoundtrip/tickvalue,0);
-   if(_StopLossPips>0)
+   int cp=SymbolCommissionPoints();
+
+   if(_StopLossPips!=DISABLEDPOINTS)
    {
-      CreateLevel(chartid,namespace+"Level1",DeepPink,BidX()+((_StopLossPips-commissionpoints)*Point()));
-      CreateLevel(chartid,namespace+"Level2",DeepPink,AskX()-((_StopLossPips-commissionpoints)*Point()));
+      CreateLevel(chartid,namespace+"Level1",DeepPink,BidX()+((_StopLossPips-cp)*Point()));
+      CreateLevel(chartid,namespace+"Level2",DeepPink,AskX()-((_StopLossPips-cp)*Point()));
    }
-   if(_TakeProfitPips>0)
+   if(_TakeProfitPips!=DISABLEDPOINTS)
    {
-      CreateLevel(chartid,namespace+"Level3",SeaGreen,BidX()+((_TakeProfitPips+commissionpoints)*Point()));
-      CreateLevel(chartid,namespace+"Level4",SeaGreen,AskX()-((_TakeProfitPips+commissionpoints)*Point()));
+      CreateLevel(chartid,namespace+"Level3",SeaGreen,BidX()+((_TakeProfitPips+cp)*Point()));
+      CreateLevel(chartid,namespace+"Level4",SeaGreen,AskX()-((_TakeProfitPips+cp)*Point()));
    }
 
    CreateRectangle(chartid,namespace+"Rectangle10",WhiteSmoke,AskX()+(_BreakEvenAfterPips*Point()),BidX()-(_BreakEvenAfterPips*Point()));
@@ -1599,25 +1631,43 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             _OpenLots+=0.01;
          if (lparam == 219)
          {
-            _StopLossPips=MathMax(_StopLossPips-(0.1*pipsfactor),0);
-            if(_StopLossPips==0)
+            double breach=0+(SymbolCommissionPoints()+(1*pipsfactor));
+            if(_StopLossPips==DISABLEDPOINTS)
+               return;
+            _StopLossPips=MathMax(_StopLossPips-(0.1*pipsfactor),breach);
+            if(_StopLossPips==breach)
+            {
+               _StopLossPips=DISABLEDPOINTS;
                DeleteLevels();
+            }
             DrawLevels();
          }
          if (lparam == 221)
          {
+            double breach=0+(SymbolCommissionPoints()+(1*pipsfactor));
+            if(_StopLossPips==DISABLEDPOINTS)
+               _StopLossPips=breach;
             _StopLossPips+=(0.1*pipsfactor);
             DrawLevels();
          }
          if (lparam == 186)
          {
-            _TakeProfitPips=MathMax(_TakeProfitPips-(0.1*pipsfactor),0);
-            if(_TakeProfitPips==0)
+            double breach=0-(SymbolCommissionPoints()-(1*pipsfactor));
+            if(_TakeProfitPips==DISABLEDPOINTS)
+               return;
+            _TakeProfitPips=MathMax(_TakeProfitPips-(0.1*pipsfactor),breach);
+            if(_TakeProfitPips==breach)
+            {
+               _TakeProfitPips=DISABLEDPOINTS;
                DeleteLevels();
+            }
             DrawLevels();
          }
          if (lparam == 192)
          {
+            double breach=0-(SymbolCommissionPoints()-(1*pipsfactor));
+            if(_TakeProfitPips==DISABLEDPOINTS)
+               _TakeProfitPips=breach;
             _TakeProfitPips+=(0.1*pipsfactor);
             DrawLevels();
          }
@@ -1625,6 +1675,53 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
       if (lparam == 16)
          ToggleTradeLevels();
+
+      if(tradelevelsvisible)
+      {
+         if (lparam == 219)
+         {
+            double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
+            if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
+               return;
+            WS.tradereference[selectedtradeindex].stoplosspips=MathMax(WS.tradereference[selectedtradeindex].stoplosspips-(0.1*pipsfactor),breach);
+            if(WS.tradereference[selectedtradeindex].stoplosspips==breach)
+            {
+               WS.tradereference[selectedtradeindex].stoplosspips=DISABLEDPOINTS;
+               DeleteSelectedTradeLevels();
+            }
+            DrawSelectedTradeLevels();
+         }
+         if (lparam == 221)
+         {
+            double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
+            if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
+               WS.tradereference[selectedtradeindex].stoplosspips=breach;
+            WS.tradereference[selectedtradeindex].stoplosspips+=(0.1*pipsfactor);
+            DrawSelectedTradeLevels();
+         }
+         if (lparam == 186)
+         {
+            double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
+            if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
+               return;
+            WS.tradereference[selectedtradeindex].takeprofitpips=MathMax(WS.tradereference[selectedtradeindex].takeprofitpips-(0.1*pipsfactor),breach);
+            if(WS.tradereference[selectedtradeindex].takeprofitpips==breach)
+            {
+               WS.tradereference[selectedtradeindex].takeprofitpips=DISABLEDPOINTS;
+               DeleteSelectedTradeLevels();
+            }
+            DrawSelectedTradeLevels();
+         }
+         if (lparam == 192)
+         {
+            double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
+            if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
+               WS.tradereference[selectedtradeindex].takeprofitpips=breach;
+            WS.tradereference[selectedtradeindex].takeprofitpips+=(0.1*pipsfactor);
+            DrawSelectedTradeLevels();
+         }
+
+      }
 
    }
 }
@@ -1665,6 +1762,13 @@ void SetLastError(int result)
       return;
    lasterrortime=TimeLocal();
    lasterrorstring="Went wrong, "+ErrorDescription(GetLastError());
+}
+
+
+int SymbolCommissionPoints()
+{
+   double tickvalue=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
+   return (int)NormalizeDouble(CommissionPerLotPerRoundtrip/tickvalue,0);
 }
 
 
