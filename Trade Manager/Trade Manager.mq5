@@ -896,7 +896,7 @@ void DisplayText()
 
    double tickvalue=CurrentSymbolTickValue();
    int spreadpoints=(int)MathRound((AskX()-BidX())/Point());
-   if(_StopLossPips!=DISABLEDPOINTS)
+   if(_StopLossPips!=DISABLEDPOINTS||tradelevelsvisible)
    {
       color c=TextColor;
       double risk=((_StopLossPips*_OpenLots*tickvalue))/(AccountBalanceX()/100);
@@ -910,7 +910,7 @@ void DisplayText()
       CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,1));
       rowindex++;
    }
-   if(_TakeProfitPips!=DISABLEDPOINTS)
+   if(_TakeProfitPips!=DISABLEDPOINTS||tradelevelsvisible)
    {
       color c=TextColor;
       double reward=((_TakeProfitPips*_OpenLots*tickvalue))/(AccountBalanceX()/100);
@@ -946,9 +946,12 @@ void DisplayText()
       rowindex++;
    
       color gaincolor=MediumSeaGreen;
-      if(BI.gain<0)
+      double gain=BI.gain;
+      if(tradelevelsvisible)
+         gain=WS.tradereference[selectedtradeindex].gain;
+      if(gain<0)
          gaincolor=DeepPink;
-      CreateLabel(rowindex,(int)MathFloor(FontSize*2.3),gaincolor,DoubleToString(BI.gain,2));
+      CreateLabel(rowindex,(int)MathFloor(FontSize*2.3),gaincolor,DoubleToString(gain,2));
       rowindex++;
       rowindex++;
       
