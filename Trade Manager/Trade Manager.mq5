@@ -151,6 +151,7 @@ struct TypeTradeReference
    double openprice;
    string pair;
    int type;
+   double volume;
    datetime lastupdate;
    TypeTradeReference()
    {
@@ -163,6 +164,7 @@ struct TypeTradeReference
       openprice=0;
       pair="";
       type=NULL;
+      volume=0;
       lastupdate=0;
    }
 };
@@ -613,7 +615,7 @@ bool ManageOrders()
       {
          if(IsOrderToManage())
          {
-            double tickvalue=TickValue();
+            double tickvalue=OrderSymbolTickValue();
             if(tickvalue==0)
                return false;
             double gain=OrderProfitNet();
@@ -892,18 +894,34 @@ void DisplayText()
    CreateLabel(rowindex,FontSize,TextColor,"Open Volume: "+DoubleToString(_OpenLots,2));
    rowindex++;
 
-   double tickvalue=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
+   double tickvalue=CurrentSymbolTickValue();
    int spreadpoints=(int)MathRound((AskX()-BidX())/Point());
    if(_StopLossPips!=DISABLEDPOINTS)
    {
+      color c=TextColor;
       double risk=((_StopLossPips*_OpenLots*tickvalue))/(AccountBalanceX()/100);
-      CreateLabel(rowindex,FontSize,TextColor,"Risk: "+DoubleToString(risk,1));
+      if(tradelevelsvisible)
+      {
+         c=DodgerBlue;
+         risk=0;
+         if(WS.tradereference[selectedtradeindex].stoplosspips!=DISABLEDPOINTS)
+            risk=((WS.tradereference[selectedtradeindex].stoplosspips*WS.tradereference[selectedtradeindex].volume*tickvalue))/(AccountBalanceX()/100);
+      }
+      CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,1));
       rowindex++;
    }
    if(_TakeProfitPips!=DISABLEDPOINTS)
    {
+      color c=TextColor;
       double reward=((_TakeProfitPips*_OpenLots*tickvalue))/(AccountBalanceX()/100);
-      CreateLabel(rowindex,FontSize,TextColor,"Reward: "+DoubleToString(reward,1));
+      if(tradelevelsvisible)
+      {
+         c=DodgerBlue;
+         reward=0;
+         if(WS.tradereference[selectedtradeindex].takeprofitpips!=DISABLEDPOINTS)
+            reward=((WS.tradereference[selectedtradeindex].takeprofitpips*WS.tradereference[selectedtradeindex].volume*tickvalue))/(AccountBalanceX()/100);
+      }
+      CreateLabel(rowindex,FontSize,c,"Reward: "+DoubleToString(reward,1));
       rowindex++;
    }
 
@@ -1020,6 +1038,40 @@ void CreateLabel(int RI, int fontsize, color c, string text, string group="", in
    ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,fontsize);
    ObjectSetString(0,objname,OBJPROP_FONT,"Arial");
    ObjectSetString(0,objname,OBJPROP_TEXT,text);
+}
+
+
+void NextTradeLevels(bool backward=false)
+{
+   int indexes[];
+   int count=0;
+   int currentpositionindex=-1;
+   int asize=ArraySize(WS.tradereference);
+   for(int i=0; i<asize; i++)
+   {
+      if(WS.tradereference[i].pair+ExtraChars==Symbol() && TimeLocal()-WS.tradereference[i].lastupdate<2)
+      {
+         ArrayResize(indexes,count+1);
+         indexes[count]=i;
+         if(selectedtradeindex==i)
+            currentpositionindex=count;
+         count++;
+      }
+   }
+   if(count>1)
+   {
+      DeleteSelectedTradeLevels();
+      if(backward)
+         currentpositionindex--;
+      else
+         currentpositionindex++;
+      if(currentpositionindex>(count-1))
+         currentpositionindex=0;
+      if(currentpositionindex<0)
+         currentpositionindex=(count-1);
+      selectedtradeindex=indexes[currentpositionindex];
+      DrawSelectedTradeLevels();
+   }
 }
 
 
@@ -1424,6 +1476,7 @@ void UpdateTradeReference(TypePairsTradesInfo& piti, TypeTradeInfo& tiin)
    WS.tradereference[index].openprice=tiin.openprice;
    WS.tradereference[index].pair=piti.pair;
    WS.tradereference[index].type=tiin.type;
+   WS.tradereference[index].volume=tiin.volume;
    WS.tradereference[index].commissionpoints=tiin.commissionpoints;
    WS.tradereference[index].lastupdate=TimeLocal();
 }
@@ -1720,6 +1773,10 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             WS.tradereference[selectedtradeindex].takeprofitpips+=(0.1*pipsfactor);
             DrawSelectedTradeLevels();
          }
+         if (lparam == 220)
+            NextTradeLevels(true);
+         if (lparam == 223)
+            NextTradeLevels();
 
       }
 
@@ -1767,7 +1824,7 @@ void SetLastError(int result)
 
 int SymbolCommissionPoints()
 {
-   double tickvalue=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
+   double tickvalue=CurrentSymbolTickValue();
    return (int)NormalizeDouble(CommissionPerLotPerRoundtrip/tickvalue,0);
 }
 
@@ -1827,7 +1884,18 @@ string OrderSymbolX()
 }
 
 
-double TickValue()
+double CurrentSymbolTickValue()
+{
+#ifdef __MQL4__
+   return MarketInfo(Symbol(),MODE_TICKVALUE);
+#endif
+#ifdef __MQL5__
+   return SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_VALUE);
+#endif
+}
+
+
+double OrderSymbolTickValue()
 {
 #ifdef __MQL4__
    return MarketInfo(OrderSymbolX(),MODE_TICKVALUE);
