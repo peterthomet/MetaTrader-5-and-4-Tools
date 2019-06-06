@@ -3,7 +3,8 @@
 // getYourNet.ch
 //
 
-#property copyright "Copyright 2018, getYourNet.ch"
+#property copyright "Copyright 2019, getYourNet.ch | Read the Manual..."
+#property link "http://shop.getyournet.ch/trademanager"
 
 #ifdef __MQL4__
    #include <..\Libraries\stdlib.mq4>
@@ -104,6 +105,7 @@ double _StartTrailingPips;
 double _TakeProfitPips;
 double _StopLossPips;
 double _OpenLots;
+bool ctrlon;
 bool tradelevelsvisible;
 int selectedtradeindex;
 const double DISABLEDPOINTS=1000000;
@@ -284,6 +286,7 @@ TypeCurrencyStrength CS[1];
 
 void OnInit()
 {
+   ctrlon=false;
    tradelevelsvisible=false;
 
    initerror=false;
@@ -389,6 +392,7 @@ void OnDeinit(const int reason)
    {
       DeleteAllObjects();
       SetGlobalVariables();
+      ToggleCtrl(true);
       ToggleTradeLevels(true);
    }
 }
@@ -404,13 +408,13 @@ void OnTick()
 
 void OnTimer()
 {
-   int lastctrlspan=(int)(TimeLocal()-lastctrl);
-   if(lastctrlspan>1&&ctrlon)
-   {
-      DeleteLevels();
-      DeleteLegend();
-      ctrlon=false;
-   }
+   //int lastctrlspan=(int)(TimeLocal()-lastctrl);
+   //if(lastctrlspan>1&&ctrlon)
+   //{
+   //   DeleteLevels();
+   //   DeleteLegend();
+   //   ctrlon=false;
+   //}
    Manage();
 }
 
@@ -1084,6 +1088,8 @@ void ToggleTradeLevels(bool disable=false)
 
    if(!tradelevelsvisible && !disable)
    {
+      ToggleCtrl(true);
+
       int asize=ArraySize(WS.tradereference);
       for(int i=0; i<asize; i++)
       {
@@ -1168,6 +1174,24 @@ void DrawTradeLevels(long chartid, int i)
    }
 
    ChartRedraw(chartid);
+}
+
+
+void ToggleCtrl(bool disable=false)
+{
+   if(!ctrlon && !disable)
+   {
+      ToggleTradeLevels(true);
+      DrawLevels();
+      //DisplayLegend();
+      ctrlon=true;
+   }
+   else if(ctrlon)
+   {
+      DeleteLevels();
+      //DeleteLegend();
+      ctrlon=false;
+   }
 }
 
 
@@ -1645,8 +1669,8 @@ bool IsAutoTradingEnabled()
 }
 
 
-static datetime lastctrl=0;
-static bool ctrlon=false;
+//static datetime lastctrl=0;
+//static bool ctrlon=false;
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
    if(id==CHARTEVENT_OBJECT_CLICK)
@@ -1658,17 +1682,14 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
    if(id==CHARTEVENT_KEYDOWN)
    {
       //Print(lparam);
+
       if(lparam==17)
+         ToggleCtrl();
+
+      //if(TimeLocal()-lastctrl<2)
+      if(ctrlon)
       {
-         lastctrl=TimeLocal();
-         ToggleTradeLevels(true);
-         DrawLevels();
-         DisplayLegend();
-         ctrlon=true;
-      }
-      if(TimeLocal()-lastctrl<2)
-      {
-         lastctrl=TimeLocal();
+         //lastctrl=TimeLocal();
          if (lparam == 49)
             OpenBuy();
          if (lparam == 51)
