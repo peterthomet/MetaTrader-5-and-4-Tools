@@ -52,8 +52,8 @@ enum TypeStopLossPercentBalanceAction
 
 input TypeInstance Instance = 1;
 input TypeAutomation Automation = NoAutomation;
-input double BreakEvenAfterPips = 5;
-input double AboveBEPips = 1;
+input double BreakEvenAfterPips = 4;
+input double AboveBEPips = 0;
 input double StartTrailingPips = 7;
 input double TakeProfitPips = 0;
 input double StopLossPips = 0;
@@ -63,7 +63,7 @@ input double HedgeFlatAtLevel = 5;
 input double TakeProfitPercentBalance = 0;
 input double StopLossPercentBalance = 0;
 input TypeStopLossPercentBalanceAction StopLossPercentBalanceAction = CloseWorstTrade;
-input bool ActivateTrailing = true;
+input bool ActivateTrailing = false;
 input double TrailingFactor = 0.6;
 input double OpenLots = 0.01;
 input bool ShowInfo = true;
@@ -85,7 +85,7 @@ input int StartHour = 0;
 input int StartMinute = 0;
 
 string appname="Trade Manager";
-string namespace="";
+string appnamespace="";
 bool working=false;
 double pipsfactor;
 datetime lasttick;
@@ -291,7 +291,7 @@ void OnInit()
 
    initerror=false;
    
-   namespace=appname+" "+IntegerToString(Instance)+" ";
+   appnamespace=appname+" "+IntegerToString(Instance)+" ";
 
    magicnumberfloor=10000000*Instance;
 
@@ -326,7 +326,7 @@ void OnInit()
 
    if(DrawBackgroundPanel)
    {
-      string objname=namespace+"Panel";
+      string objname=appnamespace+"Panel";
       ObjectCreate(0,objname,OBJ_RECTANGLE_LABEL,0,0,0,0,0);
       ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
       ObjectSetInteger(0,objname,OBJPROP_BORDER_TYPE,BORDER_FLAT);
@@ -401,6 +401,10 @@ void OnDeinit(const int reason)
 void OnTick()
 {
    lasttick=TimeLocal();
+
+   if(ctrlon)
+      DrawLevels();
+
    if(!istesting)
       Manage();
 }
@@ -481,19 +485,19 @@ void SetHardStopMode()
 void SetGlobalVariables()
 {
    string varname;
-   GlobalVariableSet(namespace+"StopMode",WS.StopMode);
-   GlobalVariableSet(namespace+"peakgain",WS.peakgain);
-   GlobalVariableSet(namespace+"peakpips",WS.peakpips);
-   GlobalVariableSet(namespace+"OpenLots",_OpenLots);
-   GlobalVariableSet(namespace+"StopLossPips",_StopLossPips);
-   GlobalVariableSet(namespace+"TakeProfitPips",_TakeProfitPips);
-   GlobalVariableSet(namespace+"currentbasemagicnumber",WS.currentbasemagicnumber);
-   varname=namespace+"ManualBEStopLocked";
+   GlobalVariableSet(appnamespace+"StopMode",WS.StopMode);
+   GlobalVariableSet(appnamespace+"peakgain",WS.peakgain);
+   GlobalVariableSet(appnamespace+"peakpips",WS.peakpips);
+   GlobalVariableSet(appnamespace+"OpenLots",_OpenLots);
+   GlobalVariableSet(appnamespace+"StopLossPips",_StopLossPips);
+   GlobalVariableSet(appnamespace+"TakeProfitPips",_TakeProfitPips);
+   GlobalVariableSet(appnamespace+"currentbasemagicnumber",WS.currentbasemagicnumber);
+   varname=appnamespace+"ManualBEStopLocked";
    if(WS.ManualBEStopLocked)
       GlobalVariableSet(varname,0);
    else
       GlobalVariableDel(varname);
-   varname=namespace+"closebasketatBE";
+   varname=appnamespace+"closebasketatBE";
    if(WS.closebasketatBE)
       GlobalVariableSet(varname,0);
    else
@@ -502,40 +506,40 @@ void SetGlobalVariables()
    int asize=ArraySize(WS.tradereference);
    for(int i=0; i<asize; i++)
    {
-      GlobalVariableSet(namespace+"TradeReference.gain"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].gain);
-      GlobalVariableSet(namespace+"TradeReference.stoplosspips"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].stoplosspips);
-      GlobalVariableSet(namespace+"TradeReference.takeprofitpips"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].takeprofitpips);
+      GlobalVariableSet(appnamespace+"TradeReference.gain"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].gain);
+      GlobalVariableSet(appnamespace+"TradeReference.stoplosspips"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].stoplosspips);
+      GlobalVariableSet(appnamespace+"TradeReference.takeprofitpips"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].takeprofitpips);
    }
 }
 
 
 void GetGlobalVariables()
 {
-   string varname=namespace+"StopMode";
+   string varname=appnamespace+"StopMode";
    if(GlobalVariableCheck(varname))
       WS.StopMode=(BEStopModes)GlobalVariableGet(varname);
-   varname=namespace+"peakgain";
+   varname=appnamespace+"peakgain";
    if(GlobalVariableCheck(varname))
       WS.peakgain=GlobalVariableGet(varname);
-   varname=namespace+"peakpips";
+   varname=appnamespace+"peakpips";
    if(GlobalVariableCheck(varname))
       WS.peakpips=GlobalVariableGet(varname);
-   varname=namespace+"OpenLots";
+   varname=appnamespace+"OpenLots";
    if(GlobalVariableCheck(varname))
       _OpenLots=GlobalVariableGet(varname);
-   varname=namespace+"StopLossPips";
+   varname=appnamespace+"StopLossPips";
    if(GlobalVariableCheck(varname))
       _StopLossPips=GlobalVariableGet(varname);
-   varname=namespace+"TakeProfitPips";
+   varname=appnamespace+"TakeProfitPips";
    if(GlobalVariableCheck(varname))
       _TakeProfitPips=GlobalVariableGet(varname);
-   varname=namespace+"currentbasemagicnumber";
+   varname=appnamespace+"currentbasemagicnumber";
    if(GlobalVariableCheck(varname))
       WS.currentbasemagicnumber=(int)GlobalVariableGet(varname);
-   varname=namespace+"ManualBEStopLocked";
+   varname=appnamespace+"ManualBEStopLocked";
    if(GlobalVariableCheck(varname))
       WS.ManualBEStopLocked=true;
-   varname=namespace+"closebasketatBE";
+   varname=appnamespace+"closebasketatBE";
    if(GlobalVariableCheck(varname))
       WS.closebasketatBE=true;
       
@@ -547,7 +551,7 @@ void GetGlobalVariables()
       long magicnumber;
       int p;
 
-      s=namespace+"TradeReference.gain";
+      s=appnamespace+"TradeReference.gain";
       p=StringFind(n,s);
       if(p==0)
       {
@@ -555,7 +559,7 @@ void GetGlobalVariables()
          UpdateTradeReference(magicnumber,GlobalVariableGet(n));
       }
 
-      s=namespace+"TradeReference.stoplosspips";
+      s=appnamespace+"TradeReference.stoplosspips";
       p=StringFind(n,s);
       if(p==0)
       {
@@ -563,7 +567,7 @@ void GetGlobalVariables()
          UpdateTradeReference(magicnumber,NULL,GlobalVariableGet(n));
       }
 
-      s=namespace+"TradeReference.takeprofitpips";
+      s=appnamespace+"TradeReference.takeprofitpips";
       p=StringFind(n,s);
       if(p==0)
       {
@@ -586,8 +590,8 @@ double GetGlobalReferencesGain()
 
 void ClearGlobalReferences()
 {
-   GlobalVariablesDeleteAll(namespace+"TradeReference");
-   GlobalVariablesDeleteAll(namespace+"currentbasemagicnumber");
+   GlobalVariablesDeleteAll(appnamespace+"TradeReference");
+   GlobalVariablesDeleteAll(appnamespace+"currentbasemagicnumber");
 }
 
 
@@ -1035,7 +1039,7 @@ void DisplayText()
 
 void CreateLabel(int RI, int fontsize, color c, string text, string group="", int xshift=0)
 {
-   string objname=namespace+"Text"+IntegerToString(RI+1)+group;
+   string objname=appnamespace+"Text"+IntegerToString(RI+1)+group;
    ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
    ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
    ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
@@ -1121,13 +1125,13 @@ void DeleteSelectedTradeLevels()
       while(chartid>-1)
       {
          if(ChartSymbol(chartid)==Symbol())
-            ObjectsDeleteAll(chartid,namespace+"TradeLevel");
+            ObjectsDeleteAll(chartid,appnamespace+"TradeLevel");
    
          chartid=ChartNext(chartid);
       }
    }
    else
-      ObjectsDeleteAll(0,namespace+"TradeLevel");
+      ObjectsDeleteAll(0,appnamespace+"TradeLevel");
 }
 
 
@@ -1151,7 +1155,7 @@ void DrawSelectedTradeLevels()
 
 void DrawTradeLevels(long chartid, int i)
 {
-   CreateLevel(chartid,namespace+"TradeLevelOpen"+IntegerToString(i),DodgerBlue,WS.tradereference[i].openprice);
+   CreateLevel(chartid,appnamespace+"TradeLevelOpen"+IntegerToString(i),DodgerBlue,WS.tradereference[i].openprice);
 
    double stopprice=0;
    double commissionpoints=MathAbs(WS.tradereference[i].commissionpoints);
@@ -1161,7 +1165,7 @@ void DrawTradeLevels(long chartid, int i)
          stopprice=WS.tradereference[i].openprice-((WS.tradereference[i].stoplosspips-commissionpoints)*Point());
       if(WS.tradereference[i].type==OP_SELL)
          stopprice=WS.tradereference[i].openprice+((WS.tradereference[i].stoplosspips-commissionpoints)*Point());
-      CreateLevel(chartid,namespace+"TradeLevelStop"+IntegerToString(i),DeepPink,stopprice);
+      CreateLevel(chartid,appnamespace+"TradeLevelStop"+IntegerToString(i),DeepPink,stopprice);
    }
    if(WS.tradereference[i].takeprofitpips!=DISABLEDPOINTS)
    {
@@ -1170,7 +1174,7 @@ void DrawTradeLevels(long chartid, int i)
          takeprice=WS.tradereference[i].openprice+((WS.tradereference[i].takeprofitpips+commissionpoints)*Point());
       if(WS.tradereference[i].type==OP_SELL)
          takeprice=WS.tradereference[i].openprice-((WS.tradereference[i].takeprofitpips+commissionpoints)*Point());
-      CreateLevel(chartid,namespace+"TradeLevelTake"+IntegerToString(i),SeaGreen,takeprice);
+      CreateLevel(chartid,appnamespace+"TradeLevelTake"+IntegerToString(i),SeaGreen,takeprice);
    }
 
    ChartRedraw(chartid);
@@ -1214,26 +1218,26 @@ void DrawLevels()
 
 void DrawLevels(long chartid)
 {
-   //CreateLevel(chartid,namespace+"Level1",MediumSeaGreen,Bid-(AboveBEPips*Point));
-   //CreateLevel(chartid,namespace+"Level2",DeepPink,Bid-(BreakEvenAfterPips*Point));
-   //CreateLevel(chartid,namespace+"Level3",MediumSeaGreen,Ask+(AboveBEPips*Point));
-   //CreateLevel(chartid,namespace+"Level4",DeepPink,Ask+(BreakEvenAfterPips*Point));
+   //CreateLevel(chartid,appnamespace+"Level1",MediumSeaGreen,Bid-(AboveBEPips*Point));
+   //CreateLevel(chartid,appnamespace+"Level2",DeepPink,Bid-(BreakEvenAfterPips*Point));
+   //CreateLevel(chartid,appnamespace+"Level3",MediumSeaGreen,Ask+(AboveBEPips*Point));
+   //CreateLevel(chartid,appnamespace+"Level4",DeepPink,Ask+(BreakEvenAfterPips*Point));
 
    int cp=SymbolCommissionPoints();
 
    if(_StopLossPips!=DISABLEDPOINTS)
    {
-      CreateLevel(chartid,namespace+"Level1",DeepPink,BidX()+((_StopLossPips-cp)*Point()));
-      CreateLevel(chartid,namespace+"Level2",DeepPink,AskX()-((_StopLossPips-cp)*Point()));
+      CreateLevel(chartid,appnamespace+"Level1",DeepPink,BidX()+((_StopLossPips-cp)*Point()));
+      CreateLevel(chartid,appnamespace+"Level2",DeepPink,AskX()-((_StopLossPips-cp)*Point()));
    }
    if(_TakeProfitPips!=DISABLEDPOINTS)
    {
-      CreateLevel(chartid,namespace+"Level3",SeaGreen,BidX()+((_TakeProfitPips+cp)*Point()));
-      CreateLevel(chartid,namespace+"Level4",SeaGreen,AskX()-((_TakeProfitPips+cp)*Point()));
+      CreateLevel(chartid,appnamespace+"Level3",SeaGreen,BidX()+((_TakeProfitPips+cp)*Point()));
+      CreateLevel(chartid,appnamespace+"Level4",SeaGreen,AskX()-((_TakeProfitPips+cp)*Point()));
    }
 
-   CreateRectangle(chartid,namespace+"Rectangle10",WhiteSmoke,AskX()+(_BreakEvenAfterPips*Point()),BidX()-(_BreakEvenAfterPips*Point()));
-   CreateRectangle(chartid,namespace+"Rectangle11",WhiteSmoke,AskX()+(_AboveBEPips*Point()),BidX()-(_AboveBEPips*Point()));
+   CreateRectangle(chartid,appnamespace+"Rectangle10",WhiteSmoke,AskX()+(_BreakEvenAfterPips*Point()),BidX()-(_BreakEvenAfterPips*Point()));
+   CreateRectangle(chartid,appnamespace+"Rectangle11",WhiteSmoke,AskX()+(_AboveBEPips*Point()),BidX()-(_AboveBEPips*Point()));
 
    ChartRedraw(chartid);
 }
@@ -1272,10 +1276,10 @@ void CreateRectangle(long chartid, string objname, color c, double price1, doubl
 
 void DisplayLegend()
 {
-   CreateLegend(namespace+"Legend1",5+(int)MathFloor(TextGap*2.4),"Hotkeys: Press Ctrl plus");
-   CreateLegend(namespace+"Legend2",5+(int)MathFloor(TextGap*1.6),"1 Open Buy | 3 Open Sell | 0 Close All");
-   CreateLegend(namespace+"Legend3",5+(int)MathFloor(TextGap*0.8),"5 Hard SL | 6 Soft SL | 8 Close at BE");
-   CreateLegend(namespace+"Legend4",5+(int)MathFloor(TextGap*0),"; Decrease Volume | : Increase Volume");
+   CreateLegend(appnamespace+"Legend1",5+(int)MathFloor(TextGap*2.4),"Hotkeys: Press Ctrl plus");
+   CreateLegend(appnamespace+"Legend2",5+(int)MathFloor(TextGap*1.6),"1 Open Buy | 3 Open Sell | 0 Close All");
+   CreateLegend(appnamespace+"Legend3",5+(int)MathFloor(TextGap*0.8),"5 Hard SL | 6 Soft SL | 8 Close at BE");
+   CreateLegend(appnamespace+"Legend4",5+(int)MathFloor(TextGap*0),"; Decrease Volume | : Increase Volume");
 }
 
 
@@ -1295,7 +1299,7 @@ void CreateLegend(string objname, int y, string text)
 
 void DeleteLegend()
 {
-   ObjectsDeleteAll(0,namespace+"Legend");
+   ObjectsDeleteAll(0,appnamespace+"Legend");
 }
 
 
@@ -1308,26 +1312,26 @@ void DeleteLevels()
       {
          if(ChartSymbol(chartid)==Symbol())
          {
-            ObjectsDeleteAll(chartid,namespace+"Level");
-            ObjectsDeleteAll(chartid,namespace+"Rectangle");
+            ObjectsDeleteAll(chartid,appnamespace+"Level");
+            ObjectsDeleteAll(chartid,appnamespace+"Rectangle");
          }
          chartid=ChartNext(chartid);
       }
    }
    else
-      ObjectsDeleteAll(0,namespace+"Level");
+      ObjectsDeleteAll(0,appnamespace+"Level");
 }
 
 
 void DeleteText()
 {
-   ObjectsDeleteAll(0,namespace+"Text");
+   ObjectsDeleteAll(0,appnamespace+"Text");
 }
 
 
 void DeleteAllObjects()
 {
-   ObjectsDeleteAll(0,namespace);
+   ObjectsDeleteAll(0,appnamespace);
 }
 
 
@@ -1416,7 +1420,7 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
    string s=Symbol();
    if(symbol!=NULL)
       s=symbol;
-   string c=namespace+IntegerToString(m);
+   string c=appnamespace+IntegerToString(m);
    WS.lastorderexecution=TimeLocal();
 #ifdef __MQL4__
    int ret=OrderSend(s,OP_BUY,v,AskX(s),5,0,0,c,m);
@@ -1453,7 +1457,7 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
    string s=Symbol();
    if(symbol!=NULL)
       s=symbol;
-   string c=namespace+IntegerToString(m);
+   string c=appnamespace+IntegerToString(m);
    WS.lastorderexecution=TimeLocal();
 #ifdef __MQL4__
    int ret=OrderSend(s,OP_SELL,v,BidX(s),5,0,0,c,m);
