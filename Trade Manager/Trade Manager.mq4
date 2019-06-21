@@ -915,7 +915,7 @@ void DisplayText()
          if(WS.tradereference[selectedtradeindex].stoplosspips!=DISABLEDPOINTS)
             risk=((WS.tradereference[selectedtradeindex].stoplosspips*WS.tradereference[selectedtradeindex].volume*tickvalue))/(AccountBalanceX()/100);
       }
-      CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,1));
+      CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,2));
       rowindex++;
    }
    if(_TakeProfitPips!=DISABLEDPOINTS||tradelevelsvisible)
@@ -929,7 +929,7 @@ void DisplayText()
          if(WS.tradereference[selectedtradeindex].takeprofitpips!=DISABLEDPOINTS)
             reward=((WS.tradereference[selectedtradeindex].takeprofitpips*WS.tradereference[selectedtradeindex].volume*tickvalue))/(AccountBalanceX()/100);
       }
-      CreateLabel(rowindex,FontSize,c,"Reward: "+DoubleToString(reward,1));
+      CreateLabel(rowindex,FontSize,c,"Reward: "+DoubleToString(reward,2));
       rowindex++;
    }
 
@@ -1236,8 +1236,8 @@ void DrawLevels(long chartid)
       CreateLevel(chartid,appnamespace+"Level4",SeaGreen,AskX()-((_TakeProfitPips+cp)*Point()));
    }
 
-   CreateRectangle(chartid,appnamespace+"Rectangle10",WhiteSmoke,AskX()+(_BreakEvenAfterPips*Point()),BidX()-(_BreakEvenAfterPips*Point()));
-   CreateRectangle(chartid,appnamespace+"Rectangle11",WhiteSmoke,AskX()+(_AboveBEPips*Point()),BidX()-(_AboveBEPips*Point()));
+   CreateRectangle(chartid,appnamespace+"Rectangle10",WhiteSmoke,AskX()+((_BreakEvenAfterPips+cp)*Point()),BidX()-((_BreakEvenAfterPips+cp)*Point()));
+   CreateRectangle(chartid,appnamespace+"Rectangle11",WhiteSmoke,AskX()+((_AboveBEPips+cp)*Point()),BidX()-((_AboveBEPips+cp)*Point()));
 
    ChartRedraw(chartid);
 }
