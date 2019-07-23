@@ -281,8 +281,6 @@ struct TypeBasketInfo
 };
 TypeBasketInfo BI;
 
-TypeCurrencyStrength CS[1];
-
 
 void OnInit()
 {
@@ -342,26 +340,6 @@ void OnInit()
       ObjectSetInteger(0,objname,OBJPROP_BGCOLOR,c);
    }
    
-   CS[0].Init(
-      10,
-      10,
-      StringSubstr(Symbol(),6),
-      PERIOD_D1,
-      false,
-      pr_close
-      );
-   //if(istesting)
-      //CS_CalculateIndex(CS[0]);
-
-   //CS[1].Init(
-   //   10,
-   //   10,
-   //   StringSubstr(Symbol(),6),
-   //   PERIOD_M5,
-   //   false,
-   //   pr_close
-   //   );
-
    if(!istesting)
    {
       if(!EventSetMillisecondTimer(200))
@@ -375,6 +353,9 @@ void OnInit()
 #endif
       EventSetTimer(10);
    }
+
+   ArrayResize(strats,1);
+   strats[0]=new StrategyCSH4Reversal;
 }
 
 
@@ -435,6 +416,11 @@ void Manage()
       ManageBasket();
       DisplayText();
    }
+
+   if(istesting)
+      for(int i=ArraySize(strats)-1; i>=0; i--)
+         strats[i].Calculate();
+
    working=false;
 }
 
@@ -712,11 +698,15 @@ void ManageBasket()
       
       if(istesting)
       {
+         for(int i=ArraySize(strats)-1; i>=0; i--)
+            strats[i].IdleCalculate();
 
 #ifdef __MQL5__
          //#include <TradeManagerEntryTesting1.mqh>
-         OpenBuy();
-         OpenSell();
+         
+         // Dredging Test
+         //OpenBuy();
+         //OpenSell();
 #endif
 
       }
@@ -754,7 +744,7 @@ void ManageBasket()
                {
 
 // EXPERIMENTAL
-                  if(istesting || Automation==Dredging)
+                  if(Automation==Dredging)
                   {
                      if(j==size2-1||j==size2-2)
                      {
@@ -1376,7 +1366,7 @@ double GetHedgeVolume(TypeTradeInfo& tradeinfo[], TypeTradeInfo& tiin)
       ret=(buys*factor)-sells;
    if(tiin.type==OP_SELL)
       ret=(sells*factor)-buys;
-   return ret;
+   return NormalizeDouble(ret,2);
 }
 
 
@@ -1409,7 +1399,7 @@ bool OpenOrder(int type, string symbol=NULL, double volume=NULL, long magicnumbe
 }
 
 
-bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
+bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL, double sl=NULL, double tp=NULL)
 {
    double v=_OpenLots;
    if(volume!=NULL)
@@ -1425,7 +1415,7 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 #ifdef __MQL4__
    int ret=OrderSend(s,OP_BUY,v,AskX(s),5,0,0,c,m);
    if(ret>-1)
-      NewTradeReference(m,true);
+      NewTradeReference(m,true,sl,tp);
    if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
@@ -1437,7 +1427,7 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
    //bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,AskX(s),NULL,NULL,c);
    bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,0,NULL,NULL,c);
    if(ret)
-      NewTradeReference(m,true);
+      NewTradeReference(m,true,sl,tp);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -1446,7 +1436,7 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 }
 
 
-bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
+bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL, double sl=NULL, double tp=NULL)
 {
    double v=_OpenLots;
    if(volume!=NULL)
@@ -1462,7 +1452,7 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 #ifdef __MQL4__
    int ret=OrderSend(s,OP_SELL,v,BidX(s),5,0,0,c,m);
    if(ret>-1)
-      NewTradeReference(m,true);
+      NewTradeReference(m,true,sl,tp);
    if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
@@ -1474,7 +1464,7 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
    //bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,BidX(s),NULL,NULL,c);
    bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,0,NULL,NULL,c);
    if(ret)
-      NewTradeReference(m,true);
+      NewTradeReference(m,true,sl,tp);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -1483,7 +1473,7 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 }
 
 
-int NewTradeReference(long magicnumber, bool InitWithCurrentSettings)
+int NewTradeReference(long magicnumber, bool InitWithCurrentSettings, double sl=NULL, double tp=NULL)
 {
    int asize=ArraySize(WS.tradereference);
    ArrayResize(WS.tradereference,asize+1);
@@ -1493,6 +1483,10 @@ int NewTradeReference(long magicnumber, bool InitWithCurrentSettings)
       WS.tradereference[asize].stoplosspips=_StopLossPips;
       WS.tradereference[asize].takeprofitpips=_TakeProfitPips;
    }
+   if(sl!=NULL)
+      WS.tradereference[asize].stoplosspips=sl;
+   if(tp!=NULL)
+      WS.tradereference[asize].takeprofitpips=tp;
    return asize;
 }
 
@@ -2111,3 +2105,118 @@ void SetOrderSL(double sl)
    SetLastErrorBool(trade.PositionModify(OrderTicketX(),sl,OrderTakeProfitX()));
 #endif
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////
+// STRATEGIES
+////////////////////////////////////////////////////////////////////////////////////
+
+
+interface Strategy 
+{ 
+public:
+   void IdleCalculate();
+   void Calculate();
+};
+
+
+class StrategyCSH4Reversal : public Strategy
+{
+public:
+   TypeCurrencyStrength CS[1];
+   bool tradesstarted;
+
+   StrategyCSH4Reversal()
+   {
+      CS[0].Init(
+         10,
+         10,
+         StringSubstr(Symbol(),6),
+         PERIOD_H4,
+         false,
+         pr_close
+         );
+   }
+
+   void Calculate()
+   {
+      MqlDateTime dtcurrent;
+      TimeCurrent(dtcurrent);
+      if((dtcurrent.hour==3||dtcurrent.hour==7||dtcurrent.hour==11||dtcurrent.hour==15||dtcurrent.hour==19)&&dtcurrent.min==59)
+      //if(dtcurrent.hour==11&&dtcurrent.min==59)
+      //if((dtcurrent.hour==11||dtcurrent.hour==15)&&dtcurrent.min==59)
+      //if(dtcurrent.min==59||dtcurrent.min==29)
+      //if(dtcurrent.min==59)
+      {
+         bool csok=CS_CalculateIndex(CS[0]);
+         if(dtcurrent.sec>=50&&csok&&!tradesstarted)
+         {
+            tradesstarted=true;
+            for(int z=0; z<4; z++)
+            {
+               if(CS[0].Currencies.Trade[z].buy)
+                  OpenSell(CS[0].Currencies.Trade[z].name);
+               else
+                  OpenBuy(CS[0].Currencies.Trade[z].name);
+            }
+         }
+      }
+      else
+         tradesstarted=false;
+   }
+
+   void IdleCalculate() {}
+};
+
+
+class StrategyTest1 : public Strategy
+{
+public:
+   void Calculate() {}
+
+   void IdleCalculate()
+   {
+       OpenBuy(NULL,0.01,0,0,400);
+       OpenSell(NULL,0.01,0,0,400);
+       return;
+
+      MqlRates rates[];
+      ArraySetAsSeries(rates,true); 
+      int copied=CopyRates(Symbol(),0,0,10,rates); 
+      if(copied==10)
+      {
+         MqlDateTime dtcurrent;
+         TimeToStruct(rates[0].time,dtcurrent);
+         if(dtcurrent.hour<8||dtcurrent.hour>18)
+            return;
+      
+         //if(rates[1].close>rates[1].open && rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open && rates[0].close<=rates[2].open)
+         //if(rates[1].close>rates[1].open && rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open)
+         double lastcandlehight=(rates[1].close-rates[1].open)/Point();
+         //if(rates[1].close>rates[1].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open && lastcandlehight>=30)
+         if(rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open)
+            OpenBuy(NULL,0.01,0,0,400);
+         if(rates[1].close<rates[2].open && rates[2].close>rates[2].open && rates[3].close>rates[3].open)
+            OpenSell(NULL,0.01,0,0,400);
+      }
+   }
+};
+
+
+Strategy* strats[];
