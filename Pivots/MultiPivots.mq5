@@ -31,15 +31,18 @@ input TypePivotsType PivotTypeHour=PIVOT_TRADITIONAL;    // Pivot Type Hour
 input TypePivotsType PivotTypeFourHour=PIVOT_TRADITIONAL;    // Pivot Type Four Hour
 input TypePivotsType PivotTypeDay=PIVOT_TRADITIONAL;    // Pivot Type Day
 input TypePivotsType PivotTypeWeek=PIVOT_TRADITIONAL;    // Pivot Type Week
+input TypePivotsType PivotTypeMonth=PIVOT_TRADITIONAL;    // Pivot Type Month
 input bool PivotTypeHourMidPoints=true;    // Pivot Hour Show Mid-Points
 input bool PivotTypeFourHourMidPoints=true;    // Pivot Four Hour Show Mid-Points
 input bool PivotTypeDayMidPoints=true;    // Pivot Day Show Mid-Points
 input bool PivotTypeWeekMidPoints=true;    // Pivot Week Show Mid-Points
+input bool PivotTypeMonthMidPoints=true;    // Pivot Month Show Mid-Points
 
 input ENUM_LINE_STYLE LineStyleHour=STYLE_SOLID;    // Line Style Hour
 input ENUM_LINE_STYLE LineStyleFourHour=STYLE_SOLID;    // Line Style Four Hour
 input ENUM_LINE_STYLE LineStyleDay=STYLE_SOLID;    // Line Style Day
 input ENUM_LINE_STYLE LineStyleWeek=STYLE_SOLID;    // Line Style Week
+input ENUM_LINE_STYLE LineStyleMonth=STYLE_SOLID;    // Line Style Month
 
 string short_name="MultiPivots";
 bool newbar=false;
@@ -69,14 +72,17 @@ void OnInit()
    pivotsdata.Settings.PivotTypeFourHour=PivotTypeFourHour;
    pivotsdata.Settings.PivotTypeDay=PivotTypeDay;
    pivotsdata.Settings.PivotTypeWeek=PivotTypeWeek;
+   pivotsdata.Settings.PivotTypeMonth=PivotTypeMonth;
    pivotsdata.Settings.PivotTypeHourMidPoints=PivotTypeHourMidPoints;
    pivotsdata.Settings.PivotTypeFourHourMidPoints=PivotTypeFourHourMidPoints;
    pivotsdata.Settings.PivotTypeDayMidPoints=PivotTypeDayMidPoints;
    pivotsdata.Settings.PivotTypeWeekMidPoints=PivotTypeWeekMidPoints;
+   pivotsdata.Settings.PivotTypeMonthMidPoints=PivotTypeMonthMidPoints;
    pivotsdata.Settings.LineStyleHour=LineStyleHour;
    pivotsdata.Settings.LineStyleFourHour=LineStyleFourHour;
    pivotsdata.Settings.LineStyleDay=LineStyleDay;
-   pivotsdata.Settings.LineStyleDay=LineStyleWeek;
+   pivotsdata.Settings.LineStyleWeek=LineStyleWeek;
+   pivotsdata.Settings.LineStyleMonth=LineStyleMonth;
    
    istesting=MQLInfoInteger(MQL_TESTER);
    EventSetTimer(1);
