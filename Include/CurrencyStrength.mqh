@@ -34,6 +34,7 @@ enum CS_Prices
 struct TypeCurrency
 {
    string name;
+   double indexbasic[];
    double index[];
 };
 
@@ -167,7 +168,10 @@ struct TypeCurrencyStrength
    {
       bars=_Bars;
       for(int i=0; i<8; i++)
+      {
+         ArrayResize(Currencies.Currency[i].indexbasic,bars);
          ArrayResize(Currencies.Currency[i].index,bars);
+      }
 
       if(Zero<bars&&Zero>=0)
          start=(bars-1)-Zero;
@@ -239,7 +243,7 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
          string cn=cs.Currencies.Currency[z].name;
          if(cs.IncludeCurrency(cn))
          {
-            cs.Currencies.Currency[z].index[y]=0;
+            cs.Currencies.Currency[z].indexbasic[y]=0;
             if(y!=cs.start)
             {
                for(int x=0; x<28; x++)
@@ -268,20 +272,22 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                      double pi=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,y+itemshift);
                      double ps=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,cs.start+startshift);
                      if(isbase)
-                        cs.Currencies.Currency[z].index[y]+=(pi-ps)/ps*100;
+                        cs.Currencies.Currency[z].indexbasic[y]+=(pi-ps)/ps*100;
                      if(isquote)
-                        cs.Currencies.Currency[z].index[y]-=(pi-ps)/ps*100;
+                        cs.Currencies.Currency[z].indexbasic[y]-=(pi-ps)/ps*100;
                   }
                }
-               cs.Currencies.Currency[z].index[y]=cs.Currencies.Currency[z].index[y]/7;
+               cs.Currencies.Currency[z].indexbasic[y]=cs.Currencies.Currency[z].indexbasic[y]/7;
             }
+
+            cs.Currencies.Currency[z].index[y]=cs.Currencies.Currency[z].indexbasic[y];
 
             if(cs.smalength>0)
             {
                int smalengt=MathMin(cs.smalength,y+1);
                double smasum=0;
                for(int e=1; e<=smalengt; e++)
-                  smasum+=cs.Currencies.Currency[z].index[y-(e-1)];
+                  smasum+=cs.Currencies.Currency[z].indexbasic[y-(e-1)];
                cs.Currencies.Currency[z].index[y]=smasum/smalengt;
             }
 
