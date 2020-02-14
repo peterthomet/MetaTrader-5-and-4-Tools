@@ -4,12 +4,18 @@
 //
 
 #property copyright "Copyright 2019, getYourNet.ch"
-string namespace="SetAllCharts";
+string appnamespace="SetAllCharts";
 
 enum Command
 {
    Clean,
-   Pivots,
+   PivotsY1,
+   PivotsMN,
+   PivotsW1,
+   PivotsD1,
+   PivotsH4,
+   PivotsH1,
+   ChandelierExit,
    Murrey,
    ZigZag,
    Engulfing,
@@ -40,8 +46,8 @@ enum Command
    W1,
    MN
 };
-string CommandText[MN+1]={"Clean","Pivots","Murrey","ZigZag","Engulfing","Heiken Ashi","Line","Candles","+","-","M1","M2","M3","M4","M5","M6","M10","M12","M15","M20","M30","H1","H2","H3","H4","H6","H8","H12","D1","W1","MN"};
-int CommandPeriod[MN+1]={0,0,0,0,0,0,0,0,0,0,PERIOD_M1,PERIOD_M2,PERIOD_M3,PERIOD_M4,PERIOD_M5,PERIOD_M6,PERIOD_M10,PERIOD_M12,PERIOD_M15,PERIOD_M20,PERIOD_M30,PERIOD_H1,PERIOD_H2,PERIOD_H3,PERIOD_H4,PERIOD_H6,PERIOD_H8,PERIOD_H12,PERIOD_D1,PERIOD_W1,PERIOD_MN1};
+string CommandText[MN+1]={"Clean","PivotsY1","PivotsMN","PivotsW1","PivotsD1","PivotsH4","PivotsH1","Chandelier Exit","Murrey","ZigZag","Engulfing","Heiken Ashi","Line","Candles","+","-","M1","M2","M3","M4","M5","M6","M10","M12","M15","M20","M30","H1","H2","H3","H4","H6","H8","H12","D1","W1","MN"};
+int CommandPeriod[MN+1]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,PERIOD_M1,PERIOD_M2,PERIOD_M3,PERIOD_M4,PERIOD_M5,PERIOD_M6,PERIOD_M10,PERIOD_M12,PERIOD_M15,PERIOD_M20,PERIOD_M30,PERIOD_H1,PERIOD_H2,PERIOD_H3,PERIOD_H4,PERIOD_H6,PERIOD_H8,PERIOD_H12,PERIOD_D1,PERIOD_W1,PERIOD_MN1};
 
 
 void OnInit()
@@ -74,11 +80,19 @@ void OnInit()
    CreateButton(305,25,Line);
    CreateButton(345,25,Candles);
    CreateButton(305,45,Clean);
-   CreateButton(355,45,Pivots);
-   CreateButton(405,45,Murrey);
-   CreateButton(460,45,ZigZag);
+   CreateButton(355,45,Murrey);
+   CreateButton(415,45,ZigZag);
    CreateButton(305,65,Engulfing);
    CreateButton(380,65,HeikenAshi);
+
+   CreateButton(305,85,PivotsY1);
+   CreateButton(380,85,PivotsMN);
+   CreateButton(455,85,PivotsW1);
+   CreateButton(305,105,PivotsD1);
+   CreateButton(380,105,PivotsH4);
+   CreateButton(455,105,PivotsH1);
+
+   CreateButton(305,125,ChandelierExit);
    
    ChartRedraw();
 }
@@ -87,7 +101,7 @@ void OnInit()
 void CreateButton(int xPos, int yPos, int command)
 {
    string text=CommandText[command];
-   string objname=namespace+"Command"+IntegerToString(command);
+   string objname=appnamespace+"Command"+IntegerToString(command);
    ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
    ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_LEFT_UPPER);
    ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_LEFT_UPPER);
@@ -109,7 +123,7 @@ void OnDeinit(const int reason)
 
 void DeleteAllObjects()
 {
-   ObjectsDeleteAll(0,namespace);
+   ObjectsDeleteAll(0,appnamespace);
 }
 
 
@@ -135,9 +149,27 @@ void ExecuteCommand(int command)
          if(command==Clean)
             if(!hassubwindows)
                ChartApplyTemplate(chartid,"Empty Small.tpl");
-         if(command==Pivots)
+         if(command==PivotsY1)
             if(!hassubwindows)
-               ChartApplyTemplate(chartid,"Forex Small.tpl");
+               ChartApplyTemplate(chartid,"Forex PivotsY1.tpl");
+         if(command==PivotsMN)
+            if(!hassubwindows)
+               ChartApplyTemplate(chartid,"Forex PivotsMN.tpl");
+         if(command==PivotsW1)
+            if(!hassubwindows)
+               ChartApplyTemplate(chartid,"Forex PivotsW1.tpl");
+         if(command==PivotsD1)
+            if(!hassubwindows)
+               ChartApplyTemplate(chartid,"Forex PivotsD1.tpl");
+         if(command==PivotsH4)
+            if(!hassubwindows)
+               ChartApplyTemplate(chartid,"Forex PivotsH4.tpl");
+         if(command==PivotsH1)
+            if(!hassubwindows)
+               ChartApplyTemplate(chartid,"Forex PivotsH1.tpl");
+         if(command==ChandelierExit)
+            if(!hassubwindows)
+               ChartApplyTemplate(chartid,"Forex Chandelier Exit.tpl");
          if(command==Murrey)
             if(!hassubwindows)
                ChartApplyTemplate(chartid,"Forex Murrey Math Small.tpl");
