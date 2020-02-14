@@ -20,6 +20,7 @@
 
 input ENUM_TIMEFRAMES TimeFrame = PERIOD_CURRENT; // Timeframe
 input CS_Prices PriceType = pr_close; // Price Type
+input int SMALength = 0; // SMA Length
 input int BarsCalculate = 30; // Number of Bars to calculate
 input int ZeroPoint = 30; // Zero Point
 
@@ -58,7 +59,7 @@ double USDplot[],
        UpDn[];
 
 int y_pos = 4;
-string namespace="CurrencyStrength";
+string appnamespace="CurrencyStrength";
 bool incalculation=false;
 datetime lastticktime;
 datetime currentticktime;
@@ -170,7 +171,8 @@ void OnInit()
       StringSubstr(Symbol(),6),
       TimeFrame,
       current_pairs_only,
-      PriceType
+      PriceType,
+      SMALength
       );
 
    istesting=MQLInfoInteger(MQL_TESTER);
@@ -197,7 +199,7 @@ void OnInit()
    ArraySetAsSeries(UpDn,true);
    ArrayInitialize(UpDn,EMPTY_VALUE);
 
-   int offsetread=(int)GlobalVariableGet(namespace+IntegerToString(ChartID())+"_offset");
+   int offsetread=(int)GlobalVariableGet(appnamespace+IntegerToString(ChartID())+"_offset");
    if(offsetread>0)
    {
       offset=1;
@@ -220,12 +222,12 @@ void OnDeinit(const int reason)
    if(istesting)
       return;
    if(reason!=REASON_CHARTCHANGE)
-      ObjectsDeleteAll(0,namespace,ChartWindowFind());
+      ObjectsDeleteAll(0,appnamespace,ChartWindowFind());
    EventKillTimer();
    int offsetwrite=0;
    if(offset>0)
       offsetwrite=(int)offsettime;
-   GlobalVariableSet(namespace+IntegerToString(ChartID())+"_offset",offsetwrite);
+   GlobalVariableSet(appnamespace+IntegerToString(ChartID())+"_offset",offsetwrite);
 }
 
 
@@ -310,7 +312,7 @@ void ShowTradeSet(int col, int row, string text, bool buy)
       _color=DodgerBlue;
    int xdistance=((col-1)*62)+6;
    int ydistance=((row-1)*16)+20;
-   string oname = namespace+"-SymbolButton-TradeSet-"+IntegerToString(col)+"-"+IntegerToString(row);
+   string oname = appnamespace+"-SymbolButton-TradeSet-"+IntegerToString(col)+"-"+IntegerToString(row);
    ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
    ObjectSetInteger(0,oname,OBJPROP_CORNER,CORNER_LEFT_UPPER);
    ObjectSetInteger(0,oname,OBJPROP_ANCHOR,ANCHOR_LEFT_UPPER);
@@ -336,7 +338,7 @@ void ShowValue(int col, int row)
    //text="|||||||||";
    int xdistance=(col-1)*62+35;
    int ydistance=(row-1)*16+4;
-   string oname = namespace+"-Value-"+IntegerToString(col)+"-"+IntegerToString(row);
+   string oname = appnamespace+"-Value-"+IntegerToString(col)+"-"+IntegerToString(row);
    ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
    ObjectSetInteger(0,oname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
    ObjectSetInteger(0,oname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
@@ -355,7 +357,7 @@ void AddSymbolButton(int col, int row, string text, color _color=DimGray)
       xoffset=117;
    int xdistance=((col-1)*62)+xoffset;
    int ydistance=((row-1)*16)+4;
-   string oname = namespace+"-SymbolButton-"+IntegerToString(col)+"-"+IntegerToString(row);
+   string oname = appnamespace+"-SymbolButton-"+IntegerToString(col)+"-"+IntegerToString(row);
    ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
    ObjectSetInteger(0,oname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
    ObjectSetInteger(0,oname,OBJPROP_ANCHOR,ANCHOR_LEFT_UPPER);
@@ -530,7 +532,7 @@ void CheckTrade(string pair, MqlRates& rates[], int count)
             MqlDateTime dt;
             TimeToStruct(tradesignal.candleendtime,dt);
             string filename=IntegerToString(dt.year)+"-"+IntegerToString(dt.mon,2,'0')+"-"+IntegerToString(dt.day,2,'0')+"-"+IntegerToString(dt.hour,2,'0')+"-"+IntegerToString(dt.min,2,'0');
-            string on=namespace+"TempScreenShot";
+            string on=appnamespace+"TempScreenShot";
             ENUM_OBJECT ot=OBJ_ARROW_CHECK;
             color c=MediumSeaGreen;
             if(candledirection!=tradesignal.direction)
@@ -555,8 +557,8 @@ void SetTradeResults(bool won)
 {
    Print("Won "+IntegerToString(won));
 
-   string oname1 = namespace+"-TradesWon";
-   string oname2 = namespace+"-TradesTotal";
+   string oname1 = appnamespace+"-TradesWon";
+   string oname2 = appnamespace+"-TradesTotal";
    if(ObjectFind(0,oname1)<0)
    {
       ObjectCreate(0,oname1,OBJ_LABEL,ChartWindowFind(),0,0);
@@ -590,7 +592,7 @@ void SetTradeResults(bool won)
 
 int DrawObjects(string name,color _color)
 {
-   string oname = namespace+"-Currency-"+name;
+   string oname = appnamespace+"-Currency-"+name;
    ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
    ObjectSetInteger(0,oname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
    ObjectSetInteger(0,oname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
@@ -606,7 +608,7 @@ int DrawObjects(string name,color _color)
 
 int WriteComment(string text)
 {
-   string name=namespace+"-f_comment";
+   string name=appnamespace+"-f_comment";
    color _color=DimGray;
    ObjectCreate(0,name,OBJ_LABEL,ChartWindowFind(),0,0);
    ObjectSetInteger(0,name,OBJPROP_CORNER,CORNER_LEFT_LOWER);

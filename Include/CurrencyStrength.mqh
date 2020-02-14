@@ -135,6 +135,7 @@ struct TypeCurrencyStrength
    int offset;
    string extrachars;
    CS_Prices pricetype;
+   int smalength;
    bool recalculate;
    bool currentpairsonly;
    int syncmasterindex;
@@ -148,6 +149,7 @@ struct TypeCurrencyStrength
       offset=0;
       extrachars=StringSubstr(Symbol(),6);
       pricetype=pr_close;
+      smalength=0;
       recalculate=false;
       currentpairsonly=false;
       syncmasterindex=0;
@@ -161,7 +163,7 @@ struct TypeCurrencyStrength
          }
       }
    }
-   void Init(int _Bars, int Zero, string ExtraChars, ENUM_TIMEFRAMES TimeFrameCustom, bool CurrentPairsOnly, CS_Prices _PriceType)
+   void Init(int _Bars, int Zero, string ExtraChars, ENUM_TIMEFRAMES TimeFrameCustom, bool CurrentPairsOnly, CS_Prices _PriceType, int _smalength=0)
    {
       bars=_Bars;
       for(int i=0; i<8; i++)
@@ -177,6 +179,9 @@ struct TypeCurrencyStrength
       currentpairsonly=CurrentPairsOnly;
       
       pricetype=_PriceType;
+      
+      smalength=MathMax(0,_smalength);
+      smalength=MathMin(smalength,bars);
    }
    bool IncludePair(string pair)
    {
@@ -270,6 +275,16 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                }
                cs.Currencies.Currency[z].index[y]=cs.Currencies.Currency[z].index[y]/7;
             }
+
+            if(cs.smalength>0)
+            {
+               int smalengt=MathMin(cs.smalength,y+1);
+               double smasum=0;
+               for(int e=1; e<=smalengt; e++)
+                  smasum+=cs.Currencies.Currency[z].index[y-(e-1)];
+               cs.Currencies.Currency[z].index[y]=smasum/smalengt;
+            }
+
             if(y==(cs.bars-1))
             {
                cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y]-cs.Currencies.Currency[z].index[y-1];
