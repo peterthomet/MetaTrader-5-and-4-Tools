@@ -166,14 +166,21 @@ struct TypeCurrencyStrength
    }
    void Init(int _Bars, int Zero, string ExtraChars, ENUM_TIMEFRAMES TimeFrameCustom, bool CurrentPairsOnly, CS_Prices _PriceType, int _smalength=0)
    {
-      bars=_Bars;
+      smalength=MathMax(0,_smalength);
+      if(smalength<2)
+         smalength=0;
+
+      bars=_Bars+smalength;
       for(int i=0; i<8; i++)
       {
          ArrayResize(Currencies.Currency[i].indexbasic,bars);
          ArrayResize(Currencies.Currency[i].index,bars);
       }
 
-      if(Zero<bars&&Zero>=0)
+      if(smalength>0)
+         start=smalength;
+      
+      if(Zero<_Bars&&Zero>=0)
          start=(bars-1)-Zero;
 
       extrachars=ExtraChars;
@@ -184,8 +191,6 @@ struct TypeCurrencyStrength
       
       pricetype=_PriceType;
       
-      smalength=MathMax(0,_smalength);
-      smalength=MathMin(smalength,bars);
    }
    bool IncludePair(string pair)
    {
@@ -254,23 +259,9 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                   {
                      int itemshift=CS_GetIndexShift(cs.Pairs.Pair[x],cs,itemtimeref,y,"Item");
                      int startshift=CS_GetIndexShift(cs.Pairs.Pair[x],cs,starttimeref,cs.start,"Start");
-                     
-                     //if(cs.Pairs.Pair[x].rates[y].time!=itemtimeref)
-                     //   PrintFormat("Time not Reftime %s",cs.Pairs.Pair[x].name);
-
-                     //if(cs.Pairs.Pair[x].rates[cs.start].time!=starttimeref)
-                     //   PrintFormat("StartTime not RefStartTime %s",cs.Pairs.Pair[x].name);
-
-                     //int firstgap=(int)(cs.Pairs.maxtime-cs.Pairs.Pair[x].rates[cs.bars-1].time);
-                     //int shift=(firstgap/PeriodSeconds(cs.timeframe));
-
-                     //if((y+shift)>(cs.bars-1))
-                     //   shift=(cs.bars-1)-y;
-// ??????????
-//if(cs.offset>0)
-//   shift=0;
                      double pi=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,y+itemshift);
                      double ps=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,cs.start+startshift);
+
                      if(isbase)
                         cs.Currencies.Currency[z].indexbasic[y]+=(pi-ps)/ps*100;
                      if(isquote)
@@ -282,13 +273,12 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
 
             cs.Currencies.Currency[z].index[y]=cs.Currencies.Currency[z].indexbasic[y];
 
-            if(cs.smalength>0)
+            if(cs.smalength>0&&y>=cs.smalength)
             {
-               int smalengt=MathMin(cs.smalength,y+1);
                double smasum=0;
-               for(int e=1; e<=smalengt; e++)
+               for(int e=1; e<=cs.smalength; e++)
                   smasum+=cs.Currencies.Currency[z].indexbasic[y-(e-1)];
-               cs.Currencies.Currency[z].index[y]=smasum/smalengt;
+               cs.Currencies.Currency[z].index[y]=smasum/cs.smalength;
             }
 
             if(y==(cs.bars-1))
@@ -296,18 +286,23 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y]-cs.Currencies.Currency[z].index[y-1];
                cs.Currencies.LastValues[z][1]=z+1;
             }
+
 #ifdef CS_INDICATOR_MODE
-            int ti=((cs.bars-1)-y)+cs.offset;
-            double va=cs.Currencies.Currency[z].index[y]+1000;
-            if(cn=="USD") USDplot[ti]=va;
-            if(cn=="EUR") EURplot[ti]=va;
-            if(cn=="GBP") GBPplot[ti]=va;
-            if(cn=="CHF") CHFplot[ti]=va;
-            if(cn=="JPY") JPYplot[ti]=va;
-            if(cn=="CAD") CADplot[ti]=va;
-            if(cn=="AUD") AUDplot[ti]=va;
-            if(cn=="NZD") NZDplot[ti]=va;
+            if(y>=cs.smalength)
+            {
+               int ti=((cs.bars-1)-y)+cs.offset;
+               double va=cs.Currencies.Currency[z].index[y]+1000;
+               if(cn=="USD") USDplot[ti]=va;
+               if(cn=="EUR") EURplot[ti]=va;
+               if(cn=="GBP") GBPplot[ti]=va;
+               if(cn=="CHF") CHFplot[ti]=va;
+               if(cn=="JPY") JPYplot[ti]=va;
+               if(cn=="CAD") CADplot[ti]=va;
+               if(cn=="AUD") AUDplot[ti]=va;
+               if(cn=="NZD") NZDplot[ti]=va;
+            }
 #endif
+
          }
       }
    }
