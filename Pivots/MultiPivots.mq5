@@ -1,12 +1,12 @@
 //
 // MultiPivots.mq5
-// Copyright 2016, getYourNet IT Services
+// Copyright 2020, getYourNet IT Services
 // http://www.getyournet.ch |
 //
 
-#property copyright "Copyright 2017, getYourNet IT Services"
+#property copyright "Copyright 2020, getYourNet IT Services"
 #property link      "http://www.getyournet.ch"
-#property version   "1.00"
+#property version   "2.00"
 #property indicator_chart_window
 #property indicator_buffers 1
 #property indicator_plots 1
@@ -32,17 +32,20 @@ input TypePivotsType PivotTypeFourHour=PIVOT_TRADITIONAL;    // Pivot Type Four 
 input TypePivotsType PivotTypeDay=PIVOT_TRADITIONAL;    // Pivot Type Day
 input TypePivotsType PivotTypeWeek=PIVOT_TRADITIONAL;    // Pivot Type Week
 input TypePivotsType PivotTypeMonth=PIVOT_TRADITIONAL;    // Pivot Type Month
+input TypePivotsType PivotTypeYear=PIVOT_TRADITIONAL;    // Pivot Type Year
 input bool PivotTypeHourMidPoints=true;    // Pivot Hour Show Mid-Points
 input bool PivotTypeFourHourMidPoints=true;    // Pivot Four Hour Show Mid-Points
 input bool PivotTypeDayMidPoints=true;    // Pivot Day Show Mid-Points
 input bool PivotTypeWeekMidPoints=true;    // Pivot Week Show Mid-Points
 input bool PivotTypeMonthMidPoints=true;    // Pivot Month Show Mid-Points
+input bool PivotTypeYearMidPoints=true;    // Pivot Year Show Mid-Points
 
 input ENUM_LINE_STYLE LineStyleHour=STYLE_SOLID;    // Line Style Hour
 input ENUM_LINE_STYLE LineStyleFourHour=STYLE_SOLID;    // Line Style Four Hour
 input ENUM_LINE_STYLE LineStyleDay=STYLE_SOLID;    // Line Style Day
 input ENUM_LINE_STYLE LineStyleWeek=STYLE_SOLID;    // Line Style Week
 input ENUM_LINE_STYLE LineStyleMonth=STYLE_SOLID;    // Line Style Month
+input ENUM_LINE_STYLE LineStyleYear=STYLE_SOLID;    // Line Style Year
 
 string short_name="MultiPivots";
 bool newbar=false;
@@ -73,16 +76,19 @@ void OnInit()
    pivotsdata.Settings.PivotTypeDay=PivotTypeDay;
    pivotsdata.Settings.PivotTypeWeek=PivotTypeWeek;
    pivotsdata.Settings.PivotTypeMonth=PivotTypeMonth;
+   pivotsdata.Settings.PivotTypeYear=PivotTypeYear;
    pivotsdata.Settings.PivotTypeHourMidPoints=PivotTypeHourMidPoints;
    pivotsdata.Settings.PivotTypeFourHourMidPoints=PivotTypeFourHourMidPoints;
    pivotsdata.Settings.PivotTypeDayMidPoints=PivotTypeDayMidPoints;
    pivotsdata.Settings.PivotTypeWeekMidPoints=PivotTypeWeekMidPoints;
    pivotsdata.Settings.PivotTypeMonthMidPoints=PivotTypeMonthMidPoints;
+   pivotsdata.Settings.PivotTypeYearMidPoints=PivotTypeYearMidPoints;
    pivotsdata.Settings.LineStyleHour=LineStyleHour;
    pivotsdata.Settings.LineStyleFourHour=LineStyleFourHour;
    pivotsdata.Settings.LineStyleDay=LineStyleDay;
    pivotsdata.Settings.LineStyleWeek=LineStyleWeek;
    pivotsdata.Settings.LineStyleMonth=LineStyleMonth;
+   pivotsdata.Settings.LineStyleYear=LineStyleYear;
    
    istesting=MQLInfoInteger(MQL_TESTER);
    EventSetTimer(1);

@@ -1,12 +1,12 @@
 //
 // MultiPivots.mqh
-// Copyright 2016, getYourNet IT Services
+// Copyright 2020, getYourNet IT Services
 // http://www.getyournet.ch
 //
 
-#property copyright "Copyright 2017, getYourNet IT Services"
+#property copyright "Copyright 2020, getYourNet IT Services"
 #property link      "http://www.getyournet.ch"
-#property version   "1.00"
+#property version   "2.00"
 
 enum TypePivotsType
 {
@@ -39,16 +39,19 @@ struct TypePivotsSettings
    TypePivotsType PivotTypeDay;
    TypePivotsType PivotTypeWeek;
    TypePivotsType PivotTypeMonth;
+   TypePivotsType PivotTypeYear;
    bool PivotTypeHourMidPoints;
    bool PivotTypeFourHourMidPoints;
    bool PivotTypeDayMidPoints;
    bool PivotTypeWeekMidPoints;
    bool PivotTypeMonthMidPoints;
+   bool PivotTypeYearMidPoints;
    ENUM_LINE_STYLE LineStyleHour;
    ENUM_LINE_STYLE LineStyleFourHour;
    ENUM_LINE_STYLE LineStyleDay;
    ENUM_LINE_STYLE LineStyleWeek;
    ENUM_LINE_STYLE LineStyleMonth;
+   ENUM_LINE_STYLE LineStyleYear;
    datetime currenth1time;
    datetime lasth1time;
    datetime currenth4time;
@@ -59,6 +62,8 @@ struct TypePivotsSettings
    datetime lastweektime;
    datetime currentmonthtime;
    datetime lastmonthtime;
+   datetime currentyeartime;
+   datetime lastyeartime;
    int weekdaystart;
    int dayhourstart;
    datetime weekstarttime;
@@ -67,7 +72,7 @@ struct TypePivotsSettings
    string symbol;
    TypePivotsSettings()
    {
-      currenth1time=0; lasth1time=0; currenth4time=0; lasth4time=0; currentdaytime=0; lastdaytime=0; currentweektime=0; lastweektime=0; currentmonthtime=0; lastmonthtime=0; weekdaystart=-1; dayhourstart=-1; weekstarttime=0;
+      currenth1time=0; lasth1time=0; currenth4time=0; lasth4time=0; currentdaytime=0; lastdaytime=0; currentweektime=0; lastweektime=0; currentmonthtime=0; lastmonthtime=0; currentyeartime=0; lastyeartime=0; weekdaystart=-1; dayhourstart=-1; weekstarttime=0;
       draw=true;
       drawpivotrange=true;
       symbol=_Symbol;
@@ -89,18 +94,21 @@ struct TypePivotsSettings
       PivotTypeDay=PIVOT_TRADITIONAL;
       PivotTypeWeek=PIVOT_TRADITIONAL;
       PivotTypeMonth=PIVOT_TRADITIONAL;
+      PivotTypeYear=PIVOT_TRADITIONAL;
       PivotTypeHourMidPoints=true;
       PivotTypeFourHourMidPoints=true;
       PivotTypeDayMidPoints=true;
       PivotTypeWeekMidPoints=true;
       PivotTypeMonthMidPoints=true;
+      PivotTypeYearMidPoints=true;
       LineStyleHour=STYLE_SOLID;
       LineStyleFourHour=STYLE_SOLID;
       LineStyleDay=STYLE_SOLID;
       LineStyleWeek=STYLE_SOLID;
       LineStyleMonth=STYLE_SOLID;
+      LineStyleYear=STYLE_SOLID;
    }
-   void Init() { lasth1time=0; lasth4time=0; lastdaytime=0; lastweektime=0; } 
+   void Init() { lasth1time=0; lasth4time=0; lastdaytime=0; lastweektime=0; lastmonthtime=0; lastyeartime=0; } 
 };
 
 enum TypePivotsPeriod
@@ -109,7 +117,8 @@ enum TypePivotsPeriod
    FOURHOUR,
    DAY,
    WEEK,
-   MONTH
+   MONTH,
+   YEAR
 };
 
 struct TypePivotsTimeRange
@@ -155,6 +164,8 @@ struct TypePivotsData
    TypePivots PivotsWeekList[6];
    TypePivots PivotsMonth;
    TypePivots PivotsMonthList[6];
+   TypePivots PivotsYear;
+   TypePivots PivotsYearList[6];
    bool Calculate(datetime timeref) { return PivotsGetPivots(this, timeref); };
 };
 
@@ -172,6 +183,26 @@ bool PivotsGetPivots(TypePivotsData& PD, datetime timeref)
 
          TypePivotsTimeRange timescurrent;
          TypePivotsTimeRange times;
+
+         if(PD.Settings.PivotTypeYear>NONE)
+         {
+            timescurrent=PivotsCalculatePivotRange(PD,YEAR,0);
+            PD.Settings.currentyeartime=timescurrent.start;
+            if(PD.Settings.currentyeartime!=PD.Settings.lastyeartime)
+            {
+               PivotsDeleteObjects(PD,PivotsPivotPeriodToString(timescurrent.period));
+               for(int i=-1; i<=4; i++)
+               {
+                  times=timescurrent;
+                  if(i!=0)
+                     times=PivotsCalculatePivotRange(PD,YEAR,i);
+                  if(!PivotsCalculatePivots(PD,times,PD.Settings.PivotTypeYear,PD.PivotsYearList[i+1]))
+                     return false;
+               }
+               PD.PivotsYear=PD.PivotsYearList[1];
+               PD.Settings.lastyeartime=PD.Settings.currentyeartime;
+            }
+         }
 
          if(PD.Settings.PivotTypeMonth>NONE)
          {
@@ -285,6 +316,11 @@ bool PivotsCalculatePivots(TypePivotsData& PD, TypePivotsTimeRange& times, TypeP
    double Highx[],Lowx[],Closex[],Openx[],HighDay,LowDay,CloseDay,OpenDay;
    double range=0,pivot=0,support1=0,support2=0,support3=0,support4=0,support5=0,resistance1=0,resistance2=0,resistance3=0,resistance4=0,resistance5=0,mplus=0,mplusplus=0,mminus=0,mminusminus=0,range1=0,range2=0;
 
+   ENUM_TIMEFRAMES tf=PERIOD_H1;
+   
+   if(times.end-times.start>(PeriodSeconds(PERIOD_W1)*2))
+      tf=PERIOD_MN1;
+
    p.P=0;
    p.S1=0;
    p.S2=0;
@@ -303,7 +339,7 @@ bool PivotsCalculatePivots(TypePivotsData& PD, TypePivotsTimeRange& times, TypeP
    p.TC=0;
    p.BC=0;
 
-   count=CopyHigh(PD.Settings.symbol,PERIOD_H1,times.start,times.end,Highx);
+   count=CopyHigh(PD.Settings.symbol,tf,times.start,times.end,Highx);
    if(count<=0)
       return false;
 #ifdef __MQL5__
@@ -312,7 +348,7 @@ bool PivotsCalculatePivots(TypePivotsData& PD, TypePivotsTimeRange& times, TypeP
 #ifdef __MQL4__
    HighDay=Highx[ArrayMaximum(Highx,count,0)];
 #endif
-   count=CopyLow(PD.Settings.symbol,PERIOD_H1,times.start,times.end,Lowx);
+   count=CopyLow(PD.Settings.symbol,tf,times.start,times.end,Lowx);
    if(count<=0)
       return false;
 #ifdef __MQL5__
@@ -321,11 +357,11 @@ bool PivotsCalculatePivots(TypePivotsData& PD, TypePivotsTimeRange& times, TypeP
 #ifdef __MQL4__
    LowDay=Lowx[ArrayMinimum(Lowx,count,0)];
 #endif
-   count=CopyClose(PD.Settings.symbol,PERIOD_H1,times.end,1,Closex);
+   count=CopyClose(PD.Settings.symbol,tf,times.end,1,Closex);
    if(count<=0)
       return false;
    CloseDay=Closex[0];
-   count=CopyOpen(PD.Settings.symbol,PERIOD_H1,times.end+1,1,Openx);
+   count=CopyOpen(PD.Settings.symbol,tf,times.end+1,1,Openx);
    if(count<=0)
       return false;
    OpenDay=Openx[0];
@@ -444,7 +480,7 @@ bool PivotsCalculatePivots(TypePivotsData& PD, TypePivotsTimeRange& times, TypeP
       PivotsCreateLine(PD,times,resistance4,PD.Settings.colorR4,"R4",type);
       PivotsCreateLine(PD,times,support5,PD.Settings.colorS5,"S5",type);
       PivotsCreateLine(PD,times,resistance5,PD.Settings.colorR5,"R5",type);
-      if((times.period==MONTH && PD.Settings.PivotTypeMonthMidPoints) || (times.period==WEEK && PD.Settings.PivotTypeWeekMidPoints) || (times.period==DAY && PD.Settings.PivotTypeDayMidPoints) || (times.period==FOURHOUR && PD.Settings.PivotTypeFourHourMidPoints) || (times.period==HOUR && PD.Settings.PivotTypeHourMidPoints))
+      if((times.period==YEAR && PD.Settings.PivotTypeYearMidPoints) || (times.period==MONTH && PD.Settings.PivotTypeMonthMidPoints) || (times.period==WEEK && PD.Settings.PivotTypeWeekMidPoints) || (times.period==DAY && PD.Settings.PivotTypeDayMidPoints) || (times.period==FOURHOUR && PD.Settings.PivotTypeFourHourMidPoints) || (times.period==HOUR && PD.Settings.PivotTypeHourMidPoints))
       {
          PivotsCreateLine(PD,times,mminus,PD.Settings.colormidpoints,"M-",type);
          PivotsCreateLine(PD,times,mminusminus,PD.Settings.colormidpoints,"M--",type);
@@ -654,6 +690,26 @@ TypePivotsTimeRange PivotsCalculatePivotRange(TypePivotsData& PD, TypePivotsPeri
       times.start=StructToTime(start);
       times.end=StructToTime(startdisplay)-1;
    }
+   if(period==YEAR)
+   {
+      MqlDateTime h1time, startdisplay, enddisplay, start, end;
+      TimeToStruct(PD.Settings.currenth1time,h1time);
+
+      startdisplay.hour=0;
+      startdisplay.min=0;
+      startdisplay.sec=0;
+      startdisplay.day=1;
+      startdisplay.year=h1time.year-offsetindex;
+      startdisplay.mon=1;
+      times.startdisplay=StructToTime(startdisplay);
+      enddisplay=startdisplay;
+      enddisplay.year++;
+      times.enddisplay=StructToTime(enddisplay)-1;
+      start=startdisplay;
+      start.year--;
+      times.start=StructToTime(start);
+      times.end=StructToTime(startdisplay)-1;
+   }
 
    return times;
 }
@@ -666,6 +722,7 @@ string PivotsPivotPeriodToString(TypePivotsPeriod period)
    if(period==DAY) return "Day";
    if(period==WEEK) return "Week";
    if(period==MONTH) return "Month";
+   if(period==YEAR) return "Year";
    return "-";
 }
 
@@ -690,6 +747,7 @@ void PivotsCreateLine(TypePivotsData& PD, TypePivotsTimeRange& time, double pric
    if(time.period==DAY) style=PD.Settings.LineStyleDay;
    if(time.period==WEEK) style=PD.Settings.LineStyleWeek;
    if(time.period==MONTH) style=PD.Settings.LineStyleMonth;
+   if(time.period==YEAR) style=PD.Settings.LineStyleYear;
    string objname = PD.Settings.objectnamespace + " " + PivotsPivotPeriodToString(time.period) + " " + level + " " + PivotsPivotTypeToString(type) + " " + IntegerToString(time.startdisplay);
    ObjectCreate(0,objname,OBJ_TREND,0,time.startdisplay,price,time.enddisplay,price);
    ObjectSetInteger(0,objname,OBJPROP_RAY_RIGHT,false);
