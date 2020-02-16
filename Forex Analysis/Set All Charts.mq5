@@ -24,6 +24,8 @@ enum Command
    Candles,
    ZoomIn,
    ZoomOut,
+   ChartShift,
+   NoChartShift,
    M1,
    M2,
    M3,
@@ -46,8 +48,8 @@ enum Command
    W1,
    MN
 };
-string CommandText[MN+1]={"Clean","PivotsY1","PivotsMN","PivotsW1","PivotsD1","PivotsH4","PivotsH1","Chandelier Exit","Murrey","ZigZag","Engulfing","Heiken Ashi","Line","Candles","+","-","M1","M2","M3","M4","M5","M6","M10","M12","M15","M20","M30","H1","H2","H3","H4","H6","H8","H12","D1","W1","MN"};
-int CommandPeriod[MN+1]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,PERIOD_M1,PERIOD_M2,PERIOD_M3,PERIOD_M4,PERIOD_M5,PERIOD_M6,PERIOD_M10,PERIOD_M12,PERIOD_M15,PERIOD_M20,PERIOD_M30,PERIOD_H1,PERIOD_H2,PERIOD_H3,PERIOD_H4,PERIOD_H6,PERIOD_H8,PERIOD_H12,PERIOD_D1,PERIOD_W1,PERIOD_MN1};
+string CommandText[MN+1]={"Clean","PivotsY1","PivotsMN","PivotsW1","PivotsD1","PivotsH4","PivotsH1","Chandelier Exit","Murrey","ZigZag","Engulfing","Heiken Ashi","Line","Candles","+","-","<",">","M1","M2","M3","M4","M5","M6","M10","M12","M15","M20","M30","H1","H2","H3","H4","H6","H8","H12","D1","W1","MN"};
+int CommandPeriod[MN+1]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,PERIOD_M1,PERIOD_M2,PERIOD_M3,PERIOD_M4,PERIOD_M5,PERIOD_M6,PERIOD_M10,PERIOD_M12,PERIOD_M15,PERIOD_M20,PERIOD_M30,PERIOD_H1,PERIOD_H2,PERIOD_H3,PERIOD_H4,PERIOD_H6,PERIOD_H8,PERIOD_H12,PERIOD_D1,PERIOD_W1,PERIOD_MN1};
 
 
 void OnInit()
@@ -77,6 +79,8 @@ void OnInit()
    CreateButton(247,5,MN);
    CreateButton(305,5,ZoomIn);
    CreateButton(327,5,ZoomOut);
+   CreateButton(350,5,ChartShift);
+   CreateButton(370,5,NoChartShift);
    CreateButton(305,25,Line);
    CreateButton(345,25,Candles);
    CreateButton(305,45,Clean);
@@ -192,7 +196,16 @@ void ExecuteCommand(int command)
          if(command==ZoomOut)
             if(!hassubwindows)
                Zoom(chartid,-1);
-         if(command>ZoomOut)
+         if(command==ChartShift)
+            if(!hassubwindows)
+            {
+               ChartSetDouble(chartid,CHART_SHIFT_SIZE,20);
+               ChartSetInteger(chartid,CHART_SHIFT,true);
+            }
+         if(command==NoChartShift)
+            if(!hassubwindows)
+               ChartSetInteger(chartid,CHART_SHIFT,false);
+         if(command>NoChartShift)
             ChartSetSymbolPeriod(chartid,ChartSymbol(chartid),(ENUM_TIMEFRAMES)CommandPeriod[command]);
 
          ChartRedraw(chartid);
