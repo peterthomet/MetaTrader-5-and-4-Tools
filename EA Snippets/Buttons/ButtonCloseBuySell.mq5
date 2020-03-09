@@ -18,7 +18,7 @@ input int SellsButtonPositionX=120; // Sells Button Position X
 input int SellsButtonPositionY=25; // Sells Button Position Y
 input bool HideButtonsNoPositions=false; // Hide Buttons if no Positions
 
-string namespace="ButtonCloseBuySell";
+string appnamespace="ButtonCloseBuySell";
 enum Objects
 {
    BuyButton,
@@ -42,7 +42,7 @@ void OnInit()
 void OnDeinit(const int reason)
 {
    EventKillTimer();
-   ObjectsDeleteAll(0,namespace);
+   ObjectsDeleteAll(0,appnamespace);
 }
 
 
@@ -61,16 +61,16 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 {
    if(id==CHARTEVENT_OBJECT_CLICK)
    {
-      if(StringFind(sparam,namespace+IntegerToString(BuyButton))>-1)
+      if(StringFind(sparam,appnamespace+IntegerToString(BuyButton))>-1)
       {
          buyclosecommand=true;
-         ObjectSetString(0,namespace+IntegerToString(BuyText),OBJPROP_TEXT,"Closing Buys...");
+         ObjectSetString(0,appnamespace+IntegerToString(BuyText),OBJPROP_TEXT,"Closing Buys...");
          ChartRedraw();
       }
-      if(StringFind(sparam,namespace+IntegerToString(SellButton))>-1)
+      if(StringFind(sparam,appnamespace+IntegerToString(SellButton))>-1)
       {
          sellclosecommand=true;
-         ObjectSetString(0,namespace+IntegerToString(SellText),OBJPROP_TEXT,"Closing Sells...");
+         ObjectSetString(0,appnamespace+IntegerToString(SellText),OBJPROP_TEXT,"Closing Sells...");
          ChartRedraw();
       }
    }
@@ -93,7 +93,7 @@ void CreateButtons()
    if(ButtonsPositionCorner==CORNER_RIGHT_UPPER)
       xf=-1;   
 
-   on=namespace+IntegerToString(BuyButton);
+   on=appnamespace+IntegerToString(BuyButton);
    ObjectCreate(0,on,OBJ_RECTANGLE_LABEL,0,0,0);
    ObjectSetInteger(0,on,OBJPROP_WIDTH,0);
    ObjectSetInteger(0,on,OBJPROP_FILL,true);
@@ -104,7 +104,7 @@ void CreateButtons()
    ObjectSetInteger(0,on,OBJPROP_XSIZE,100);
    ObjectSetInteger(0,on,OBJPROP_YSIZE,22);
 
-   on=namespace+IntegerToString(BuyText);
+   on=appnamespace+IntegerToString(BuyText);
    ObjectCreate(0,on,OBJ_LABEL,0,0,0);
    ObjectSetInteger(0,on,OBJPROP_CORNER,ButtonsPositionCorner);
    ObjectSetInteger(0,on,OBJPROP_ANCHOR,ANCHOR_CENTER);
@@ -115,7 +115,7 @@ void CreateButtons()
    ObjectSetInteger(0,on,OBJPROP_ZORDER,-100);
    ObjectSetString(0,on,OBJPROP_TEXT," ");
 
-   on=namespace+IntegerToString(SellButton);
+   on=appnamespace+IntegerToString(SellButton);
    ObjectCreate(0,on,OBJ_RECTANGLE_LABEL,0,0,0);
    ObjectSetInteger(0,on,OBJPROP_WIDTH,0);
    ObjectSetInteger(0,on,OBJPROP_FILL,true);
@@ -126,7 +126,7 @@ void CreateButtons()
    ObjectSetInteger(0,on,OBJPROP_XSIZE,100);
    ObjectSetInteger(0,on,OBJPROP_YSIZE,22);
 
-   on=namespace+IntegerToString(SellText);
+   on=appnamespace+IntegerToString(SellText);
    ObjectCreate(0,on,OBJ_LABEL,0,0,0);
    ObjectSetInteger(0,on,OBJPROP_CORNER,ButtonsPositionCorner);
    ObjectSetInteger(0,on,OBJPROP_ANCHOR,ANCHOR_CENTER);
@@ -185,16 +185,16 @@ void Calculate()
       sellclosecommand=false;
 
    if(!buyclosecommand)
-      ObjectSetString(0,namespace+IntegerToString(BuyText),OBJPROP_TEXT,"Close Buys "+DoubleToString(NormalizeDouble(buystotal,1),1));
+      ObjectSetString(0,appnamespace+IntegerToString(BuyText),OBJPROP_TEXT,"Close Buys "+DoubleToString(NormalizeDouble(buystotal,1),1));
    if(!sellclosecommand)
-      ObjectSetString(0,namespace+IntegerToString(SellText),OBJPROP_TEXT,"Close Sells "+DoubleToString(NormalizeDouble(sellstotal,1),1));
+      ObjectSetString(0,appnamespace+IntegerToString(SellText),OBJPROP_TEXT,"Close Sells "+DoubleToString(NormalizeDouble(sellstotal,1),1));
 
    if(HideButtonsNoPositions)
    {
       string on;
       int yoffset;
 
-      on=namespace+IntegerToString(BuyButton);
+      on=appnamespace+IntegerToString(BuyButton);
       bool buysvisible=(ObjectGetInteger(0,on,OBJPROP_YDISTANCE)>-1000);
       yoffset=0;
       if(buyscount>0&&!buysvisible)
@@ -204,11 +204,11 @@ void Calculate()
       if(yoffset!=0)
       {
          ObjectSetInteger(0,on,OBJPROP_YDISTANCE,ObjectGetInteger(0,on,OBJPROP_YDISTANCE)+yoffset);
-         on=namespace+IntegerToString(BuyText);
+         on=appnamespace+IntegerToString(BuyText);
          ObjectSetInteger(0,on,OBJPROP_YDISTANCE,ObjectGetInteger(0,on,OBJPROP_YDISTANCE)+yoffset);
       }
 
-      on=namespace+IntegerToString(SellButton);
+      on=appnamespace+IntegerToString(SellButton);
       bool sellsvisible=(ObjectGetInteger(0,on,OBJPROP_YDISTANCE)>-1000);
       yoffset=0;
       if(sellscount>0&&!sellsvisible)
@@ -218,7 +218,7 @@ void Calculate()
       if(yoffset!=0)
       {
          ObjectSetInteger(0,on,OBJPROP_YDISTANCE,ObjectGetInteger(0,on,OBJPROP_YDISTANCE)+yoffset);
-         on=namespace+IntegerToString(SellText);
+         on=appnamespace+IntegerToString(SellText);
          ObjectSetInteger(0,on,OBJPROP_YDISTANCE,ObjectGetInteger(0,on,OBJPROP_YDISTANCE)+yoffset);
       }
    }
