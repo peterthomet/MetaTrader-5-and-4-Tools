@@ -21,6 +21,7 @@
 #endif
 
 #include <CurrencyStrength.mqh>
+#include <MultiPivots.mqh>
 #ifdef __MQL5__
    //#include <CurrencyStrengthReadDB.mqh>
 #endif
@@ -83,6 +84,32 @@ input bool MT5CommissionPerDeal = true;
 input double CommissionPerLotPerRoundtrip = 7;
 input int StartHour = 0;
 input int StartMinute = 0;
+input int MinPoints1 = 0;
+input group "Trading Hours";
+input bool Hour0 = true;
+input bool Hour1 = true;
+input bool Hour2 = true;
+input bool Hour3 = true;
+input bool Hour4 = true;
+input bool Hour5 = true;
+input bool Hour6 = true;
+input bool Hour7 = true;
+input bool Hour8 = true;
+input bool Hour9 = true;
+input bool Hour10 = true;
+input bool Hour11 = true;
+input bool Hour12 = true;
+input bool Hour13 = true;
+input bool Hour14 = true;
+input bool Hour15 = true;
+input bool Hour16 = true;
+input bool Hour17 = true;
+input bool Hour18 = true;
+input bool Hour19 = true;
+input bool Hour20 = true;
+input bool Hour21 = true;
+input bool Hour22 = true;
+input bool Hour23 = true;
 
 string appname="Trade Manager";
 string appnamespace="";
@@ -93,7 +120,7 @@ datetime lasterrortime;
 string lasterrorstring;
 bool istesting;
 bool initerror;
-string ExtraChars = "";
+string SymbolExtraChars = "";
 string tickchar="";
 int magicnumberfloor=0;
 int basemagicnumber=0;
@@ -105,6 +132,7 @@ double _StartTrailingPips;
 double _TakeProfitPips;
 double _StopLossPips;
 double _OpenLots;
+bool _TradingHours[24];
 bool ctrlon;
 bool tradelevelsvisible;
 int selectedtradeindex;
@@ -148,7 +176,9 @@ struct TypeTradeReference
    double points;
    double gain;
    double stoplosspips;
+   double stoplosslevel;
    double takeprofitpips;
+   double takeprofitlevel;
    double commissionpoints;
    double openprice;
    string pair;
@@ -161,7 +191,9 @@ struct TypeTradeReference
       points=0;
       gain=0;
       stoplosspips=DISABLEDPOINTS;
+      stoplosslevel=0;
       takeprofitpips=DISABLEDPOINTS;
+      takeprofitlevel=0;
       commissionpoints=0;
       openprice=0;
       pair="";
@@ -281,8 +313,6 @@ struct TypeBasketInfo
 };
 TypeBasketInfo BI;
 
-TypeCurrencyStrength CS[1];
-
 
 void OnInit()
 {
@@ -299,7 +329,7 @@ void OnInit()
 
    istesting=MQLInfoInteger(MQL_TESTER);
 
-   ExtraChars = StringSubstr(Symbol(), 6);
+   SymbolExtraChars = StringSubstr(Symbol(), 6);
 
    pipsfactor=1;
    
@@ -319,12 +349,37 @@ void OnInit()
    _StartTrailingPips=StartTrailingPips*pipsfactor;
    _OpenLots=OpenLots;
 
+   _TradingHours[0]=Hour0;
+   _TradingHours[1]=Hour1;
+   _TradingHours[2]=Hour2;
+   _TradingHours[3]=Hour3;
+   _TradingHours[4]=Hour4;
+   _TradingHours[5]=Hour5;
+   _TradingHours[6]=Hour6;
+   _TradingHours[7]=Hour7;
+   _TradingHours[8]=Hour8;
+   _TradingHours[9]=Hour9;
+   _TradingHours[10]=Hour10;
+   _TradingHours[11]=Hour11;
+   _TradingHours[12]=Hour12;
+   _TradingHours[13]=Hour13;
+   _TradingHours[14]=Hour14;
+   _TradingHours[15]=Hour15;
+   _TradingHours[16]=Hour16;
+   _TradingHours[17]=Hour17;
+   _TradingHours[18]=Hour18;
+   _TradingHours[19]=Hour19;
+   _TradingHours[20]=Hour20;
+   _TradingHours[21]=Hour21;
+   _TradingHours[22]=Hour22;
+   _TradingHours[23]=Hour23;
+
    WS.Init();
    
    if(!istesting)
       GetGlobalVariables();
 
-   if(DrawBackgroundPanel)
+   if(DrawBackgroundPanel&&ShowInfo)
    {
       string objname=appnamespace+"Panel";
       ObjectCreate(0,objname,OBJ_RECTANGLE_LABEL,0,0,0,0,0);
@@ -342,26 +397,6 @@ void OnInit()
       ObjectSetInteger(0,objname,OBJPROP_BGCOLOR,c);
    }
    
-   CS[0].Init(
-      10,
-      10,
-      StringSubstr(Symbol(),6),
-      PERIOD_D1,
-      false,
-      pr_close
-      );
-   //if(istesting)
-      //CS_CalculateIndex(CS[0]);
-
-   //CS[1].Init(
-   //   10,
-   //   10,
-   //   StringSubstr(Symbol(),6),
-   //   PERIOD_M5,
-   //   false,
-   //   pr_close
-   //   );
-
    if(!istesting)
    {
       if(!EventSetMillisecondTimer(200))
@@ -375,6 +410,10 @@ void OnInit()
 #endif
       EventSetTimer(10);
    }
+
+   ArrayResize(strats,1);
+   strats[0]=new StrategyPivotsH4FibonacciR1S1Reversal;
+   //strats[0]=new StrategyLittleDD;
 }
 
 
@@ -435,6 +474,11 @@ void Manage()
       ManageBasket();
       DisplayText();
    }
+
+   if(istesting)
+      for(int i=ArraySize(strats)-1; i>=0; i--)
+         strats[i].Calculate();
+
    working=false;
 }
 
@@ -508,7 +552,9 @@ void SetGlobalVariables()
    {
       GlobalVariableSet(appnamespace+"TradeReference.gain"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].gain);
       GlobalVariableSet(appnamespace+"TradeReference.stoplosspips"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].stoplosspips);
+      GlobalVariableSet(appnamespace+"TradeReference.stoplosslevel"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].stoplosslevel);
       GlobalVariableSet(appnamespace+"TradeReference.takeprofitpips"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].takeprofitpips);
+      GlobalVariableSet(appnamespace+"TradeReference.takeprofitlevel"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].takeprofitlevel);
    }
 }
 
@@ -567,12 +613,28 @@ void GetGlobalVariables()
          UpdateTradeReference(magicnumber,NULL,GlobalVariableGet(n));
       }
 
+      s=appnamespace+"TradeReference.stoplosslevel";
+      p=StringFind(n,s);
+      if(p==0)
+      {
+         magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
+         UpdateTradeReference(magicnumber,NULL,NULL,NULL,GlobalVariableGet(n));
+      }
+
       s=appnamespace+"TradeReference.takeprofitpips";
       p=StringFind(n,s);
       if(p==0)
       {
          magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
          UpdateTradeReference(magicnumber,NULL,NULL,GlobalVariableGet(n));
+      }
+
+      s=appnamespace+"TradeReference.takeprofitlevel";
+      p=StringFind(n,s);
+      if(p==0)
+      {
+         magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
+         UpdateTradeReference(magicnumber,NULL,NULL,NULL,NULL,GlobalVariableGet(n));
       }
    }
 }
@@ -712,11 +774,15 @@ void ManageBasket()
       
       if(istesting)
       {
+         for(int i=ArraySize(strats)-1; i>=0; i--)
+            strats[i].IdleCalculate();
 
 #ifdef __MQL5__
          //#include <TradeManagerEntryTesting1.mqh>
-         OpenBuy();
-         OpenSell();
+         
+         // Dredging Test
+         //OpenBuy();
+         //OpenSell();
 #endif
 
       }
@@ -746,15 +812,19 @@ void ManageBasket()
          TypeTradeInfo ti=BI.pairsintrades[i].tradeinfo[j];
          TypeTradeReference tr=WS.tradereference[TradeReferenceIndex(ti.magicnumber)];
 
-         if(tr.takeprofitpips!=DISABLEDPOINTS&&(ti.points-tr.takeprofitpips)>=0)
+         if(OrderSelectX(ti.orderindex)&&IsAutoTradingEnabled())
          {
-            if(OrderSelectX(ti.orderindex)&&IsAutoTradingEnabled())
+         
+            double bid=BidX(tr.pair);
+
+            if((tr.takeprofitpips!=DISABLEDPOINTS&&(ti.points-tr.takeprofitpips)>=0)
+            ||(tr.takeprofitlevel!=0&&bid!=0&&((ti.type==OP_SELL&&bid<=tr.takeprofitlevel)||(ti.type==OP_BUY&&bid>=tr.takeprofitlevel))))
             {
                if(CloseSelectedOrder())
                {
 
 // EXPERIMENTAL
-                  if(istesting || Automation==Dredging)
+                  if(Automation==Dredging)
                   {
                      if(j==size2-1||j==size2-2)
                      {
@@ -766,11 +836,9 @@ void ManageBasket()
 
                }
             }
-         }
 
-         if(tr.stoplosspips!=DISABLEDPOINTS&&(ti.points+tr.stoplosspips)<=0)
-         {
-            if(OrderSelectX(ti.orderindex)&&IsAutoTradingEnabled())
+            if((tr.stoplosspips!=DISABLEDPOINTS&&(ti.points+tr.stoplosspips)<=0)
+            ||(tr.stoplosslevel!=0&&bid!=0&&((ti.type==OP_SELL&&bid>=tr.stoplosslevel)||(ti.type==OP_BUY&&bid<=tr.stoplosslevel))))
             {
                if(HedgeAtStopLoss)
                {
@@ -778,7 +846,7 @@ void ManageBasket()
                   double hedgevolume=GetHedgeVolume(BI.pairsintrades[i].tradeinfo,ti);
                   if(hedgemagicnumber>-1&&hedgevolume>0)
                   {
-                     if(OpenOrder(HedgeType(ti.type),BI.pairsintrades[i].pair+ExtraChars,hedgevolume,hedgemagicnumber))
+                     if(OpenOrder(HedgeType(ti.type),BI.pairsintrades[i].pair+SymbolExtraChars,hedgevolume,hedgemagicnumber))
                      {
                      }
                   }
@@ -790,6 +858,7 @@ void ManageBasket()
                   }
                }
             }
+            
          }
       }
    }
@@ -1006,7 +1075,7 @@ void DisplayText()
       for(int i=0; i<asize; i++)
       {
          color paircolor=TextColor;
-         if(BI.pairsintrades[i].pair+ExtraChars==Symbol())
+         if(BI.pairsintrades[i].pair+SymbolExtraChars==Symbol())
             paircolor=TextColorBold;
          CreateLabel(rowindex,FontSize,paircolor,BI.pairsintrades[i].pair,"-TMSymbolButton");
 
@@ -1060,7 +1129,7 @@ void NextTradeLevels(bool backward=false)
    int asize=ArraySize(WS.tradereference);
    for(int i=0; i<asize; i++)
    {
-      if(WS.tradereference[i].pair+ExtraChars==Symbol() && TimeLocal()-WS.tradereference[i].lastupdate<2)
+      if(WS.tradereference[i].pair+SymbolExtraChars==Symbol() && TimeLocal()-WS.tradereference[i].lastupdate<2)
       {
          ArrayResize(indexes,count+1);
          indexes[count]=i;
@@ -1097,7 +1166,7 @@ void ToggleTradeLevels(bool disable=false)
       int asize=ArraySize(WS.tradereference);
       for(int i=0; i<asize; i++)
       {
-         if(WS.tradereference[i].pair+ExtraChars==Symbol() && TimeLocal()-WS.tradereference[i].lastupdate<2)
+         if(WS.tradereference[i].pair+SymbolExtraChars==Symbol() && TimeLocal()-WS.tradereference[i].lastupdate<2)
          {
             selectedtradeindex=i;
             break;
@@ -1376,7 +1445,7 @@ double GetHedgeVolume(TypeTradeInfo& tradeinfo[], TypeTradeInfo& tiin)
       ret=(buys*factor)-sells;
    if(tiin.type==OP_SELL)
       ret=(sells*factor)-buys;
-   return ret;
+   return NormalizeDouble(ret,2);
 }
 
 
@@ -1409,7 +1478,7 @@ bool OpenOrder(int type, string symbol=NULL, double volume=NULL, long magicnumbe
 }
 
 
-bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
+bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL, double sl=NULL, double tp=NULL, double sll=NULL, double tpl=NULL)
 {
    double v=_OpenLots;
    if(volume!=NULL)
@@ -1425,7 +1494,7 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 #ifdef __MQL4__
    int ret=OrderSend(s,OP_BUY,v,AskX(s),5,0,0,c,m);
    if(ret>-1)
-      NewTradeReference(m,true);
+      NewTradeReference(m,true,sl,tp,sll,tpl);
    if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
@@ -1437,7 +1506,7 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
    //bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,AskX(s),NULL,NULL,c);
    bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,0,NULL,NULL,c);
    if(ret)
-      NewTradeReference(m,true);
+      NewTradeReference(m,true,sl,tp,sll,tpl);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -1446,7 +1515,7 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 }
 
 
-bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
+bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL, double sl=NULL, double tp=NULL, double sll=NULL, double tpl=NULL)
 {
    double v=_OpenLots;
    if(volume!=NULL)
@@ -1462,7 +1531,7 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 #ifdef __MQL4__
    int ret=OrderSend(s,OP_SELL,v,BidX(s),5,0,0,c,m);
    if(ret>-1)
-      NewTradeReference(m,true);
+      NewTradeReference(m,true,sl,tp,sll,tpl);
    if(ret>-1&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastError(ret);
@@ -1474,7 +1543,7 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
    //bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,BidX(s),NULL,NULL,c);
    bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,0,NULL,NULL,c);
    if(ret)
-      NewTradeReference(m,true);
+      NewTradeReference(m,true,sl,tp,sll,tpl);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -1483,7 +1552,7 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL)
 }
 
 
-int NewTradeReference(long magicnumber, bool InitWithCurrentSettings)
+int NewTradeReference(long magicnumber, bool InitWithCurrentSettings, double sl=NULL, double tp=NULL, double sll=NULL, double tpl=NULL)
 {
    int asize=ArraySize(WS.tradereference);
    ArrayResize(WS.tradereference,asize+1);
@@ -1493,6 +1562,14 @@ int NewTradeReference(long magicnumber, bool InitWithCurrentSettings)
       WS.tradereference[asize].stoplosspips=_StopLossPips;
       WS.tradereference[asize].takeprofitpips=_TakeProfitPips;
    }
+   if(sl!=NULL)
+      WS.tradereference[asize].stoplosspips=sl;
+   if(sll!=NULL)
+      WS.tradereference[asize].stoplosslevel=sll;
+   if(tp!=NULL)
+      WS.tradereference[asize].takeprofitpips=tp;
+   if(tpl!=NULL)
+      WS.tradereference[asize].takeprofitlevel=tpl;
    return asize;
 }
 
@@ -1513,7 +1590,7 @@ void UpdateTradeReference(TypePairsTradesInfo& piti, TypeTradeInfo& tiin)
 }
 
 
-void UpdateTradeReference(long magicnumber, double gain=NULL, double stoplosspips=NULL, double takeprofitpips=NULL)
+void UpdateTradeReference(long magicnumber, double gain=NULL, double stoplosspips=NULL, double takeprofitpips=NULL, double stoplosslevel=NULL, double takeprofitlevel=NULL)
 {
    int index=TradeReferenceIndex(magicnumber);
    if(index==-1)
@@ -1522,8 +1599,12 @@ void UpdateTradeReference(long magicnumber, double gain=NULL, double stoplosspip
       WS.tradereference[index].gain=gain;
    if(stoplosspips!=NULL)
       WS.tradereference[index].stoplosspips=stoplosspips;
+   if(stoplosslevel!=NULL)
+      WS.tradereference[index].stoplosslevel=stoplosslevel;
    if(takeprofitpips!=NULL)
       WS.tradereference[index].takeprofitpips=takeprofitpips;
+   if(takeprofitlevel!=NULL)
+      WS.tradereference[index].takeprofitlevel=takeprofitlevel;
 }
 
 
@@ -1825,11 +1906,11 @@ void SwitchSymbol(string tosymbol)
          while(chartid>-1)
          {
             if(chartid!=ChartID())
-               ChartSetSymbolPeriod(chartid,tosymbol+ExtraChars,ChartPeriod(chartid));
+               ChartSetSymbolPeriod(chartid,tosymbol+SymbolExtraChars,ChartPeriod(chartid));
             chartid=ChartNext(chartid);
          }
       }
-      ChartSetSymbolPeriod(0,tosymbol+ExtraChars,0);
+      ChartSetSymbolPeriod(0,tosymbol+SymbolExtraChars,0);
    }
 }
 
@@ -2074,14 +2155,16 @@ double AskX(string symbol=NULL)
    string s=Symbol();
    if(symbol!=NULL)
       s=symbol;
-#ifdef __MQL4__
-   return Ask;
-#endif
-#ifdef __MQL5__
+//#ifdef __MQL4__
+//   return Ask;
+//#endif
+//#ifdef __MQL5__
    MqlTick last_tick;
-   SymbolInfoTick(s,last_tick);
-   return last_tick.ask;
-#endif
+   if(SymbolInfoTick(s,last_tick))
+      return last_tick.ask;
+   else
+      return 0;
+//#endif
 }
 
 
@@ -2090,14 +2173,16 @@ double BidX(string symbol=NULL)
    string s=Symbol();
    if(symbol!=NULL)
       s=symbol;
-#ifdef __MQL4__
-   return Bid;
-#endif
-#ifdef __MQL5__
+//#ifdef __MQL4__
+//   return Bid;
+//#endif
+//#ifdef __MQL5__
    MqlTick last_tick;
-   SymbolInfoTick(s,last_tick);
-   return last_tick.bid;
-#endif
+   if(SymbolInfoTick(s,last_tick))
+      return last_tick.bid;
+   else
+      return 0;
+//#endif
 }
 
 
@@ -2111,3 +2196,342 @@ void SetOrderSL(double sl)
    SetLastErrorBool(trade.PositionModify(OrderTicketX(),sl,OrderTakeProfitX()));
 #endif
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////
+// STRATEGIES
+////////////////////////////////////////////////////////////////////////////////////
+
+
+interface Strategy 
+{
+public:
+   void IdleCalculate();
+   void Calculate();
+};
+
+
+class StrategyLittleDD : public Strategy
+{
+public:
+   void Calculate() {}
+
+   void IdleCalculate()
+   {
+      MqlRates rates[];
+      ArraySetAsSeries(rates,true);
+      int bars=20;
+      int copied=CopyRates(Symbol(),Period(),0,bars,rates); 
+      if(copied==bars)
+      {
+         //MqlDateTime dtcurrent;
+         //TimeToStruct(rates[0].time,dtcurrent);
+         //if(dtcurrent.hour<8||dtcurrent.hour>18)
+         //   return;
+         
+         double pipsize=SymbolInfoDouble(Symbol(),SYMBOL_POINT)*pipsfactor;
+         
+         double highest=DBL_MIN;
+         double lowest=DBL_MAX;
+
+         for(int i=1; i<bars-3; i++)
+         {
+            if(i>1)
+            {
+               highest=MathMax(highest,rates[i-1].high);
+               lowest=MathMin(lowest,rates[i-1].low);
+            }
+            if(rates[i].close<rates[i+1].open && rates[i+1].close>rates[i+1].open && rates[i+2].close>rates[i+2].open && highest<rates[i+1].open && rates[0].close>=rates[i+1].open && rates[0].high<=(rates[i+1].open+pipsize))
+               OpenSell(NULL,0.1,0,200,200);
+         }
+      
+      }
+   }
+};
+
+
+class StrategyPivotsDay : public Strategy
+{
+public:
+   TypePivotsData pivotsdata;
+   datetime lastdaysignal;
+
+   StrategyPivotsDay()
+   {
+      pivotsdata.Settings.draw=true;
+      pivotsdata.Settings.PivotTypeHour=PIVOT_FIBONACCI;
+      pivotsdata.Settings.PivotTypeFourHour=PIVOT_FIBONACCI;
+      pivotsdata.Settings.PivotTypeDay=PIVOT_FIBONACCI;
+      pivotsdata.Settings.PivotTypeWeek=PIVOT_FIBONACCI;
+      lastdaysignal=0;
+   }
+
+   void Calculate()
+   {
+
+   }
+
+   void IdleCalculate()
+   {
+      MqlDateTime dtcurrent;
+      TimeCurrent(dtcurrent);
+      //if(dtcurrent.hour!=16)
+      //   return;
+
+      MqlRates rates[];
+      ArraySetAsSeries(rates,true);
+      int copied=CopyRates(Symbol(),PERIOD_M1,0,1,rates); 
+      if(copied==1)
+      {
+         if(!pivotsdata.Calculate(rates[0].time))
+            return;
+         
+         datetime starttime=rates[0].time;
+
+         copied=CopyRates(Symbol(),PERIOD_D1,0,1,rates);
+         if(copied==-1)
+            return;
+
+         datetime endtime=rates[0].time;
+         if(lastdaysignal==endtime)
+            return;
+
+         //copied=CopyRates(Symbol(),PERIOD_M1,starttime,endtime,rates);
+         int copycount=500;
+         copied=CopyRates(Symbol(),PERIOD_M1,0,copycount,rates);
+         if(copied<copycount)
+            return;
+            
+         //Print(IntegerToString(rates[0].time));
+         
+         double tickvalue=CurrentSymbolTickValue();
+         if(tickvalue==0)
+            return;
+         
+         double upperlevel=pivotsdata.PivotsDay.R1;
+         double lowerlevel=pivotsdata.PivotsDay.S1;
+         double centerlevel=pivotsdata.PivotsDay.P;
+         double upperrange=NormalizeDouble((upperlevel-centerlevel)/Point(),0);
+         double lowerrange=NormalizeDouble((centerlevel-lowerlevel)/Point(),0);
+
+         double percentbalance=2;
+         double uppervolume=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*upperrange),2);
+         double lowervolume=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*lowerrange),2);
+
+         //if(rates[0].close>=upperlevel&&uppervolume>=0.01&&upperrange>=100)
+         if(rates[0].close>=upperlevel   &&   rates[0].close<=upperlevel+(Point()*10)   /*&&   upperrange>=50*/   &&   uppervolume>=0.01)
+         {
+            //Print("Range: "+upperrange+" | Volume: "+uppervolume);
+            lastdaysignal=endtime;
+            OpenSell(NULL,uppervolume,0,upperrange+10,upperrange-10);
+         }
+
+         //if(rates[0].close<=lowerlevel&&lowervolume>=0.01)
+         //{
+         //   lasth4signal=endtime;
+         //   OpenBuy(NULL,lowervolume,0,lowerrange,lowerrange);
+         //}
+
+      }
+   }
+};
+
+
+class StrategyPivotsH4FibonacciR1S1Reversal : public Strategy
+{
+public:
+   TypePivotsData pivotsdata;
+   datetime lasth4signal;
+
+   StrategyPivotsH4FibonacciR1S1Reversal()
+   {
+      pivotsdata.Settings.draw=true;
+      pivotsdata.Settings.PivotTypeHour=NONE;
+      pivotsdata.Settings.PivotTypeFourHour=PIVOT_FIBONACCI;
+      pivotsdata.Settings.PivotTypeDay=NONE;
+      pivotsdata.Settings.PivotTypeWeek=NONE;
+      pivotsdata.Settings.PivotTypeMonth=NONE;
+      pivotsdata.Settings.PivotTypeYear=NONE;
+      lasth4signal=0;
+   }
+
+   void Calculate()
+   {
+
+   }
+
+   void IdleCalculate()
+   {
+      MqlDateTime t;
+      TimeCurrent(t);
+      if(!_TradingHours[t.hour])
+         return;
+
+      MqlRates rates[];
+      ArraySetAsSeries(rates,true);
+      int copied=CopyRates(Symbol(),PERIOD_M1,0,1,rates); 
+      if(copied==1)
+      {
+         if(!pivotsdata.Calculate(rates[0].time))
+            return;
+         
+         datetime starttime=rates[0].time;
+
+         copied=CopyRates(Symbol(),PERIOD_H4,0,1,rates);
+         if(copied==-1)
+            return;
+
+         datetime endtime=rates[0].time;
+         if(lasth4signal==endtime)
+            return;
+
+         //copied=CopyRates(Symbol(),PERIOD_M1,starttime,endtime,rates);
+         int copycount=500;
+         copied=CopyRates(Symbol(),PERIOD_M1,0,copycount,rates);
+         if(copied<copycount)
+            return;
+            
+         //Print(IntegerToString(rates[0].time));
+         
+         double tickvalue=CurrentSymbolTickValue();
+         if(tickvalue==0)
+            return;
+         
+         double upperlevel=pivotsdata.PivotsFourHour.R1;
+         double lowerlevel=pivotsdata.PivotsFourHour.S1;
+         double centerlevel=pivotsdata.PivotsFourHour.P;
+         double upperrange=NormalizeDouble((upperlevel-centerlevel)/Point(),0);
+         double lowerrange=NormalizeDouble((centerlevel-lowerlevel)/Point(),0);
+
+         double percentbalance=2;
+         double uppervolume=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*upperrange),2);
+         double lowervolume=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*lowerrange),2);
+
+         bool BaerishRelation=pivotsdata.PivotsFourHourList[1].P<pivotsdata.PivotsFourHourList[2].P;
+         bool BullishRelation=pivotsdata.PivotsFourHourList[1].P>pivotsdata.PivotsFourHourList[2].P;
+
+         bool Inside=pivotsdata.PivotsFourHourList[1].TC<pivotsdata.PivotsFourHourList[2].TC&&pivotsdata.PivotsFourHourList[1].BC>pivotsdata.PivotsFourHourList[2].BC;
+
+         bool Engulfing=pivotsdata.PivotsFourHourList[1].TC>pivotsdata.PivotsFourHourList[2].TC&&pivotsdata.PivotsFourHourList[1].BC<pivotsdata.PivotsFourHourList[2].BC;
+
+         bool LargerRange=(pivotsdata.PivotsFourHourList[1].TC-pivotsdata.PivotsFourHourList[1].BC)>(pivotsdata.PivotsFourHourList[2].TC-pivotsdata.PivotsFourHourList[2].BC);
+
+         if(rates[0].close>=upperlevel&&uppervolume>=0.01&&upperrange>=100)
+         //if(Inside  &&  rates[0].close>=upperlevel   &&   rates[0].close<=upperlevel+(Point()*10)   /*&&   upperrange>=50*/   &&   uppervolume>=0.01   &&   upperrange>=MinPoints1)
+         {
+            //Print("Range: "+upperrange+" | Volume: "+uppervolume);
+            lasth4signal=endtime;
+            OpenSell(NULL,uppervolume,0,NULL,NULL,upperlevel+(upperlevel-centerlevel),centerlevel);
+         }
+
+         //if(rates[0].close<=lowerlevel&&lowervolume>=0.01)
+         //{
+         //   lasth4signal=endtime;
+         //   OpenBuy(NULL,lowervolume,0,lowerrange,lowerrange);
+         //}
+
+      }
+   }
+};
+
+
+class StrategyCSH4Reversal : public Strategy
+{
+public:
+   TypeCurrencyStrength CS[1];
+   bool tradesstarted;
+
+   StrategyCSH4Reversal()
+   {
+      CS[0].Init(
+         10,
+         10,
+         StringSubstr(Symbol(),6),
+         PERIOD_H4,
+         false,
+         pr_close
+         );
+   }
+
+   void Calculate()
+   {
+      MqlDateTime dtcurrent;
+      TimeCurrent(dtcurrent);
+      //if((dtcurrent.hour==3||dtcurrent.hour==7||dtcurrent.hour==11||dtcurrent.hour==15||dtcurrent.hour==19)&&dtcurrent.min==59)
+      if(dtcurrent.hour==11&&dtcurrent.min==59)
+      //if((dtcurrent.hour==11||dtcurrent.hour==15)&&dtcurrent.min==59)
+      //if(dtcurrent.min==59||dtcurrent.min==29)
+      //if(dtcurrent.min==59)
+      {
+         bool csok=CS_CalculateIndex(CS[0]);
+         if(dtcurrent.sec>=50&&csok&&!tradesstarted)
+         {
+            tradesstarted=true;
+            for(int z=0; z<4; z++)
+            {
+               if(CS[0].Currencies.Trade[z].buy)
+                  OpenSell(CS[0].Currencies.Trade[z].name);
+               else
+                  OpenBuy(CS[0].Currencies.Trade[z].name);
+            }
+         }
+      }
+      else
+         tradesstarted=false;
+   }
+
+   void IdleCalculate() {}
+};
+
+
+class StrategyTest1 : public Strategy
+{
+public:
+   void Calculate() {}
+
+   void IdleCalculate()
+   {
+       OpenBuy(NULL,0.01,0,0,400);
+       OpenSell(NULL,0.01,0,0,400);
+       return;
+
+      MqlRates rates[];
+      ArraySetAsSeries(rates,true); 
+      int copied=CopyRates(Symbol(),0,0,10,rates); 
+      if(copied==10)
+      {
+         MqlDateTime dtcurrent;
+         TimeToStruct(rates[0].time,dtcurrent);
+         if(dtcurrent.hour<8||dtcurrent.hour>18)
+            return;
+      
+         //if(rates[1].close>rates[1].open && rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open && rates[0].close<=rates[2].open)
+         //if(rates[1].close>rates[1].open && rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open)
+         double lastcandlehight=(rates[1].close-rates[1].open)/Point();
+         //if(rates[1].close>rates[1].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open && lastcandlehight>=30)
+         if(rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open)
+            OpenBuy(NULL,0.01,0,0,400);
+         if(rates[1].close<rates[2].open && rates[2].close>rates[2].open && rates[3].close>rates[3].open)
+            OpenSell(NULL,0.01,0,0,400);
+      }
+   }
+};
+
+
+Strategy* strats[];
