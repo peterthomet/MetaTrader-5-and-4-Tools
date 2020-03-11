@@ -16,6 +16,7 @@ enum Command
    PivotsH4,
    PivotsH1,
    ChandelierExit,
+   PivotChart,
    Murrey,
    ZigZag,
    Engulfing,
@@ -48,8 +49,8 @@ enum Command
    W1,
    MN
 };
-string CommandText[MN+1]={"Clean","PivotsY1","PivotsMN","PivotsW1","PivotsD1","PivotsH4","PivotsH1","Chandelier Exit","Murrey","ZigZag","Engulfing","Heiken Ashi","Line","Candles","+","-","<",">","M1","M2","M3","M4","M5","M6","M10","M12","M15","M20","M30","H1","H2","H3","H4","H6","H8","H12","D1","W1","MN"};
-int CommandPeriod[MN+1]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,PERIOD_M1,PERIOD_M2,PERIOD_M3,PERIOD_M4,PERIOD_M5,PERIOD_M6,PERIOD_M10,PERIOD_M12,PERIOD_M15,PERIOD_M20,PERIOD_M30,PERIOD_H1,PERIOD_H2,PERIOD_H3,PERIOD_H4,PERIOD_H6,PERIOD_H8,PERIOD_H12,PERIOD_D1,PERIOD_W1,PERIOD_MN1};
+string CommandText[MN+1]={"Clean","PivotsY1","PivotsMN","PivotsW1","PivotsD1","PivotsH4","PivotsH1","Chandelier Exit","Pivot Chart","Murrey","ZigZag","Engulfing","Heiken Ashi","Line","Candles","+","-","<",">","M1","M2","M3","M4","M5","M6","M10","M12","M15","M20","M30","H1","H2","H3","H4","H6","H8","H12","D1","W1","MN"};
+int CommandPeriod[MN+1]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,PERIOD_M1,PERIOD_M2,PERIOD_M3,PERIOD_M4,PERIOD_M5,PERIOD_M6,PERIOD_M10,PERIOD_M12,PERIOD_M15,PERIOD_M20,PERIOD_M30,PERIOD_H1,PERIOD_H2,PERIOD_H3,PERIOD_H4,PERIOD_H6,PERIOD_H8,PERIOD_H12,PERIOD_D1,PERIOD_W1,PERIOD_MN1};
 
 
 void OnInit()
@@ -97,6 +98,8 @@ void OnInit()
    CreateButton(455,105,PivotsH1);
 
    CreateButton(305,125,ChandelierExit);
+
+   CreateButton(305,145,PivotChart);
    
    ChartRedraw();
 }
@@ -174,6 +177,9 @@ void ExecuteCommand(int command)
          if(command==ChandelierExit)
             if(!hassubwindows)
                ChartApplyTemplate(chartid,"Forex Chandelier Exit.tpl");
+         if(command==PivotChart)
+            if(!hassubwindows)
+               ChartApplyTemplate(chartid,"Forex Pivot Chart.tpl");
          if(command==Murrey)
             if(!hassubwindows)
                ChartApplyTemplate(chartid,"Forex Murrey Math Small.tpl");
