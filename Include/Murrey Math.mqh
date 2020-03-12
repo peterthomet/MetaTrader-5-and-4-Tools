@@ -9,7 +9,7 @@
 
 struct TypeMurreyMath
 {
-   string namespace;
+   string appnamespace;
    ENUM_TIMEFRAMES timeframe;
    double Values[13];
    double lowprice;
@@ -28,7 +28,7 @@ struct TypeMurreyMath
 
    TypeMurreyMath()
    {
-      namespace="Murrey Math 1";
+      appnamespace="Murrey Math 1";
       timeframe=PERIOD_CURRENT;
       candles=64;
       startcandle=0;
@@ -193,11 +193,11 @@ struct TypeMurreyMath
    }
 
 
-   void Draw()
+   void Draw(bool notext=false)
    {
       int lines=13;
       string objname="";
-      string baseobjname=namespace+" "+IntegerToString(timeframe);
+      string baseobjname=appnamespace+" "+IntegerToString(timeframe);
 
       datetime drawendwindow;
       datetime drawend=iTime(NULL,0,0)+PeriodSeconds()*textshift;
@@ -234,7 +234,10 @@ struct TypeMurreyMath
             ObjectSetInteger(0,objname,OBJPROP_COLOR,Clolors[i]);
             ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,7);
             ObjectSetString(0,objname,OBJPROP_FONT,"Arial");
-            ObjectSetString(0,objname,OBJPROP_TEXT,Strings[i]);
+            string text=Strings[i];
+            if(notext)
+               text=" ";
+            ObjectSetString(0,objname,OBJPROP_TEXT,text);
             ObjectSetString(0,objname,OBJPROP_TOOLTIP,ToolTips[i]);
          }
          ObjectSetInteger(0,objname,OBJPROP_TIME,0,drawend);
@@ -256,7 +259,7 @@ struct TypeMurreyMath
 
    void Cleanup()
    {
-      ObjectsDeleteAll(0,namespace);
+      ObjectsDeleteAll(0,appnamespace);
    }
 };
 
