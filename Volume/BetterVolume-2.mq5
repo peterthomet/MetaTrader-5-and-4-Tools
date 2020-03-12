@@ -119,8 +119,8 @@ int OnCalculate(const int rates_total,
                 const double &High[],
                 const double &Low[],
                 const double &Close[],
-                const long &TickvolumeX[],
                 const long &Tickvolume[],
+                const long &TickvolumeX[],
                 const int &spread[])
 {
    double VolLowest, Range, Value2, Value3, HiValue2, HiValue3, LoValue3, tempv2, tempv3, tempv;
