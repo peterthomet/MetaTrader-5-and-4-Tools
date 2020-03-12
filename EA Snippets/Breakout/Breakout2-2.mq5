@@ -404,7 +404,7 @@ void OnTick() {
    }
    if(IsNewBar)
    {
-      PD.Calculate(New_Time[0]);
+      //PD.Calculate(New_Time[0]);
    }
 
    if ( PositionSelect(_Symbol) ) {

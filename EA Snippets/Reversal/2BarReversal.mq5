@@ -63,7 +63,7 @@ string pairs[]={"EURUSD","GBPJPY","GBPUSD","GBPCAD","GBPNZD","GBPAUD","GBPCHF"};
 
 int pairscount;
 
-string namespace="London Open EA";
+string appnamespace="London Open EA";
 
 
 int OnInit()
@@ -146,7 +146,7 @@ bool IsTradeOpen(TypePairInfo& pi)
       string symbol=PositionGetSymbol(i);
       long posmagic=PositionGetInteger(POSITION_MAGIC);
       //string poscomment=PositionGetString(POSITION_COMMENT);
-      //if(poscomment==(namespace+" "+pi.symbol))
+      //if(poscomment==(appnamespace+" "+pi.symbol))
       if(posmagic==MagicNumber&&symbol==pi.symbol)
       {
          _IsTradeOpen=true;
@@ -395,7 +395,7 @@ void CheckForOpen(TypePairInfo& pi)
       }
 
 
-      trade.PositionOpen(pi.symbol, type, volume, price, sl, tp, namespace+" "+pi.symbol);
+      trade.PositionOpen(pi.symbol, type, volume, price, sl, tp, appnamespace+" "+pi.symbol);
       //trade.PositionOpen(pi.symbol, type, volume, price, sl, tp);
       //trade.PositionOpen(pi.symbol, type, volume, price, NULL, NULL);
       

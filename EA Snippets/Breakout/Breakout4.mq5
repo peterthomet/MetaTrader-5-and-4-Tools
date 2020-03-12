@@ -48,6 +48,8 @@ struct TypeTradesinfo
 };
 TypeTradesinfo Tradesinfo;
 
+TypePivotsData pivotsdata;
+
 
 int OnInit() {
    if ( negatives < 0 ) {
@@ -67,6 +69,13 @@ int OnInit() {
    //}
    
    //MaHandle = iMA(NULL,0,50,0,MODE_SMA,PRICE_CLOSE);
+
+   pivotsdata.Settings.PivotTypeHour=NONE;
+   pivotsdata.Settings.PivotTypeFourHour=NONE;
+   pivotsdata.Settings.PivotTypeDay=PIVOT_TRADITIONAL;
+   pivotsdata.Settings.PivotTypeWeek=NONE;
+   pivotsdata.Settings.PivotTypeMonth=NONE;
+   pivotsdata.Settings.PivotTypeYear=NONE;
    
    return(0);
 }
@@ -360,8 +369,8 @@ void checkForOpen() {
 
    double p1=current[0].close+(_Point*5);
    double p2=current[0].close-(_Point*5);
-   bool isatS1=PivotsIsPivotRange(p1,p2,PD.PivotsDay,"S1");
-   bool isatR1=PivotsIsPivotRange(p1,p2,PD.PivotsDay,"R1");
+   bool isatS1=PivotsIsPivotRange(p1,p2,pivotsdata.PivotsDay,"S1");
+   bool isatR1=PivotsIsPivotRange(p1,p2,pivotsdata.PivotsDay,"R1");
 
    bool upbreakout=isatS1;
    bool downbreakout=isatR1;
@@ -497,7 +506,7 @@ void OnTick() {
    }
    if(IsNewBar)
    {
-      PD.Calculate(New_Time[0]);
+      pivotsdata.Calculate(New_Time[0]);
    }
 
    if ( PositionSelect(_Symbol) ) {

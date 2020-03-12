@@ -87,7 +87,7 @@ void Manage()
          for(int i=0; i<8; i++)
          {
             valstring+=",";
-            double value=CS[0].Currencies.Currency[i].index[bars-1]-CS[0].Currencies.Currency[i].index[bars-(1+barshift)];
+            double value=CS[0].Currencies.Currency[i].index[bars-1]-CS[0].Currencies.Currency[i].index[bars-(1+barshift)];  // Index bezieht sich auf letzte Bar!!!
             valstring+=DoubleToString(value*1000,0);
          }
 

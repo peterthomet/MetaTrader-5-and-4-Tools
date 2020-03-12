@@ -44,6 +44,7 @@ int                  negatives;
 int lastupday;
 int lastdownday;
 double lastpivotset;
+TypePivotsData pivotsdata;
 
 
 int OnInit() {
@@ -71,6 +72,13 @@ int OnInit() {
    //}
    
    //MaHandle = iMA(NULL,0,50,0,MODE_SMA,PRICE_CLOSE);
+
+   pivotsdata.Settings.PivotTypeHour=NONE;
+   pivotsdata.Settings.PivotTypeFourHour=NONE;
+   pivotsdata.Settings.PivotTypeDay=PIVOT_TRADITIONAL;
+   pivotsdata.Settings.PivotTypeWeek=NONE;
+   pivotsdata.Settings.PivotTypeMonth=NONE;
+   pivotsdata.Settings.PivotTypeYear=NONE;
    
    return(0);
 }
@@ -297,19 +305,19 @@ void checkForOpen() {
    return;
 
 
-   if(lastpivotset==PD.PivotsDay.P)
+   if(lastpivotset==pivotsdata.PivotsDay.P)
       return;
 
    ENUM_ORDER_TYPE type=ORDER_TYPE_SELL_LIMIT;
    double price=0, sl=0, tp=0, volume=0.1;
    CTrade trade;
    
-   sl=PD.PivotsDay.R1+(Point()*InpPivotOverShot)+(Point()*InpStopLoss);
-   tp=PD.PivotsDay.R1+(Point()*InpPivotOverShot)-(Point()*InpTakeProfit);
-   trade.SellLimit(volume,PD.PivotsDay.R1+(Point()*InpPivotOverShot),NULL,sl,tp);
+   sl=pivotsdata.PivotsDay.R1+(Point()*InpPivotOverShot)+(Point()*InpStopLoss);
+   tp=pivotsdata.PivotsDay.R1+(Point()*InpPivotOverShot)-(Point()*InpTakeProfit);
+   trade.SellLimit(volume,pivotsdata.PivotsDay.R1+(Point()*InpPivotOverShot),NULL,sl,tp);
 
 
-   lastpivotset=PD.PivotsDay.P;
+   lastpivotset=pivotsdata.PivotsDay.P;
    Print(lastpivotset);
    prevTime = curTime;
    return;
@@ -344,10 +352,10 @@ void checkForOpen() {
    bool downbreakout=current[0].low+(_Point*margin)<lowrange;
 
 
-   bool abovepivot=PivotsIsAbovePivot(current[0].close,PD.PivotsDay,"P");
-   if(upbreakout&&!PivotsIsAbovePivot(current[0].close,PD.PivotsDay,"P"))
+   bool abovepivot=PivotsIsAbovePivot(current[0].close,pivotsdata.PivotsDay,"P");
+   if(upbreakout&&!PivotsIsAbovePivot(current[0].close,pivotsdata.PivotsDay,"P"))
       return;
-   if(downbreakout&&PivotsIsAbovePivot(current[0].close,PD.PivotsDay,"P"))
+   if(downbreakout&&PivotsIsAbovePivot(current[0].close,pivotsdata.PivotsDay,"P"))
       return;
 
    //if((upbreakout&&lastupday==dt.day) || (downbreakout&&lastdownday==dt.day))
@@ -450,7 +458,7 @@ void OnTick() {
    }
    if(IsNewBar)
    {
-      PD.Calculate(New_Time[0]);
+      pivotsdata.Calculate(New_Time[0]);
    }
 
    if ( PositionSelect(_Symbol) ) {
