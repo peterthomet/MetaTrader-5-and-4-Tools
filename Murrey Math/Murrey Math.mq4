@@ -41,6 +41,7 @@ input int Width88=1;
 input int WidthPlus18=1;
 input int WidthPlus28=2;
 input int TextShift=20;
+input bool DisableText=false;
 input bool DebugMode=false;
 
 bool newbar=false;
@@ -53,7 +54,7 @@ TypeMurreyMath MM;
 
 int OnInit()
 {
-   MM.namespace=NameSpace;
+   MM.appnamespace=NameSpace;
    MM.timeframe=TimeFrame;
    MM.candles=ObserveCandles;
    MM.startcandle=CandlesBack;
@@ -141,7 +142,7 @@ void OnTimer()
 
       MM.startcandle=candlestart;
       MM.Calculate();
-      MM.Draw();
+      MM.Draw(DisableText);
          
       lastfirstbar=firstbar;
       newbar=false;
