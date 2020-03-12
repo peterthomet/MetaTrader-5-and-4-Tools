@@ -652,6 +652,17 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       {
          CrossHair=false;
          offset=0;
+
+         long chartid=ChartFirst();
+         while(chartid>-1)
+         {
+            if(chartid!=ChartID())
+            {
+               ObjectSetInteger(chartid,"CurrencyStrengthMouseMove",OBJPROP_TIME,TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*240));
+               ChartRedraw(chartid);
+            }
+            chartid=ChartNext(chartid);
+         }
       }
 
       if(CrossHair)
@@ -665,6 +676,17 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          {
             //PrintFormat("Window=%d X=%d  Y=%d  =>  Time=%s  Price=%G SParam=%s",window,x,y,TimeToString(dt),price,sparam);
             offset=BarIndexByTime(dt-(PeriodSeconds()/2));
+            
+            long chartid=ChartFirst();
+            while(chartid>-1)
+            {
+               if(chartid!=ChartID())
+               {
+                  ObjectSetInteger(chartid,"CurrencyStrengthMouseMove",OBJPROP_TIME,dt);
+                  ChartRedraw(chartid);
+               }
+               chartid=ChartNext(chartid);
+            }
          }
       }
       
