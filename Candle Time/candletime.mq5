@@ -41,6 +41,7 @@ void OnInit()
       ObjectCreate(0,idxLabel,OBJ_LABEL,0,0,0);
       ObjectSetInteger(0,idxLabel,OBJPROP_ANCHOR,pAnchor);
       ObjectSetInteger(0,idxLabel,OBJPROP_CORNER,pCorner);
+      ObjectSetInteger(0,idxLabel,OBJPROP_XDISTANCE,3);
    }
    ObjectSetInteger(0,idxLabel,OBJPROP_COLOR,lblColor);
    ObjectSetInteger(0,idxLabel,OBJPROP_FONTSIZE,fontSize);
