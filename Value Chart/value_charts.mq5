@@ -43,7 +43,7 @@ double _BValue;
 int lastalert = 0;
 datetime lastflag = 0;
 datetime lastmark = 0;
-string namespace = "ValueChart-";
+string appnamespace = "ValueChart-";
 //+------------------------------------------------------------------+
 //| Custom indicator initialization function                         |
 //+------------------------------------------------------------------+
@@ -191,27 +191,27 @@ int OnCalculate(const int rates_total,
 //+------------------------------------------------------------------+
 void Trace(string name,int sens,double price,datetime time,color couleur)
   {
-   ObjectCreate(0,namespace+name,OBJ_ARROW,0,time,price);
+   ObjectCreate(0,appnamespace+name,OBJ_ARROW,0,time,price);
    if(sens==1)
-      ObjectSetInteger(0,namespace+name,OBJPROP_ARROWCODE,233);
+      ObjectSetInteger(0,appnamespace+name,OBJPROP_ARROWCODE,233);
    if(sens==-1)
-      ObjectSetInteger(0,namespace+name,OBJPROP_ARROWCODE,234);
-   ObjectSetInteger(0,namespace+name,OBJPROP_COLOR,couleur);
-   ObjectSetInteger(0,namespace+name,OBJPROP_WIDTH,Arrow_Width);
+      ObjectSetInteger(0,appnamespace+name,OBJPROP_ARROWCODE,234);
+   ObjectSetInteger(0,appnamespace+name,OBJPROP_COLOR,couleur);
+   ObjectSetInteger(0,appnamespace+name,OBJPROP_WIDTH,Arrow_Width);
   }
 //+------------------------------------------------------------------+
 //|   Delete Arrow Function                                          |
 //+------------------------------------------------------------------+  
 void ClearMyObjects()
 {
-   ObjectsDeleteAll(0,namespace);
+   ObjectsDeleteAll(0,appnamespace);
 }
 //+------------------------------------------------------------------+
 
 
 void ResetColorFlag(bool init=false)
 {
-   string on = namespace + "Flag";
+   string on = appnamespace + "Flag";
    if(ObjectFind(0,on)==0)
    {
       int timediff=(int)TimeCurrent()-(int)lastflag;
@@ -227,7 +227,7 @@ void ResetColorFlag(bool init=false)
 
 void SetColorFlag()
 {
-   string on = namespace + "Flag";
+   string on = appnamespace + "Flag";
    ObjectCreate(0,on,OBJ_RECTANGLE_LABEL,0,0,0);
    ObjectSetInteger(0,on,OBJPROP_XDISTANCE,0);
    ObjectSetInteger(0,on,OBJPROP_YDISTANCE,15);
