@@ -7,7 +7,7 @@ Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute 
 ## Trade Manager Keys
 
 
-<<Ctrl>> Activates and Deactivates the Command Mode
+### <Ctrl> Activates and Deactivates the Command Mode
 
    Keys in Command Mode:
    
