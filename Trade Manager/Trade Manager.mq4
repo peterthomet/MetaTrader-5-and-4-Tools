@@ -1791,7 +1791,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             _OpenLots=MathMax(_OpenLots-0.01,0.01);
          if (lparam == 190)
             _OpenLots+=0.01;
-         if (lparam == 219)
+         if (lparam == 65)
          {
             double breach=0+(SymbolCommissionPoints()+(1*pipsfactor));
             if(_StopLossPips==DISABLEDPOINTS)
@@ -1804,7 +1804,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             }
             DrawLevels();
          }
-         if (lparam == 221)
+         if (lparam == 83)
          {
             double breach=0+(SymbolCommissionPoints()+(1*pipsfactor));
             if(_StopLossPips==DISABLEDPOINTS)
@@ -1812,7 +1812,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             _StopLossPips+=(0.1*pipsfactor);
             DrawLevels();
          }
-         if (lparam == 186)
+         if (lparam == 68)
          {
             double breach=0-(SymbolCommissionPoints()-(1*pipsfactor));
             if(_TakeProfitPips==DISABLEDPOINTS)
@@ -1825,7 +1825,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             }
             DrawLevels();
          }
-         if (lparam == 192)
+         if (lparam == 70)
          {
             double breach=0-(SymbolCommissionPoints()-(1*pipsfactor));
             if(_TakeProfitPips==DISABLEDPOINTS)
@@ -1840,7 +1840,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
       if(tradelevelsvisible)
       {
-         if (lparam == 219)
+         if (lparam == 65)
          {
             double breach=0-(WS.tradereference[selectedtradeindex].points-(1*pipsfactor));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
@@ -1853,7 +1853,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             }
             DrawSelectedTradeLevels();
          }
-         if (lparam == 221)
+         if (lparam == 83)
          {
             double breach=0-(WS.tradereference[selectedtradeindex].points-(1*pipsfactor));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
@@ -1861,7 +1861,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             WS.tradereference[selectedtradeindex].stoplosspips+=(0.1*pipsfactor);
             DrawSelectedTradeLevels();
          }
-         if (lparam == 186)
+         if (lparam == 68)
          {
             double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
@@ -1874,7 +1874,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             }
             DrawSelectedTradeLevels();
          }
-         if (lparam == 192)
+         if (lparam == 70)
          {
             double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
@@ -1882,9 +1882,9 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             WS.tradereference[selectedtradeindex].takeprofitpips+=(0.1*pipsfactor);
             DrawSelectedTradeLevels();
          }
-         if (lparam == 220)
+         if (lparam == 71)
             NextTradeLevels(true);
-         if (lparam == 223)
+         if (lparam == 72)
             NextTradeLevels();
 
       }
