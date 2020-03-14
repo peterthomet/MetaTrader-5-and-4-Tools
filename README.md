@@ -11,8 +11,8 @@ Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute 
 
    Keys in Command Mode:
    
-   - *\<1\>* Open a Buy Trade
-   - *\<3\>* Open a Sell Trade
+   - **\<1\>** Open a Buy Trade
+   - **\<3\>** Open a Sell Trade
    <5> Activate/Deactivate Hard Single Break Even Mode
    <6> Activate/Deactivate Soft Basket Break Even Mode
    <8> Activate/Deactivate Close Basket at Break Even
