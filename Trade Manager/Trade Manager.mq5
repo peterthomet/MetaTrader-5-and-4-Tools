@@ -136,6 +136,8 @@ bool _TradingHours[24];
 bool ctrlon;
 bool tradelevelsvisible;
 int selectedtradeindex;
+uint repeatlasttick=0;
+int repeatcount=0;
 const double DISABLEDPOINTS=1000000;
 
 enum BEStopModes
@@ -1754,8 +1756,19 @@ bool IsAutoTradingEnabled()
 }
 
 
-//static datetime lastctrl=0;
-//static bool ctrlon=false;
+int ExtendedRepeatingFactor()
+{
+   int factor=1;
+   if(GetTickCount()-repeatlasttick<=200)
+      repeatcount++;
+   else
+      repeatcount=0;
+   factor=1+(int)MathFloor(repeatcount/4);
+   repeatlasttick=GetTickCount();
+   return factor;
+}
+
+
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
    if(id==CHARTEVENT_OBJECT_CLICK)
@@ -1774,6 +1787,8 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       //if(TimeLocal()-lastctrl<2)
       if(ctrlon)
       {
+         double margin=(2*pipsfactor)+(int)MathRound((AskX()-BidX())/Point());
+
          //lastctrl=TimeLocal();
          if (lparam == 49)
             OpenBuy();
@@ -1793,10 +1808,10 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             _OpenLots+=0.01;
          if (lparam == 65)
          {
-            double breach=0+(SymbolCommissionPoints()+(1*pipsfactor));
+            double breach=0+(SymbolCommissionPoints()+margin);
             if(_StopLossPips==DISABLEDPOINTS)
                return;
-            _StopLossPips=MathMax(_StopLossPips-(0.1*pipsfactor),breach);
+            _StopLossPips=MathMax(_StopLossPips-((0.1*ExtendedRepeatingFactor())*pipsfactor),breach);
             if(_StopLossPips==breach)
             {
                _StopLossPips=DISABLEDPOINTS;
@@ -1806,18 +1821,18 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 83)
          {
-            double breach=0+(SymbolCommissionPoints()+(1*pipsfactor));
+            double breach=0+(SymbolCommissionPoints()+margin);
             if(_StopLossPips==DISABLEDPOINTS)
                _StopLossPips=breach;
-            _StopLossPips+=(0.1*pipsfactor);
+            _StopLossPips+=((0.1*ExtendedRepeatingFactor())*pipsfactor);
             DrawLevels();
          }
          if (lparam == 68)
          {
-            double breach=0-(SymbolCommissionPoints()-(1*pipsfactor));
+            double breach=0-(SymbolCommissionPoints()-margin);
             if(_TakeProfitPips==DISABLEDPOINTS)
                return;
-            _TakeProfitPips=MathMax(_TakeProfitPips-(0.1*pipsfactor),breach);
+            _TakeProfitPips=MathMax(_TakeProfitPips-((0.1*ExtendedRepeatingFactor())*pipsfactor),breach);
             if(_TakeProfitPips==breach)
             {
                _TakeProfitPips=DISABLEDPOINTS;
@@ -1827,10 +1842,10 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 70)
          {
-            double breach=0-(SymbolCommissionPoints()-(1*pipsfactor));
+            double breach=0-(SymbolCommissionPoints()-margin);
             if(_TakeProfitPips==DISABLEDPOINTS)
                _TakeProfitPips=breach;
-            _TakeProfitPips+=(0.1*pipsfactor);
+            _TakeProfitPips+=((0.1*ExtendedRepeatingFactor())*pipsfactor);
             DrawLevels();
          }
       }
@@ -1845,7 +1860,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             double breach=0-(WS.tradereference[selectedtradeindex].points-(1*pipsfactor));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
                return;
-            WS.tradereference[selectedtradeindex].stoplosspips=MathMax(WS.tradereference[selectedtradeindex].stoplosspips-(0.1*pipsfactor),breach);
+            WS.tradereference[selectedtradeindex].stoplosspips=MathMax(WS.tradereference[selectedtradeindex].stoplosspips-((0.1*ExtendedRepeatingFactor())*pipsfactor),breach);
             if(WS.tradereference[selectedtradeindex].stoplosspips==breach)
             {
                WS.tradereference[selectedtradeindex].stoplosspips=DISABLEDPOINTS;
@@ -1858,7 +1873,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             double breach=0-(WS.tradereference[selectedtradeindex].points-(1*pipsfactor));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
                WS.tradereference[selectedtradeindex].stoplosspips=breach;
-            WS.tradereference[selectedtradeindex].stoplosspips+=(0.1*pipsfactor);
+            WS.tradereference[selectedtradeindex].stoplosspips+=((0.1*ExtendedRepeatingFactor())*pipsfactor);
             DrawSelectedTradeLevels();
          }
          if (lparam == 68)
@@ -1866,7 +1881,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
                return;
-            WS.tradereference[selectedtradeindex].takeprofitpips=MathMax(WS.tradereference[selectedtradeindex].takeprofitpips-(0.1*pipsfactor),breach);
+            WS.tradereference[selectedtradeindex].takeprofitpips=MathMax(WS.tradereference[selectedtradeindex].takeprofitpips-((0.1*ExtendedRepeatingFactor())*pipsfactor),breach);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==breach)
             {
                WS.tradereference[selectedtradeindex].takeprofitpips=DISABLEDPOINTS;
@@ -1879,7 +1894,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
                WS.tradereference[selectedtradeindex].takeprofitpips=breach;
-            WS.tradereference[selectedtradeindex].takeprofitpips+=(0.1*pipsfactor);
+            WS.tradereference[selectedtradeindex].takeprofitpips+=((0.1*ExtendedRepeatingFactor())*pipsfactor);
             DrawSelectedTradeLevels();
          }
          if (lparam == 71)
