@@ -82,6 +82,7 @@ input int BackgroundPanelWidth = 200;
 input color BackgroundPanelColor = clrNONE;
 input bool MT5CommissionPerDeal = true;
 input double CommissionPerLotPerRoundtrip = 7;
+input int AvailableTradingCapital = 0;
 input int StartHour = 0;
 input int StartMinute = 0;
 input int MinPoints1 = 0;
@@ -995,7 +996,10 @@ void DisplayText()
       }
       if(risk!=0)
       {
-         CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,2)+" | "+DoubleToString(riskpercent,2)+"%");
+         string riskpercenttradingcapital="";
+         if(AvailableTradingCapital>AccountBalanceX())
+            riskpercenttradingcapital=" | "+DoubleToString(risk/(AvailableTradingCapital/100),2)+"%";
+         CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,2)+" | "+DoubleToString(riskpercent,2)+"%"+riskpercenttradingcapital);
          rowindex++;
       }
    }
@@ -1016,7 +1020,10 @@ void DisplayText()
       }
       if(reward!=0)
       {
-         CreateLabel(rowindex,FontSize,c,"Reward: "+DoubleToString(reward,2)+" | "+DoubleToString(rewardpercent,2)+"%");
+         string rewardpercenttradingcapital="";
+         if(AvailableTradingCapital>AccountBalanceX())
+            rewardpercenttradingcapital=" | "+DoubleToString(reward/(AvailableTradingCapital/100),2)+"%";
+         CreateLabel(rowindex,FontSize,c,"Reward: "+DoubleToString(reward,2)+" | "+DoubleToString(rewardpercent,2)+"%"+rewardpercenttradingcapital);
          rowindex++;
       }
    }
