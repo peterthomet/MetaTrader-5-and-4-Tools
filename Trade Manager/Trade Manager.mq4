@@ -414,8 +414,11 @@ void OnInit()
    }
 
    ArrayResize(strats,1);
-   strats[0]=new StrategyPivotsH4FibonacciR1S1Reversal;
+
+   strats[0]=new StrategyOutOfTheBox;
+   //strats[0]=new StrategyPivotsH4FibonacciR1S1Reversal;
    //strats[0]=new StrategyLittleDD;
+
 }
 
 
@@ -978,30 +981,44 @@ void DisplayText()
    if(_StopLossPips!=DISABLEDPOINTS||tradelevelsvisible)
    {
       color c=TextColor;
-      double risk=((_StopLossPips*_OpenLots*tickvalue))/(AccountBalanceX()/100);
+      double risk=_StopLossPips*_OpenLots*tickvalue;
+      double riskpercent=risk/(AccountBalanceX()/100);
       if(tradelevelsvisible)
       {
          c=DodgerBlue;
          risk=0;
          if(WS.tradereference[selectedtradeindex].stoplosspips!=DISABLEDPOINTS)
-            risk=((WS.tradereference[selectedtradeindex].stoplosspips*WS.tradereference[selectedtradeindex].volume*tickvalue))/(AccountBalanceX()/100);
+         {
+            risk=WS.tradereference[selectedtradeindex].stoplosspips*WS.tradereference[selectedtradeindex].volume*tickvalue;
+            riskpercent=risk/(AccountBalanceX()/100);
+         }
       }
-      CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,2));
-      rowindex++;
+      if(risk!=0)
+      {
+         CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,2)+" | "+DoubleToString(riskpercent,2)+"%");
+         rowindex++;
+      }
    }
    if(_TakeProfitPips!=DISABLEDPOINTS||tradelevelsvisible)
    {
       color c=TextColor;
-      double reward=((_TakeProfitPips*_OpenLots*tickvalue))/(AccountBalanceX()/100);
+      double reward=_TakeProfitPips*_OpenLots*tickvalue;
+      double rewardpercent=reward/(AccountBalanceX()/100);
       if(tradelevelsvisible)
       {
          c=DodgerBlue;
          reward=0;
          if(WS.tradereference[selectedtradeindex].takeprofitpips!=DISABLEDPOINTS)
-            reward=((WS.tradereference[selectedtradeindex].takeprofitpips*WS.tradereference[selectedtradeindex].volume*tickvalue))/(AccountBalanceX()/100);
+         {
+            reward=WS.tradereference[selectedtradeindex].takeprofitpips*WS.tradereference[selectedtradeindex].volume*tickvalue;
+            rewardpercent=reward/(AccountBalanceX()/100);
+         }
       }
-      CreateLabel(rowindex,FontSize,c,"Reward: "+DoubleToString(reward,2));
-      rowindex++;
+      if(reward!=0)
+      {
+         CreateLabel(rowindex,FontSize,c,"Reward: "+DoubleToString(reward,2)+" | "+DoubleToString(rewardpercent,2)+"%");
+         rowindex++;
+      }
    }
 
    if(BI.managedorders!=0)
@@ -1855,9 +1872,11 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
       if(tradelevelsvisible)
       {
+         double margin=(5*pipsfactor)+(int)MathRound((AskX()-BidX())/Point());
+
          if (lparam == 65)
          {
-            double breach=0-(WS.tradereference[selectedtradeindex].points-(1*pipsfactor));
+            double breach=0-(WS.tradereference[selectedtradeindex].points-(margin));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
                return;
             WS.tradereference[selectedtradeindex].stoplosspips=MathMax(WS.tradereference[selectedtradeindex].stoplosspips-((0.1*ExtendedRepeatingFactor())*pipsfactor),breach);
@@ -1870,7 +1889,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 83)
          {
-            double breach=0-(WS.tradereference[selectedtradeindex].points-(1*pipsfactor));
+            double breach=0-(WS.tradereference[selectedtradeindex].points-(margin));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
                WS.tradereference[selectedtradeindex].stoplosspips=breach;
             WS.tradereference[selectedtradeindex].stoplosspips+=((0.1*ExtendedRepeatingFactor())*pipsfactor);
@@ -1878,7 +1897,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 68)
          {
-            double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
+            double breach=WS.tradereference[selectedtradeindex].points+(margin);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
                return;
             WS.tradereference[selectedtradeindex].takeprofitpips=MathMax(WS.tradereference[selectedtradeindex].takeprofitpips-((0.1*ExtendedRepeatingFactor())*pipsfactor),breach);
@@ -1891,7 +1910,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 70)
          {
-            double breach=WS.tradereference[selectedtradeindex].points+(1*pipsfactor);
+            double breach=WS.tradereference[selectedtradeindex].points+(margin);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
                WS.tradereference[selectedtradeindex].takeprofitpips=breach;
             WS.tradereference[selectedtradeindex].takeprofitpips+=((0.1*ExtendedRepeatingFactor())*pipsfactor);
@@ -2242,10 +2261,101 @@ public:
 };
 
 
+class StrategyOutOfTheBox : public Strategy
+{
+public:
+
+   datetime lastsignal;
+
+   StrategyOutOfTheBox()
+   {
+      lastsignal=0;
+   }
+   
+   void Calculate()
+   {
+   
+   }
+
+   void IdleCalculate()
+   {
+      int startboxhour=9;
+      int endboxhour=12;
+
+      MqlDateTime dtcurrent;
+      TimeCurrent(dtcurrent);
+      if(dtcurrent.min!=0 ||
+         (dtcurrent.hour<=endboxhour && dtcurrent.hour>=startboxhour)
+      )
+         return;
+
+      MqlRates rates[];
+      ArraySetAsSeries(rates,true);
+      int bars=20;
+      int copied=CopyRates(Symbol(),PERIOD_H1,0,bars,rates); 
+      if(copied==bars)
+      {
+         double boxhigh=0;
+         double boxlow=DBL_MAX;
+         double maxgapclose=0;
+         double mingapclose=DBL_MAX;
+         
+         bool boxfound=false;
+
+         for(int i=2; i<bars; i++)
+         {
+            if(rates[i].time<=lastsignal)
+               break;
+
+            MqlDateTime dtbar;
+            TimeToStruct(rates[i].time,dtbar);
+            
+            if(dtbar.hour<=endboxhour&&dtbar.hour>=startboxhour)
+            {
+               boxhigh=MathMax(boxhigh,rates[i].high);
+               boxlow=MathMin(boxlow,rates[i].low);
+            }
+            else
+            {
+               maxgapclose=MathMax(maxgapclose,rates[i].close);
+               mingapclose=MathMin(mingapclose,rates[i].close);
+            }
+
+            if(dtbar.hour==startboxhour)
+            {
+               boxfound=true;
+               break;
+            }
+         }
+         
+         if(boxfound &&
+            rates[1].close>boxhigh &&
+            maxgapclose<boxhigh
+         )
+         {
+            lastsignal=rates[0].time;
+            OpenBuy(NULL,0.01,0,NULL,NULL,boxlow,NormalizeDouble(boxhigh+((boxhigh-boxlow)/2),Digits()));
+         }
+         
+      }
+
+   }
+};
+
+
 class StrategyLittleDD : public Strategy
 {
 public:
-   void Calculate() {}
+
+   StrategyLittleDD()
+   {
+   
+   }
+
+   void Calculate()
+   {
+   
+   }
 
    void IdleCalculate()
    {
