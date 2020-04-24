@@ -7,11 +7,11 @@ Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute 
 ## Trade Manager Keys
 
 
-### <kbd>Ctrl</kbd> Activates and Deactivates the Command Mode
+### <code>Ctrl</code> Activates and Deactivates the Command Mode
 
    Keys in Command Mode:
    
-   **<kbd>1</kbd>** Open a Buy Trade<br>
+   **<code>1</code>** Open a Buy Trade<br>
    **<kbd>3</kbd>** Open a Sell Trade<br>
    **<kbd>5</kbd>** Activate/Deactivate Hard Single Break Even Mode<br>
    **<kbd>6</kbd>** Activate/Deactivate Soft Basket Break Even Mode<br>
