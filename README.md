@@ -1,3 +1,90 @@
+kbd {
+  font-family: Consolas, "Lucida Console", monospace;
+  display: inline-block;
+  border-radius: 3px;
+  padding: 0px 4px;
+  box-shadow: 1px 1px 1px #777;
+  margin: 2px;
+  font-size: small;
+  vertical-align: text-bottom;
+  background: #eee;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  font-variant: small-caps;
+  font-weight: 600;
+
+  /* This two work */
+  /* letter-spacing: 0.5px; */
+  letter-spacing: 1px;
+
+
+  /* Prevent selection */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+kbd:hover, kbd:hover * {
+  color: black;
+  /* box-shadow: 1px 1px 1px #333; */
+}
+kbd:active, kbd:active * {
+  color: black;
+  box-shadow: 1px 1px 0px #ddd inset;
+}
+
+kbd kbd {
+  padding: 0px;
+  margin: 0 1px;
+  box-shadow: 0px 0px 0px black;
+  vertical-align: baseline;
+  background: none;
+}
+
+kbd kbd:hover {
+  box-shadow: 0px 0px 0px black;
+}
+
+kbd:active kbd {
+  box-shadow: 0px 0px 0px black;
+  background: none;
+}
+
+/* Deep blue */
+kbd.deep-blue, .deep-blue kbd {
+  background: steelblue;
+  color: #eee;
+}
+
+kbd.deep-blue:hover, kbd.deep-blue:hover *, .deep-blue kbd:hover {
+  color: white;
+}
+
+/* Dark apple */
+kbd.dark-apple, .dark-apple kbd {
+  background: black;
+  color: #ddd;
+}
+
+kbd.dark-apple:hover, kbd.dark-apple:hover *, .dark-apple kbd:hover {
+  color: white;
+}
+
+/* Type writer */
+kbd.type-writer, .type-writer kbd {
+  border-radius: 10px;
+  background: #333;
+  color: white;
+}
+
+
+
+
+
 # Indicators and EA Snippets for MetaTrader 5 and 4
 Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute improvements and let me know your ideas.
 
