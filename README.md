@@ -12,27 +12,27 @@ Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute 
    Keys in Command Mode:
    
    **<code>1</code>** Open a Buy Trade<br>
-   **<kbd>3</kbd>** Open a Sell Trade<br>
-   **<kbd>5</kbd>** Activate/Deactivate Hard Single Break Even Mode<br>
-   **<kbd>6</kbd>** Activate/Deactivate Soft Basket Break Even Mode<br>
-   **<kbd>8</kbd>** Activate/Deactivate Close Basket at Break Even<br>
-   **<kbd>0</kbd>** Close all Trades<br>
-   **<kbd>,</kbd>** Decrease Trade Volume<br>
-   **<kbd>.</kbd>** Increase Trade Volume<br>
-   **<kbd>A</kbd>** Decrease Stop Loss<br>
-   **<kbd>S</kbd>** Increase Stop Loss<br>
-   **<kbd>D</kbd>** Decrease Take Profit<br>
-   **<kbd>F</kbd>** Increase Take Profit<br>
+   **<code>3</code>** Open a Sell Trade<br>
+   **<code>5</code>** Activate/Deactivate Hard Single Break Even Mode<br>
+   **<code>6</code>** Activate/Deactivate Soft Basket Break Even Mode<br>
+   **<code>8</code>** Activate/Deactivate Close Basket at Break Even<br>
+   **<code>0</code>** Close all Trades<br>
+   **<code>,</code>** Decrease Trade Volume<br>
+   **<code>.</code>** Increase Trade Volume<br>
+   **<code>A</code>** Decrease Stop Loss<br>
+   **<code>S</code>** Increase Stop Loss<br>
+   **<code>D</code>** Decrease Take Profit<br>
+   **<code>F</code>** Increase Take Profit<br>
    
    
-### <kbd>Shift</kbd> Activates and Deactivates the Single Trade Management Mode
+### <code>Shift</code> Activates and Deactivates the Single Trade Management Mode
 
    Keys in Single Trade Management Mode:
 
-   **<kbd>A</kbd>** Decrease Stop Loss<br>
-   **<kbd>S</kbd>** Increase Stop Loss<br>
-   **<kbd>D</kbd>** Decrease Take Profit<br>
-   **<kbd>F</kbd>** Increase Take Profit<br>
-   **<kbd>G</kbd>** Activate Previous Trade<br>
-   **<kbd>H</kbd>** Activate Next Trade<br>
+   **<code>A</code>** Decrease Stop Loss<br>
+   **<code>S</code>** Increase Stop Loss<br>
+   **<code>D</code>** Decrease Take Profit<br>
+   **<code>F</code>** Increase Take Profit<br>
+   **<code>G</code>** Activate Previous Trade<br>
+   **<code>H</code>** Activate Next Trade<br>
 
