@@ -416,8 +416,8 @@ void OnInit()
 
    ArrayResize(strats,1);
 
-   strats[0]=new StrategyOutOfTheBox;
-   //strats[0]=new StrategyPivotsH4FibonacciR1S1Reversal;
+   //strats[0]=new StrategyOutOfTheBox;
+   strats[0]=new StrategyPivotsH4FibonacciR1S1Reversal;
    //strats[0]=new StrategyLittleDD;
 
 }
@@ -1827,9 +1827,9 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          if (lparam == 53)
             SetHardStopMode();
          if (lparam == 188)
-            _OpenLots=MathMax(_OpenLots-0.01,0.01);
+            _OpenLots=MathMax(_OpenLots-(0.01*ExtendedRepeatingFactor()),0.01);
          if (lparam == 190)
-            _OpenLots+=0.01;
+            _OpenLots+=(0.01*ExtendedRepeatingFactor());
          if (lparam == 65)
          {
             double breach=0+(SymbolCommissionPoints()+margin);
