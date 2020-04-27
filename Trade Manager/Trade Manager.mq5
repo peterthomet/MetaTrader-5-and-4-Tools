@@ -45,7 +45,7 @@ enum TypeInstance
    Instance9=9
 };
 
-enum TypeStopLossPercentBalanceAction
+enum TypeStopLossPercentTradingCapitalAction
 {
    CloseWorstTrade,
    CloseAllTrades
@@ -61,9 +61,9 @@ input double StopLossPips = 0;
 input bool HedgeAtStopLoss = false;
 input double HedgeVolumeFactor = 1;
 input double HedgeFlatAtLevel = 5;
-input double TakeProfitPercentBalance = 0;
-input double StopLossPercentBalance = 0;
-input TypeStopLossPercentBalanceAction StopLossPercentBalanceAction = CloseWorstTrade;
+input double TakeProfitPercentTradingCapital = 0;
+input double StopLossPercentTradingCapital = 0;
+input TypeStopLossPercentTradingCapitalAction StopLossPercentTradingCapitalAction = CloseWorstTrade;
 input bool ActivateTrailing = false;
 input double TrailingFactor = 0.6;
 input double OpenLots = 0.01;
@@ -869,11 +869,11 @@ void ManageBasket()
       }
    }
 
-   if(StopLossPercentBalance>0)
+   if(StopLossPercentTradingCapital>0)
    {
-      if((BI.gain)+((AccountBalanceX()/100)*StopLossPercentBalance)<=0)
+      if((BI.gain)+((MathMax(AccountBalanceX(),AvailableTradingCapital)/100)*StopLossPercentTradingCapital)<=0)
       {
-         if(StopLossPercentBalanceAction==CloseWorstTrade)
+         if(StopLossPercentTradingCapitalAction==CloseWorstTrade)
          {
             if(OrderSelectX(BI.largestlossindex)&&IsAutoTradingEnabled())
             {
@@ -882,7 +882,7 @@ void ManageBasket()
                }
             }
          }
-         else if(StopLossPercentBalanceAction==CloseAllTrades)
+         else if(StopLossPercentTradingCapitalAction==CloseAllTrades)
          {
             closeall=true;
          }
@@ -892,7 +892,7 @@ void ManageBasket()
    if(ActivateTrailing&&_StartTrailingPips>0&&BI.gainpipsglobal>=_StartTrailingPips)
       WS.TrailingActivated=true;
 
-   if(TakeProfitPercentBalance>0&&WS.globalgain/(AccountBalanceX()/100)>=TakeProfitPercentBalance)
+   if(TakeProfitPercentTradingCapital>0&&WS.globalgain/(MathMax(AccountBalanceX(),AvailableTradingCapital)/100)>=TakeProfitPercentTradingCapital)
       closeall=true;
 
    if(WS.TrailingActivated&&WS.globalgain<=GetTrailingLimit())
@@ -1045,7 +1045,10 @@ void DisplayText()
       CreateLabel(rowindex,FontSize,TextColor,"Pips: "+DoubleToString(BI.gainpipsglobal/pipsfactor,1));
       rowindex++;
    
-      CreateLabel(rowindex,FontSize,TextColor,"Percent: "+DoubleToString(WS.globalgain/(AccountBalanceX()/100),1));
+      string performancepercenttradingcapital="";
+      if(AvailableTradingCapital>AccountBalanceX())
+         performancepercenttradingcapital=" | "+DoubleToString(WS.globalgain/(AvailableTradingCapital/100),2)+"%";
+      CreateLabel(rowindex,FontSize,TextColor,"Performance: "+DoubleToString(WS.globalgain/(AccountBalanceX()/100),2)+"%"+performancepercenttradingcapital);
       rowindex++;
    
       color gaincolor=MediumSeaGreen;
