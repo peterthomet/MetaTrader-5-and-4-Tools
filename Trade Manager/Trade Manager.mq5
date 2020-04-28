@@ -64,6 +64,7 @@ input double HedgeFlatAtLevel = 5;
 input double TakeProfitPercentTradingCapital = 0;
 input double StopLossPercentTradingCapital = 0;
 input TypeStopLossPercentTradingCapitalAction StopLossPercentTradingCapitalAction = CloseWorstTrade;
+input bool CloseTradesBeforeMidnight = false;
 input bool ActivateTrailing = false;
 input double TrailingFactor = 0.6;
 input double OpenLots = 0.01;
@@ -910,6 +911,14 @@ void ManageBasket()
    if(WS.SoftBEStopLocked&&BI.gainpipsglobal<_AboveBEPips)
       closeall=true;
 
+   if(CloseTradesBeforeMidnight)
+   {
+      MqlDateTime tc;
+      TimeCurrent(tc);
+      if(tc.hour==23)
+         closeall=true;
+   }
+
    if(closeall)
       CloseAllInternal();
       
@@ -964,6 +973,12 @@ void DisplayText()
       stopmodetext="Soft Basket Break Even Mode";
    CreateLabel(rowindex,FontSize,TextColor,stopmodetext);
    rowindex++;
+
+   if(CloseTradesBeforeMidnight)
+   {
+      CreateLabel(rowindex,FontSize,TextColor,"Closing all Trades at 23:00");
+      rowindex++;
+   }
 
    CreateLabel(rowindex,FontSize,TextColor,"Balance: "+DoubleToString(AccountBalanceX(),0));
    rowindex++;
