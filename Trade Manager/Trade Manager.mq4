@@ -989,14 +989,17 @@ void DisplayText()
    CreateLabel(rowindex,FontSize,TextColor,"Leverage: "+IntegerToString(AccountInfoInteger(ACCOUNT_LEVERAGE)));
    rowindex++;
 
-   CreateLabel(rowindex,FontSize,TextColor,"Open Volume: "+DoubleToString(_OpenLots,2));
-   rowindex++;
+   if(ctrlon)
+   {
+      CreateLabel(rowindex,FontSize,DodgerBlue,"Open Volume: "+DoubleToString(_OpenLots,2));
+      rowindex++;
+   }
 
    double tickvalue=CurrentSymbolTickValue();
    int spreadpoints=(int)MathRound((AskX()-BidX())/Point());
-   if(_StopLossPips!=DISABLEDPOINTS||tradelevelsvisible)
+   if((_StopLossPips!=DISABLEDPOINTS&&ctrlon)||tradelevelsvisible)
    {
-      color c=TextColor;
+      color c=DodgerBlue;
       double risk=_StopLossPips*_OpenLots*tickvalue;
       double riskpercent=risk/(AccountBalanceX()/100);
       if(tradelevelsvisible)
@@ -1018,9 +1021,9 @@ void DisplayText()
          rowindex++;
       }
    }
-   if(_TakeProfitPips!=DISABLEDPOINTS||tradelevelsvisible)
+   if((_TakeProfitPips!=DISABLEDPOINTS&&ctrlon)||tradelevelsvisible)
    {
-      color c=TextColor;
+      color c=DodgerBlue;
       double reward=_TakeProfitPips*_OpenLots*tickvalue;
       double rewardpercent=reward/(AccountBalanceX()/100);
       if(tradelevelsvisible)
