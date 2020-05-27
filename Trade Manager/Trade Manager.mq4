@@ -158,6 +158,7 @@ struct TypeTradeInfo
    double points;
    double commissionpoints;
    double gain;
+   double tickvalue;
    long magicnumber;
    long orderticket;
    TypeTradeInfo()
@@ -169,6 +170,7 @@ struct TypeTradeInfo
       points=0;
       commissionpoints=0;
       gain=0;
+      tickvalue=0;
       magicnumber=0;
       orderticket=0;
    }
@@ -179,6 +181,7 @@ struct TypeTradeReference
    long magicnumber;
    double points;
    double gain;
+   double tickvalue;
    double stoplosspips;
    double stoplosslevel;
    double takeprofitpips;
@@ -194,6 +197,7 @@ struct TypeTradeReference
       magicnumber=0;
       points=0;
       gain=0;
+      tickvalue=0;
       stoplosspips=DISABLEDPOINTS;
       stoplosslevel=0;
       takeprofitpips=DISABLEDPOINTS;
@@ -759,6 +763,7 @@ bool ManageOrders()
             ti.points=gainpips;
             ti.commissionpoints=NormalizeDouble((OrderCommissionSwap()/ti.volume)/tickvalue,0);
             ti.gain=gain;
+            ti.tickvalue=tickvalue;
             ti.magicnumber=OrderMagicNumberX();
             ti.orderticket=OrderTicketX();
             AddTrade(BI.pairsintrades[pidx],BI.pairsintrades[pidx].tradeinfo,ti);
@@ -872,7 +877,7 @@ void ManageBasket()
 
    if(StopLossPercentTradingCapital>0)
    {
-      if((BI.gain)+((MathMax(AccountBalanceX(),AvailableTradingCapital)/100)*StopLossPercentTradingCapital)<=0)
+      if((WS.globalgain)+((MathMax(AccountBalanceX(),AvailableTradingCapital)/100)*StopLossPercentTradingCapital)<=0)
       {
          if(StopLossPercentTradingCapitalAction==CloseWorstTrade)
          {
@@ -1068,25 +1073,49 @@ void DisplayText()
          performancepercenttradingcapital=" | "+DoubleToString(WS.globalgain/(AvailableTradingCapital/100),2)+"%";
       CreateLabel(rowindex,FontSize,TextColor,"Performance: "+DoubleToString(WS.globalgain/(AccountBalanceX()/100),2)+"%"+performancepercenttradingcapital);
       rowindex++;
-   
-      color gaincolor=MediumSeaGreen;
-      double gain=BI.gain;
-      if(tradelevelsvisible)
-         gain=WS.tradereference[selectedtradeindex].gain;
-      if(gain<0)
-         gaincolor=DeepPink;
-      CreateLabel(rowindex,(int)MathFloor(FontSize*2.3),gaincolor,DoubleToString(gain,2));
-      rowindex++;
-      rowindex++;
-      
-      double globalgain=NormalizeDouble(WS.globalgain,2);
-      if(globalgain!=NormalizeDouble(BI.gain,2))
+
+      if(!WS.TrailingActivated&&!WS.ManualBEStopLocked&&!WS.SoftBEStopLocked)
       {
-         color closedlossescolor=MediumSeaGreen;
-         double gaintotal=globalgain;
-         if(gaintotal<0)
-            closedlossescolor=DeepPink;
-         CreateLabel(rowindex,FontSize,closedlossescolor,DoubleToString(gaintotal,2));
+         double totalrisk=0;
+         int asize=ArraySize(WS.tradereference);
+         for(int i=0; i<asize; i++)
+         {
+            if(TimeLocal()-WS.tradereference[i].lastupdate<2)
+            {
+               if(WS.tradereference[i].stoplosspips!=DISABLEDPOINTS)
+                  totalrisk+=WS.tradereference[i].stoplosspips*WS.tradereference[i].volume*WS.tradereference[i].tickvalue;
+               else
+               {
+                  totalrisk=DBL_MAX;
+                  break;
+               }
+            }
+         }
+
+         if(StopLossPercentTradingCapital>0)
+         {
+            double ptcrisk=(MathMax(AccountBalanceX(),AvailableTradingCapital)/100)*StopLossPercentTradingCapital;
+            totalrisk=MathMin(ptcrisk,totalrisk);
+         }
+
+         color c=DeepPink;
+         string risktext="Risk Unlimited";
+         if(totalrisk!=DBL_MAX)
+         {
+            risktext="At Risk: ";
+            totalrisk-=(WS.globalgain-BI.gain);
+            if(totalrisk<=0)
+            {
+               totalrisk=0-totalrisk;
+               c=MediumSeaGreen;
+               risktext="Locked: ";
+            }
+            string riskpercenttradingcapital="";
+            if(AvailableTradingCapital>AccountBalanceX())
+               riskpercenttradingcapital=" | "+DoubleToString(totalrisk/(AvailableTradingCapital/100),2)+"%";
+            risktext+=DoubleToString(totalrisk,2)+" | "+DoubleToString(totalrisk/(AccountBalanceX()/100),2)+"%"+riskpercenttradingcapital;
+         }
+         CreateLabel(rowindex,FontSize,c,risktext);
          rowindex++;
       }
    
@@ -1114,6 +1143,27 @@ void DisplayText()
             CreateLabel(rowindex,FontSize,MediumSeaGreen,"Basket Break Even Stop Locked");
             rowindex++;
          }
+      }
+
+      color gaincolor=MediumSeaGreen;
+      double gain=BI.gain;
+      if(tradelevelsvisible)
+         gain=WS.tradereference[selectedtradeindex].gain;
+      if(gain<0)
+         gaincolor=DeepPink;
+      CreateLabel(rowindex,(int)MathFloor(FontSize*2.3),gaincolor,DoubleToString(gain,2));
+      rowindex++;
+      rowindex++;
+      
+      double globalgain=NormalizeDouble(WS.globalgain,2);
+      if(globalgain!=NormalizeDouble(BI.gain,2))
+      {
+         color closedlossescolor=MediumSeaGreen;
+         double gaintotal=globalgain;
+         if(gaintotal<0)
+            closedlossescolor=DeepPink;
+         CreateLabel(rowindex,FontSize,closedlossescolor,DoubleToString(gaintotal,2));
+         rowindex++;
       }
    
       int asize=ArraySize(BI.pairsintrades);
@@ -1627,6 +1677,7 @@ void UpdateTradeReference(TypePairsTradesInfo& piti, TypeTradeInfo& tiin)
    if(index==-1)
       index=NewTradeReference(tiin.magicnumber,false);
    WS.tradereference[index].gain=tiin.gain;
+   WS.tradereference[index].tickvalue=tiin.tickvalue;
    WS.tradereference[index].points=tiin.points;
    WS.tradereference[index].openprice=tiin.openprice;
    WS.tradereference[index].pair=piti.pair;
@@ -1683,6 +1734,7 @@ void AddTrade(TypePairsTradesInfo& piti, TypeTradeInfo& ti[], TypeTradeInfo& tii
    ti[asize].openprice=tiin.openprice;
    ti[asize].points=tiin.points;
    ti[asize].gain=tiin.gain;
+   ti[asize].tickvalue=tiin.tickvalue;
    ti[asize].magicnumber=tiin.magicnumber;
    ti[asize].orderticket=tiin.orderticket;
 }
