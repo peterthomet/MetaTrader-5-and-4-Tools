@@ -53,8 +53,8 @@ enum TypeStopLossPercentTradingCapitalAction
 
 input TypeInstance Instance = 1;
 input TypeAutomation Automation = NoAutomation;
-input double BreakEvenAfterPips = 4;
-input double AboveBEPips = 0;
+input double BreakEvenAfterPips = 5;
+input double AboveBEPips = 1;
 input double StartTrailingPips = 7;
 input double TakeProfitPips = 0;
 input double StopLossPips = 0;
@@ -63,7 +63,7 @@ input double HedgeVolumeFactor = 1;
 input double HedgeFlatAtLevel = 5;
 input double TakeProfitPercentTradingCapital = 0;
 input double StopLossPercentTradingCapital = 0;
-input TypeStopLossPercentTradingCapitalAction StopLossPercentTradingCapitalAction = CloseWorstTrade;
+input TypeStopLossPercentTradingCapitalAction StopLossPercentTradingCapitalAction = CloseAllTrades;
 input bool CloseTradesBeforeMidnight = false;
 input bool ActivateTrailing = false;
 input double TrailingFactor = 0.6;
@@ -79,7 +79,7 @@ input int ManageOrderNumberOnly = 0;
 input bool SwitchSymbolClickAllCharts = true;
 input bool DrawLevelsAllCharts = true;
 input bool DrawBackgroundPanel = true;
-input int BackgroundPanelWidth = 200;
+input int BackgroundPanelWidth = 250;
 input color BackgroundPanelColor = clrNONE;
 input bool MT5CommissionPerDeal = true;
 input double CommissionPerLotPerRoundtrip = 7;
@@ -140,6 +140,8 @@ bool tradelevelsvisible;
 int selectedtradeindex;
 uint repeatlasttick=0;
 int repeatcount=0;
+double atr;
+int atrday;
 const double DISABLEDPOINTS=1000000;
 
 enum BEStopModes
@@ -324,6 +326,9 @@ TypeBasketInfo BI;
 
 void OnInit()
 {
+   atr=0;
+   atrday=-1;
+
    ctrlon=false;
    tradelevelsvisible=false;
 
@@ -1007,6 +1012,7 @@ void DisplayText()
       color c=DodgerBlue;
       double risk=_StopLossPips*_OpenLots*tickvalue;
       double riskpercent=risk/(AccountBalanceX()/100);
+      double atrfactor=_StopLossPips/(ATR()/Point());
       if(tradelevelsvisible)
       {
          c=DodgerBlue;
@@ -1015,6 +1021,7 @@ void DisplayText()
          {
             risk=WS.tradereference[selectedtradeindex].stoplosspips*WS.tradereference[selectedtradeindex].volume*tickvalue;
             riskpercent=risk/(AccountBalanceX()/100);
+            atrfactor=WS.tradereference[selectedtradeindex].stoplosspips/(ATR()/Point());
          }
       }
       if(risk!=0)
@@ -1022,7 +1029,7 @@ void DisplayText()
          string riskpercenttradingcapital="";
          if(AvailableTradingCapital>AccountBalanceX())
             riskpercenttradingcapital=" | "+DoubleToString(risk/(AvailableTradingCapital/100),2)+"%";
-         CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,2)+" | "+DoubleToString(riskpercent,2)+"%"+riskpercenttradingcapital);
+         CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,2)+" | "+DoubleToString(riskpercent,2)+"%"+riskpercenttradingcapital+" | "+DoubleToString(atrfactor,2)+"ATR");
          rowindex++;
       }
    }
@@ -2309,6 +2316,28 @@ void SetOrderSL(double sl)
    CTrade trade;
    SetLastErrorBool(trade.PositionModify(OrderTicketX(),sl,OrderTakeProfitX()));
 #endif
+}
+
+
+double ATR()
+{
+   MqlDateTime dtcurrent;
+   TimeCurrent(dtcurrent);
+   if(dtcurrent.day!=atrday)
+   {
+      MqlRates rates[];
+      int bars=16;
+      int copied=CopyRates(Symbol(),PERIOD_D1,0,bars,rates);
+      if(copied==bars)
+      {
+         atr=0;
+         for(int k=1; k<=14; k++)
+            atr += MathMax(rates[k].high,rates[k-1].close)-MathMin(rates[k].low,rates[k-1].close);
+         atr/=(double)14;
+         atrday=dtcurrent.day;
+      }
+   }
+   return atr;
 }
 
 
