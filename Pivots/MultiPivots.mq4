@@ -1,5 +1,5 @@
 //
-// MultiPivots.mq4
+// MultiPivots.mq5/mq4
 // Copyright 2020, getYourNet IT Services
 // http://www.getyournet.ch |
 //
@@ -14,31 +14,31 @@
 
 #include <MultiPivots.mqh>
 
-input color colorPivot=PaleGoldenrod;    // Color Pivot
-input color colorS1=LightPink;    // Color S1
-input color colorR1=LightPink;    // Color R1
-input color colorS2=LightBlue;    // Color S2
-input color colorR2=LightBlue;    // Color R2
-input color colorS3=LightGray;    // Color S3
-input color colorR3=LightGray;    // Color R3
-input color colorS4=LightGray;    // Color S4
-input color colorR4=LightGray;    // Color R4
-input color colorS5=LightGray;    // Color S5
-input color colorR5=LightGray;    // Color R5
+input color colorPivot=C'250,250,250';    // Color Pivot
+input color colorS1=MistyRose;    // Color S1
+input color colorR1=MistyRose;    // Color R1
+input color colorS2=C'220,233,255';    // Color S2
+input color colorR2=C'220,233,255';    // Color R2
+input color colorS3=clrNONE;    // Color S3
+input color colorR3=clrNONE;    // Color R3
+input color colorS4=clrNONE;    // Color S4
+input color colorR4=clrNONE;    // Color R4
+input color colorS5=clrNONE;    // Color S5
+input color colorR5=clrNONE;    // Color R5
 input color colormidpoints=WhiteSmoke;    // Color Mid-Points
 
-input TypePivotsType PivotTypeHour=PIVOT_TRADITIONAL;    // Pivot Type Hour
-input TypePivotsType PivotTypeFourHour=PIVOT_TRADITIONAL;    // Pivot Type Four Hour
-input TypePivotsType PivotTypeDay=PIVOT_TRADITIONAL;    // Pivot Type Day
-input TypePivotsType PivotTypeWeek=PIVOT_TRADITIONAL;    // Pivot Type Week
-input TypePivotsType PivotTypeMonth=PIVOT_TRADITIONAL;    // Pivot Type Month
-input TypePivotsType PivotTypeYear=PIVOT_TRADITIONAL;    // Pivot Type Year
-input bool PivotTypeHourMidPoints=true;    // Pivot Hour Show Mid-Points
-input bool PivotTypeFourHourMidPoints=true;    // Pivot Four Hour Show Mid-Points
-input bool PivotTypeDayMidPoints=true;    // Pivot Day Show Mid-Points
-input bool PivotTypeWeekMidPoints=true;    // Pivot Week Show Mid-Points
-input bool PivotTypeMonthMidPoints=true;    // Pivot Month Show Mid-Points
-input bool PivotTypeYearMidPoints=true;    // Pivot Year Show Mid-Points
+input TypePivotsType PivotTypeHour=NONE;    // Pivot Type Hour
+input TypePivotsType PivotTypeFourHour=NONE;    // Pivot Type Four Hour
+input TypePivotsType PivotTypeDay=NONE;    // Pivot Type Day
+input TypePivotsType PivotTypeWeek=NONE;    // Pivot Type Week
+input TypePivotsType PivotTypeMonth=NONE;    // Pivot Type Month
+input TypePivotsType PivotTypeYear=NONE;    // Pivot Type Year
+input bool PivotTypeHourMidPoints=false;    // Pivot Hour Show Mid-Points
+input bool PivotTypeFourHourMidPoints=false;    // Pivot Four Hour Show Mid-Points
+input bool PivotTypeDayMidPoints=false;    // Pivot Day Show Mid-Points
+input bool PivotTypeWeekMidPoints=false;    // Pivot Week Show Mid-Points
+input bool PivotTypeMonthMidPoints=false;    // Pivot Month Show Mid-Points
+input bool PivotTypeYearMidPoints=false;    // Pivot Year Show Mid-Points
 
 input ENUM_LINE_STYLE LineStyleHour=STYLE_SOLID;    // Line Style Hour
 input ENUM_LINE_STYLE LineStyleFourHour=STYLE_SOLID;    // Line Style Four Hour
@@ -46,6 +46,11 @@ input ENUM_LINE_STYLE LineStyleDay=STYLE_SOLID;    // Line Style Day
 input ENUM_LINE_STYLE LineStyleWeek=STYLE_SOLID;    // Line Style Week
 input ENUM_LINE_STYLE LineStyleMonth=STYLE_SOLID;    // Line Style Month
 input ENUM_LINE_STYLE LineStyleYear=STYLE_SOLID;    // Line Style Year
+
+input bool DrawPivotRanges=true;    // Draw Pivot Ranges
+input color PivotRangesColor=C'250,250,250';    // Pivot Ranges Color
+input bool DrawPivotTrendLines=true;    // Draw Pivot Trend Lines
+input color PivotTrendLinesColor=Gainsboro;    // Pivot Trend Lines Color
 
 string short_name="MultiPivots";
 bool newbar=false;
@@ -57,7 +62,9 @@ TypePivotsData pivotsdata;
 
 void OnInit()
 {
-   pivotsdata.Settings.draw=true;
+#ifdef __MQL5__
+   pivotsdata.Settings.draw=PlotIndexGetInteger(0,PLOT_SHOW_DATA);
+#endif
    pivotsdata.Settings.objectnamespace=short_name;
    pivotsdata.Settings.colorPivot=colorPivot;
    pivotsdata.Settings.colorS1=colorS1;
@@ -89,6 +96,10 @@ void OnInit()
    pivotsdata.Settings.LineStyleWeek=LineStyleWeek;
    pivotsdata.Settings.LineStyleMonth=LineStyleMonth;
    pivotsdata.Settings.LineStyleYear=LineStyleYear;
+   pivotsdata.Settings.drawpivotrange=DrawPivotRanges;
+   pivotsdata.Settings.pivotrangecolor=PivotRangesColor;
+   pivotsdata.Settings.drawpivottrendlines=DrawPivotTrendLines;
+   pivotsdata.Settings.pivottrendlinescolor=PivotTrendLinesColor;
    
    istesting=MQLInfoInteger(MQL_TESTER);
    EventSetTimer(1);
@@ -153,5 +164,37 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       else
          firstbar=0;
    }
+
+#ifdef __MQL5__
+   if(id==CHARTEVENT_KEYDOWN)
+   {
+      if (ctrl_pressed == false && lparam == 17)
+      {
+         ctrl_pressed = true;
+      }
+      else if (ctrl_pressed == true)
+      {
+         if (lparam == 52)
+         {
+            if(!PlotIndexGetInteger(0,PLOT_SHOW_DATA))
+            {
+               PlotIndexSetInteger(0,PLOT_SHOW_DATA,true);
+               pivotsdata.Settings.draw=true;
+               pivotsdata.Settings.Init();
+               newbar=true;
+            }
+            else
+            {
+               PlotIndexSetInteger(0,PLOT_SHOW_DATA,false);
+               pivotsdata.Settings.draw=false;
+               pivotsdata.Settings.Init();
+               newbar=true;
+            }
+            ctrl_pressed = false;
+         }
+      }
+   }
+#endif
+
 }
 

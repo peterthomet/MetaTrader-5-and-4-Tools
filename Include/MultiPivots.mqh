@@ -69,40 +69,44 @@ struct TypePivotsSettings
    datetime weekstarttime;
    bool draw;
    bool drawpivotrange;
+   color pivotrangecolor;
    bool drawpivottrendlines;
+   color pivottrendlinescolor;
    string symbol;
    TypePivotsSettings()
    {
       currenth1time=0; lasth1time=0; currenth4time=0; lasth4time=0; currentdaytime=0; lastdaytime=0; currentweektime=0; lastweektime=0; currentmonthtime=0; lastmonthtime=0; currentyeartime=0; lastyeartime=0; weekdaystart=-1; dayhourstart=-1; weekstarttime=0;
       draw=true;
       drawpivotrange=true;
+      pivotrangecolor=C'250,250,250';
       drawpivottrendlines=true;
+      pivottrendlinescolor=Gainsboro;
       symbol=_Symbol;
       objectnamespace="MultiPivots";
-      colorPivot=PaleGoldenrod;
-      colorS1=LightPink;
-      colorR1=LightPink;
-      colorS2=LightBlue;
-      colorR2=LightBlue;
-      colorS3=LightGray;
-      colorR3=LightGray;
-      colorS4=LightGray;
-      colorR4=LightGray;
-      colorS5=LightGray;
-      colorR5=LightGray;
+      colorPivot=C'250,250,250';
+      colorS1=MistyRose;
+      colorR1=MistyRose;
+      colorS2=C'220,233,255';
+      colorR2=C'220,233,255';
+      colorS3=clrNONE;
+      colorR3=clrNONE;
+      colorS4=clrNONE;
+      colorR4=clrNONE;
+      colorS5=clrNONE;
+      colorR5=clrNONE;
       colormidpoints=WhiteSmoke;
-      PivotTypeHour=PIVOT_TRADITIONAL;
-      PivotTypeFourHour=PIVOT_TRADITIONAL;
-      PivotTypeDay=PIVOT_TRADITIONAL;
-      PivotTypeWeek=PIVOT_TRADITIONAL;
-      PivotTypeMonth=PIVOT_TRADITIONAL;
-      PivotTypeYear=PIVOT_TRADITIONAL;
-      PivotTypeHourMidPoints=true;
-      PivotTypeFourHourMidPoints=true;
-      PivotTypeDayMidPoints=true;
-      PivotTypeWeekMidPoints=true;
-      PivotTypeMonthMidPoints=true;
-      PivotTypeYearMidPoints=true;
+      PivotTypeHour=NONE;
+      PivotTypeFourHour=NONE;
+      PivotTypeDay=NONE;
+      PivotTypeWeek=NONE;
+      PivotTypeMonth=NONE;
+      PivotTypeYear=NONE;
+      PivotTypeHourMidPoints=false;
+      PivotTypeFourHourMidPoints=false;
+      PivotTypeDayMidPoints=false;
+      PivotTypeWeekMidPoints=false;
+      PivotTypeMonthMidPoints=false;
+      PivotTypeYearMidPoints=false;
       LineStyleHour=STYLE_SOLID;
       LineStyleFourHour=STYLE_SOLID;
       LineStyleDay=STYLE_SOLID;
@@ -331,7 +335,7 @@ void PivotsDrawPivots(TypePivotsData& PD, TypePivotsType type, TypePivots& p[], 
    {
       //PivotsCreateLine(PD,p[i].times,p[i].TC,PD.Settings.colorPivot,"TC",type);
       //PivotsCreateLine(PD,p[i].times,p[i].BC,PD.Settings.colorPivot,"BC",type);
-      PivotsCreateRectangle(PD,p[i].times,p[i].TC,p[i].BC,PD.Settings.colorPivot,"TC-BC",type);
+      PivotsCreateRectangle(PD,p[i].times,p[i].TC,p[i].BC,PD.Settings.pivotrangecolor,"TC-BC",type);
    }
    PivotsCreateLine(PD,p[i].times,p[i].S1,PD.Settings.colorS1,"S1",type);
    PivotsCreateLine(PD,p[i].times,p[i].R1,PD.Settings.colorR1,"R1",type);
@@ -355,7 +359,7 @@ void PivotsDrawPivots(TypePivotsData& PD, TypePivotsType type, TypePivots& p[], 
       TypePivotsTimeRange t=p[i].times;
       t.enddisplay=p[i-1].times.startdisplay;
       //PivotsCreateLine(PD,t,p[i].BC,p[i-1].BC,Gray,"T-BC",type,2,1,true);
-      PivotsCreateLine(PD,t,p[i].P,p[i-1].P,Gray,"T-P",type,2,1,true);
+      PivotsCreateLine(PD,t,p[i].P,p[i-1].P,PD.Settings.pivottrendlinescolor,"T-P",type,2,1,true);
       //PivotsCreateLine(PD,t,p[i].TC,p[i-1].TC,Gray,"T-TC",type,2,1,true);
    }
 }
