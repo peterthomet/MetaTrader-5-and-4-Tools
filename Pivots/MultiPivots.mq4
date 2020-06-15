@@ -14,6 +14,7 @@
 
 #include <MultiPivots.mqh>
 
+input string AppNamespace="MultiPivots1";    // Application Namespace
 input color colorPivot=C'250,250,250';    // Color Pivot
 input color colorS1=MistyRose;    // Color S1
 input color colorR1=MistyRose;    // Color R1
@@ -52,7 +53,6 @@ input color PivotRangesColor=C'250,250,250';    // Pivot Ranges Color
 input bool DrawPivotTrendLines=true;    // Draw Pivot Trend Lines
 input color PivotTrendLinesColor=Gainsboro;    // Pivot Trend Lines Color
 
-string short_name="MultiPivots";
 bool newbar=false;
 long firstbar=0;
 long lastfirstbar=-1;
@@ -62,10 +62,8 @@ TypePivotsData pivotsdata;
 
 void OnInit()
 {
-#ifdef __MQL5__
-   pivotsdata.Settings.draw=PlotIndexGetInteger(0,PLOT_SHOW_DATA);
-#endif
-   pivotsdata.Settings.objectnamespace=short_name;
+   pivotsdata.Settings.draw=((int)GlobalVariableGet(AppNamespace+IntegerToString(ChartID())+"_Draw")>=0);
+   pivotsdata.Settings.objectnamespace=AppNamespace+"-1";
    pivotsdata.Settings.colorPivot=colorPivot;
    pivotsdata.Settings.colorS1=colorS1;
    pivotsdata.Settings.colorR1=colorR1;
@@ -110,6 +108,11 @@ void OnDeinit(const int reason)
 {
    EventKillTimer();
    PivotsDeleteObjects(pivotsdata);
+
+   int draw=1;
+   if(!pivotsdata.Settings.draw)
+      draw=-1;
+   GlobalVariableSet(AppNamespace+IntegerToString(ChartID())+"_Draw",draw);
 }
 
   
@@ -164,8 +167,6 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       else
          firstbar=0;
    }
-
-#ifdef __MQL5__
    if(id==CHARTEVENT_KEYDOWN)
    {
       if (ctrl_pressed == false && lparam == 17)
@@ -176,25 +177,12 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       {
          if (lparam == 52)
          {
-            if(!PlotIndexGetInteger(0,PLOT_SHOW_DATA))
-            {
-               PlotIndexSetInteger(0,PLOT_SHOW_DATA,true);
-               pivotsdata.Settings.draw=true;
-               pivotsdata.Settings.Init();
-               newbar=true;
-            }
-            else
-            {
-               PlotIndexSetInteger(0,PLOT_SHOW_DATA,false);
-               pivotsdata.Settings.draw=false;
-               pivotsdata.Settings.Init();
-               newbar=true;
-            }
+            pivotsdata.Settings.draw=!pivotsdata.Settings.draw;
+            pivotsdata.Settings.Init();
+            newbar=true;
             ctrl_pressed = false;
          }
       }
    }
-#endif
-
 }
 
