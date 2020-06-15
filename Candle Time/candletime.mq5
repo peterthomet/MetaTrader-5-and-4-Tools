@@ -16,13 +16,14 @@
 
 string idxLabel="lblNextCandle";
 
-input color lblColor=clrMediumSeaGreen; // Color of the label
-input int fontSize=10; // Size of the label font
+input color lblColor=DarkGray; // Color of the label
+input int fontSize=7; // Size of the label font
 input ENUM_ANCHOR_POINT pAnchor = ANCHOR_LEFT_LOWER; // Anchor of the label a sort of align
-input bool nextToPrice = true; // Position near the price close (else to anchor)
+input bool nextToPrice = false; // Position near the price close (else to anchor)
 input ENUM_BASE_CORNER pCorner = CORNER_LEFT_LOWER; // Corner position of the label
 input string fontFamily = "Arial"; // Font family of the label
 input bool clocktime = true; // Show clock time
+input int window = 0; // Window
 
 datetime time0 = NULL;
 double close0 = NULL;
@@ -38,7 +39,7 @@ void OnInit()
    }
    else
    {
-      ObjectCreate(0,idxLabel,OBJ_LABEL,0,0,0);
+      ObjectCreate(0,idxLabel,OBJ_LABEL,window,0,0);
       ObjectSetInteger(0,idxLabel,OBJPROP_ANCHOR,pAnchor);
       ObjectSetInteger(0,idxLabel,OBJPROP_CORNER,pCorner);
       ObjectSetInteger(0,idxLabel,OBJPROP_XDISTANCE,3);
@@ -94,7 +95,7 @@ void Calculate()
    int tS,iS,iM,iH;
    string sS,sM,sH;
 
-   tS=(int) time0+PeriodSeconds() -(int) TimeTradeServer();
+   tS=(int) time0+PeriodSeconds() -(int) TimeCurrent();
 
    if(lastseconds==tS)
       return;
