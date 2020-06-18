@@ -279,6 +279,11 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                for(int e=1; e<=cs.smalength; e++)
                   smasum+=cs.Currencies.Currency[z].indexbasic[y-(e-1)];
                cs.Currencies.Currency[z].index[y]=smasum/cs.smalength;
+               
+               //double smasum2=0;
+               //for(int e=1; e<=5; e++)
+               //   smasum2+=cs.Currencies.Currency[z].indexbasic[y-(e-1)];
+               //cs.Currencies.Currency[z].index[y]=(smasum2/5)-(smasum/cs.smalength);
             }
 
             if(y==(cs.bars-1))

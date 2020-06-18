@@ -659,6 +659,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             if(chartid!=ChartID())
             {
                ObjectSetInteger(chartid,"CurrencyStrengthMouseMove",OBJPROP_TIME,TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*240));
+               ObjectSetDouble(chartid,"CurrencyStrengthMouseMovePrice",OBJPROP_PRICE,0);
                ChartRedraw(chartid);
             }
             chartid=ChartNext(chartid);
@@ -683,6 +684,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
                if(chartid!=ChartID())
                {
                   ObjectSetInteger(chartid,"CurrencyStrengthMouseMove",OBJPROP_TIME,dt);
+                  ObjectSetDouble(chartid,"CurrencyStrengthMouseMovePrice",OBJPROP_PRICE,price);
                   ChartRedraw(chartid);
                }
                chartid=ChartNext(chartid);
