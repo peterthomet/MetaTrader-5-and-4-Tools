@@ -1487,6 +1487,7 @@ void DeleteLevels()
          {
             ObjectsDeleteAll(chartid,appnamespace+"Level");
             ObjectsDeleteAll(chartid,appnamespace+"Rectangle");
+            ChartRedraw(chartid);
          }
          chartid=ChartNext(chartid);
       }
