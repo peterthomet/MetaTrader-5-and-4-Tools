@@ -16,6 +16,8 @@
 
 input string AppNamespace="MultiPivots1";    // Application Namespace
 input color colorPivot=C'250,250,250';    // Color Pivot
+input color colorPivotRange=C'250,250,250';    // Color Pivot Range
+input color colorPivotTrendLine=Gainsboro;    // Color Pivot Trend Line
 input color colorS1=MistyRose;    // Color S1
 input color colorR1=MistyRose;    // Color R1
 input color colorS2=C'220,233,255';    // Color S2
@@ -47,11 +49,6 @@ input ENUM_LINE_STYLE LineStyleDay=STYLE_SOLID;    // Line Style Day
 input ENUM_LINE_STYLE LineStyleWeek=STYLE_SOLID;    // Line Style Week
 input ENUM_LINE_STYLE LineStyleMonth=STYLE_SOLID;    // Line Style Month
 input ENUM_LINE_STYLE LineStyleYear=STYLE_SOLID;    // Line Style Year
-
-input bool DrawPivotRanges=true;    // Draw Pivot Ranges
-input color PivotRangesColor=C'250,250,250';    // Pivot Ranges Color
-input bool DrawPivotTrendLines=true;    // Draw Pivot Trend Lines
-input color PivotTrendLinesColor=Gainsboro;    // Pivot Trend Lines Color
 
 bool newbar=false;
 long firstbar=0;
@@ -94,10 +91,8 @@ void OnInit()
    pivotsdata.Settings.LineStyleWeek=LineStyleWeek;
    pivotsdata.Settings.LineStyleMonth=LineStyleMonth;
    pivotsdata.Settings.LineStyleYear=LineStyleYear;
-   pivotsdata.Settings.drawpivotrange=DrawPivotRanges;
-   pivotsdata.Settings.pivotrangecolor=PivotRangesColor;
-   pivotsdata.Settings.drawpivottrendlines=DrawPivotTrendLines;
-   pivotsdata.Settings.pivottrendlinescolor=PivotTrendLinesColor;
+   pivotsdata.Settings.pivotrangecolor=colorPivotRange;
+   pivotsdata.Settings.pivottrendlinescolor=colorPivotTrendLine;
    
    istesting=MQLInfoInteger(MQL_TESTER);
    EventSetTimer(1);

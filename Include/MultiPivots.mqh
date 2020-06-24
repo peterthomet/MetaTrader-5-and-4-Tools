@@ -68,18 +68,14 @@ struct TypePivotsSettings
    int dayhourstart;
    datetime weekstarttime;
    bool draw;
-   bool drawpivotrange;
    color pivotrangecolor;
-   bool drawpivottrendlines;
    color pivottrendlinescolor;
    string symbol;
    TypePivotsSettings()
    {
       currenth1time=0; lasth1time=0; currenth4time=0; lasth4time=0; currentdaytime=0; lastdaytime=0; currentweektime=0; lastweektime=0; currentmonthtime=0; lastmonthtime=0; currentyeartime=0; lastyeartime=0; weekdaystart=-1; dayhourstart=-1; weekstarttime=0;
       draw=true;
-      drawpivotrange=true;
       pivotrangecolor=C'250,250,250';
-      drawpivottrendlines=true;
       pivottrendlinescolor=Gainsboro;
       symbol=_Symbol;
       objectnamespace="MultiPivots";
@@ -330,23 +326,34 @@ void PivotsDrawPivots(TypePivotsData& PD, TypePivotsType type, TypePivots& p[], 
    if(!PD.Settings.draw)
       return;
 
-   PivotsCreateLine(PD,p[i].times,p[i].P,PD.Settings.colorPivot,"PP",type);
-   if(PD.Settings.drawpivotrange)
+   if(PD.Settings.colorPivot!=clrNONE)
+      PivotsCreateLine(PD,p[i].times,p[i].P,PD.Settings.colorPivot,"PP",type);
+   if(PD.Settings.pivotrangecolor!=clrNONE)
    {
       //PivotsCreateLine(PD,p[i].times,p[i].TC,PD.Settings.colorPivot,"TC",type);
       //PivotsCreateLine(PD,p[i].times,p[i].BC,PD.Settings.colorPivot,"BC",type);
       PivotsCreateRectangle(PD,p[i].times,p[i].TC,p[i].BC,PD.Settings.pivotrangecolor,"TC-BC",type);
    }
-   PivotsCreateLine(PD,p[i].times,p[i].S1,PD.Settings.colorS1,"S1",type);
-   PivotsCreateLine(PD,p[i].times,p[i].R1,PD.Settings.colorR1,"R1",type);
-   PivotsCreateLine(PD,p[i].times,p[i].S2,PD.Settings.colorS2,"S2",type);
-   PivotsCreateLine(PD,p[i].times,p[i].R2,PD.Settings.colorR2,"R2",type);
-   PivotsCreateLine(PD,p[i].times,p[i].S3,PD.Settings.colorS3,"S3",type);
-   PivotsCreateLine(PD,p[i].times,p[i].R3,PD.Settings.colorR3,"R3",type);
-   PivotsCreateLine(PD,p[i].times,p[i].S4,PD.Settings.colorS4,"S4",type);
-   PivotsCreateLine(PD,p[i].times,p[i].R4,PD.Settings.colorR4,"R4",type);
-   PivotsCreateLine(PD,p[i].times,p[i].S5,PD.Settings.colorS5,"S5",type);
-   PivotsCreateLine(PD,p[i].times,p[i].R5,PD.Settings.colorR5,"R5",type);
+   if(PD.Settings.colorS1!=clrNONE)
+      PivotsCreateLine(PD,p[i].times,p[i].S1,PD.Settings.colorS1,"S1",type);
+   if(PD.Settings.colorR1!=clrNONE)
+      PivotsCreateLine(PD,p[i].times,p[i].R1,PD.Settings.colorR1,"R1",type);
+   if(PD.Settings.colorS2!=clrNONE)
+      PivotsCreateLine(PD,p[i].times,p[i].S2,PD.Settings.colorS2,"S2",type);
+   if(PD.Settings.colorR2!=clrNONE)
+      PivotsCreateLine(PD,p[i].times,p[i].R2,PD.Settings.colorR2,"R2",type);
+   if(PD.Settings.colorS3!=clrNONE)
+      PivotsCreateLine(PD,p[i].times,p[i].S3,PD.Settings.colorS3,"S3",type);
+   if(PD.Settings.colorR3!=clrNONE)
+      PivotsCreateLine(PD,p[i].times,p[i].R3,PD.Settings.colorR3,"R3",type);
+   if(PD.Settings.colorS4!=clrNONE)
+      PivotsCreateLine(PD,p[i].times,p[i].S4,PD.Settings.colorS4,"S4",type);
+   if(PD.Settings.colorR4!=clrNONE)
+      PivotsCreateLine(PD,p[i].times,p[i].R4,PD.Settings.colorR4,"R4",type);
+   if(PD.Settings.colorS5!=clrNONE)
+      PivotsCreateLine(PD,p[i].times,p[i].S5,PD.Settings.colorS5,"S5",type);
+   if(PD.Settings.colorR5!=clrNONE)
+      PivotsCreateLine(PD,p[i].times,p[i].R5,PD.Settings.colorR5,"R5",type);
    if((p[i].times.period==YEAR && PD.Settings.PivotTypeYearMidPoints) || (p[i].times.period==MONTH && PD.Settings.PivotTypeMonthMidPoints) || (p[i].times.period==WEEK && PD.Settings.PivotTypeWeekMidPoints) || (p[i].times.period==DAY && PD.Settings.PivotTypeDayMidPoints) || (p[i].times.period==FOURHOUR && PD.Settings.PivotTypeFourHourMidPoints) || (p[i].times.period==HOUR && PD.Settings.PivotTypeHourMidPoints))
    {
       PivotsCreateLine(PD,p[i].times,p[i].MM,PD.Settings.colormidpoints,"M-",type);
@@ -354,7 +361,7 @@ void PivotsDrawPivots(TypePivotsData& PD, TypePivotsType type, TypePivots& p[], 
       PivotsCreateLine(PD,p[i].times,p[i].MP,PD.Settings.colormidpoints,"M+",type);
       PivotsCreateLine(PD,p[i].times,p[i].MPP,PD.Settings.colormidpoints,"M++",type);
    }
-   if(PD.Settings.drawpivottrendlines&&(i==2||i==3||i==4))
+   if(PD.Settings.pivottrendlinescolor!=clrNONE&&(i==2||i==3||i==4))
    {
       TypePivotsTimeRange t=p[i].times;
       t.enddisplay=p[i-1].times.startdisplay;
