@@ -21,6 +21,7 @@
 input ENUM_TIMEFRAMES TimeFrame = PERIOD_CURRENT; // Timeframe
 input CS_Prices PriceType = pr_close; // Price Type
 input int SMALength = 0; // SMA Length
+input int SMALengthShort = 0; // SMA Length Short for Oscillator Mode
 input int BarsCalculate = 30; // Number of Bars to calculate
 input int ZeroPoint = 30; // Zero Point
 
@@ -172,7 +173,8 @@ void OnInit()
       TimeFrame,
       current_pairs_only,
       PriceType,
-      SMALength
+      SMALength,
+      SMALengthShort
       );
 
    istesting=MQLInfoInteger(MQL_TESTER);

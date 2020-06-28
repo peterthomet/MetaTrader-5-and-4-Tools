@@ -137,6 +137,7 @@ struct TypeCurrencyStrength
    string extrachars;
    CS_Prices pricetype;
    int smalength;
+   int smalengthshort;
    bool recalculate;
    bool currentpairsonly;
    int syncmasterindex;
@@ -151,6 +152,7 @@ struct TypeCurrencyStrength
       extrachars=StringSubstr(Symbol(),6);
       pricetype=pr_close;
       smalength=0;
+      smalengthshort=0;
       recalculate=false;
       currentpairsonly=false;
       syncmasterindex=0;
@@ -164,11 +166,17 @@ struct TypeCurrencyStrength
          }
       }
    }
-   void Init(int _Bars, int Zero, string ExtraChars, ENUM_TIMEFRAMES TimeFrameCustom, bool CurrentPairsOnly, CS_Prices _PriceType, int _smalength=0)
+   void Init(int _Bars, int Zero, string ExtraChars, ENUM_TIMEFRAMES TimeFrameCustom, bool CurrentPairsOnly, CS_Prices _PriceType, int _smalength=0, int _smalengthshort=0)
    {
       smalength=MathMax(0,_smalength);
       if(smalength<2)
          smalength=0;
+
+      smalengthshort=MathMax(0,_smalengthshort);
+      if(smalengthshort<2)
+         smalengthshort=0;
+
+      smalengthshort=MathMin(smalength,smalengthshort);
 
       bars=_Bars+smalength;
       for(int i=0; i<8; i++)
@@ -280,10 +288,13 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                   smasum+=cs.Currencies.Currency[z].indexbasic[y-(e-1)];
                cs.Currencies.Currency[z].index[y]=smasum/cs.smalength;
                
-               //double smasum2=0;
-               //for(int e=1; e<=5; e++)
-               //   smasum2+=cs.Currencies.Currency[z].indexbasic[y-(e-1)];
-               //cs.Currencies.Currency[z].index[y]=(smasum2/5)-(smasum/cs.smalength);
+               if(cs.smalengthshort>0)
+               {
+                  double smasum2=0;
+                  for(int e=1; e<=cs.smalengthshort; e++)
+                     smasum2+=cs.Currencies.Currency[z].indexbasic[y-(e-1)];
+                  cs.Currencies.Currency[z].index[y]=(smasum2/cs.smalengthshort)-(smasum/cs.smalength);
+               }
             }
 
             if(y==(cs.bars-1))
