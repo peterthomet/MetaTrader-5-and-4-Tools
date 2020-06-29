@@ -185,6 +185,7 @@ struct TypeCurrencyStrength
          ArrayResize(Currencies.Currency[i].index,bars);
       }
 
+      start=0;
       if(smalength>0)
          start=smalength;
       

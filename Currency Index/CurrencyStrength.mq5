@@ -18,10 +18,18 @@
 #define CS_INDICATOR_MODE
 #include <CurrencyStrength.mqh>
 
+enum CalculationMode
+{
+   RAW,
+   SMA,
+   OSCILLATOR
+};
+
 input ENUM_TIMEFRAMES TimeFrame = PERIOD_CURRENT; // Timeframe
 input CS_Prices PriceType = pr_close; // Price Type
-input int SMALength = 0; // SMA Length
-input int SMALengthShort = 0; // SMA Length Short for Oscillator Mode
+input int SMALength = 6; // SMA Length for SMA Mode
+input int SMALengthOscillatorLong = 19; // SMA Length Long for Oscillator Mode
+input int SMALengthOscillatorShort = 5; // SMA Length Short for Oscillator Mode
 input int BarsCalculate = 30; // Number of Bars to calculate
 input int ZeroPoint = 30; // Zero Point
 
@@ -75,6 +83,8 @@ int offset=0;
 datetime offsettimeref=0;
 datetime offsettime=0;
 int lastoffset=0;
+CalculationMode modecurrent;
+CalculationMode modelast;
 #ifdef __MQL5__
 //CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 //CJJMA jjmaUSD;
@@ -164,8 +174,19 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
 }
 
 
-void OnInit()
+void InitCS()
 {
+   int smalong=0, smashort=0;
+
+   if(modecurrent==SMA)
+      smalong=SMALength;
+
+   if(modecurrent==OSCILLATOR)
+   {
+      smalong=SMALengthOscillatorLong;
+      smashort=SMALengthOscillatorShort;
+   }
+   
    CS.Init(
       BarsCalculate,
       ZeroPoint,
@@ -173,16 +194,29 @@ void OnInit()
       TimeFrame,
       current_pairs_only,
       PriceType,
-      SMALength,
-      SMALengthShort
+      smalong,
+      smashort
       );
+
+   CS.recalculate=true;
+     
+   modelast=modecurrent;
+}
+
+
+void OnInit()
+{
+   int moderead=(int)GlobalVariableGet(appnamespace+IntegerToString(ChartID())+"_mode");
+   if(moderead<0||moderead>OSCILLATOR)
+      moderead=0;
+   modecurrent=(CalculationMode)moderead;
+   InitCS();
 
    istesting=MQLInfoInteger(MQL_TESTER);
    
    IndicatorSetInteger(INDICATOR_DIGITS,5);
 
-   string nameInd="CurrencyStrength";
-   IndicatorSetString(INDICATOR_SHORTNAME,nameInd);
+   IndicatorSetString(INDICATOR_SHORTNAME,"CurrencyStrength");
 
    InitBuffer(0,USDplot,INDICATOR_DATA,"USD",Color_USD);
    InitBuffer(1,EURplot,INDICATOR_DATA,"EUR",Color_EUR);
@@ -208,6 +242,10 @@ void OnInit()
       offsettime=offsetread;
    }
    
+   AddFunctionButton(6,16,"RAW |");
+   AddFunctionButton(39,16,"SMA |");
+   AddFunctionButton(70,16,"OSCILLATOR");
+   
    if(!istesting)
    {
       EventSetTimer(1);
@@ -226,10 +264,13 @@ void OnDeinit(const int reason)
    if(reason!=REASON_CHARTCHANGE)
       ObjectsDeleteAll(0,appnamespace,ChartWindowFind());
    EventKillTimer();
+
    int offsetwrite=0;
    if(offset>0)
       offsetwrite=(int)offsettime;
    GlobalVariableSet(appnamespace+IntegerToString(ChartID())+"_offset",offsetwrite);
+
+   GlobalVariableSet(appnamespace+IntegerToString(ChartID())+"_mode",modecurrent);
 }
 
 
@@ -371,6 +412,21 @@ void AddSymbolButton(int col, int row, string text, color _color=DimGray)
 }
 
 
+void AddFunctionButton(int x, int y, string text)
+{
+   string oname = appnamespace+"-FunctionButton-"+IntegerToString(x)+"-"+IntegerToString(y);
+   ObjectCreate(0,oname,OBJ_LABEL,ChartWindowFind(),0,0);
+   ObjectSetInteger(0,oname,OBJPROP_CORNER,CORNER_LEFT_LOWER);
+   ObjectSetInteger(0,oname,OBJPROP_ANCHOR,ANCHOR_LEFT_LOWER);
+   ObjectSetInteger(0,oname,OBJPROP_XDISTANCE,x);
+   ObjectSetInteger(0,oname,OBJPROP_YDISTANCE,y);
+   //ObjectSetString(0,oname,OBJPROP_FONT,"Segoe UI Symbol");
+   ObjectSetString(0,oname,OBJPROP_TEXT,text);
+   ObjectSetInteger(0,oname,OBJPROP_COLOR,DimGray);
+   ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,8);
+}
+
+
 void OnTimer()
 {
    if(incalculation || !timerenabled)
@@ -397,6 +453,10 @@ void OnTimer()
    }
    
    incalculation=true;
+
+   if(modecurrent!=modelast)
+      InitCS();
+   
    if(CS_CalculateIndex(CS,offset))
    {
       WriteComment(" ");
@@ -704,6 +764,20 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
    }
    if(id==CHARTEVENT_OBJECT_CLICK)
    {
+      if(StringFind(sparam,"-FunctionButton")>-1)
+      {
+         string objtext=ObjectGetString(0,sparam,OBJPROP_TEXT);
+
+         if(StringFind(objtext,"RAW")>-1)
+            modecurrent=RAW;
+         if(StringFind(objtext,"SMA")>-1)
+            modecurrent=SMA;
+         if(StringFind(objtext,"OSCILLATOR")>-1)
+            modecurrent=OSCILLATOR;
+
+         SetTickTime();
+         timerenabled=true;
+      }
       if(StringFind(sparam,"-SymbolButton")>-1)
       {
          SwitchSymbol(ObjectGetString(0,sparam,OBJPROP_TEXT));
