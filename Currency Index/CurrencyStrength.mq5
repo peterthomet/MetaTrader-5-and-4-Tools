@@ -55,6 +55,8 @@ input bool show_values = true; //Show Values
 input int test_trading_candle_expiration = 3; //Test Trading Candle Expiration
 input bool switch_symbol_on_click_all_charts = false; //On Click Switch Symbol at all Charts
 input double set_charts_shift = 0; //Set Chart Shift at Startup
+input bool create_multiple_charts_time_line = false; //Create multiple Charts Time Line
+input bool create_multiple_charts_price_line = false; //Create multiple Charts Price Line
 
 TypeCurrencyStrength CS;
 
@@ -255,6 +257,18 @@ void OnInit()
 
    if(set_charts_shift>0)
       ChartSetDouble(0,CHART_SHIFT_SIZE,set_charts_shift);
+      
+   if(create_multiple_charts_time_line)
+   {
+      ObjectCreate(0,appnamespace+"MouseMove",OBJ_VLINE,0,D'2000.01.01 00:00',0);
+      ObjectSetInteger(0,appnamespace+"MouseMove",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_FOREGROUND));
+   }
+
+   if(create_multiple_charts_price_line)
+   {
+      ObjectCreate(0,appnamespace+"MouseMovePrice",OBJ_HLINE,0,0,0);
+      ObjectSetInteger(0,appnamespace+"MouseMovePrice",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_FOREGROUND));
+   }
 
 }
 
