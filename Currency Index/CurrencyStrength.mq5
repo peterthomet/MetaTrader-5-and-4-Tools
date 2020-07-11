@@ -54,6 +54,7 @@ input bool show_strongest = false; //Show Strongest Move
 input bool show_values = true; //Show Values
 input int test_trading_candle_expiration = 3; //Test Trading Candle Expiration
 input bool switch_symbol_on_click_all_charts = false; //On Click Switch Symbol at all Charts
+input double set_charts_shift = 0; //Set Chart Shift at Startup
 
 TypeCurrencyStrength CS;
 
@@ -252,7 +253,8 @@ void OnInit()
       ChartSetInteger(0,CHART_EVENT_MOUSE_MOVE,true);
    }
 
-   //ChartSetDouble(0,CHART_SHIFT_SIZE,25);
+   if(set_charts_shift>0)
+      ChartSetDouble(0,CHART_SHIFT_SIZE,set_charts_shift);
 
 }
 
