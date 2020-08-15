@@ -36,6 +36,8 @@ Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute 
    **<code>G</code>** Activate Previous Trade<br>
    **<code>H</code>** Activate Next Trade<br>
 
+<br/>
+<br/>
 
 ## Trade Manager Sample, Setup a Basket with balanced Risk
 
