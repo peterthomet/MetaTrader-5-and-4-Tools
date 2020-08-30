@@ -277,7 +277,7 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                         cs.Currencies.Currency[z].indexbasic[y]-=(pi-ps)/ps*100;
                   }
                }
-               cs.Currencies.Currency[z].indexbasic[y]=cs.Currencies.Currency[z].indexbasic[y]/7;
+               cs.Currencies.Currency[z].indexbasic[y]=cs.Currencies.Currency[z].indexbasic[y]/8;
             }
 
             cs.Currencies.Currency[z].index[y]=cs.Currencies.Currency[z].indexbasic[y];
