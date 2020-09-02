@@ -32,6 +32,7 @@ input int SMALengthOscillatorLong = 19; // SMA Length Long for Oscillator Mode
 input int SMALengthOscillatorShort = 5; // SMA Length Short for Oscillator Mode
 input int BarsCalculate = 30; // Number of Bars to calculate
 input int ZeroPoint = 30; // Zero Point
+input bool ValueDisplayedWholeRange = false; // Value displayed is whole Range
 
 input color Color_USD = MediumSeaGreen;            // USD line color
 input color Color_EUR = DodgerBlue;         // EUR line color
@@ -198,7 +199,8 @@ void InitCS()
       current_pairs_only,
       PriceType,
       smalong,
-      smashort
+      smashort,
+      ValueDisplayedWholeRange
       );
 
    CS.recalculate=true;
@@ -393,7 +395,7 @@ void ShowValue(int col, int row)
    if(idx<2)
       _color=DeepPink;
    //_color=DimGray;
-   string text=DoubleToString(value*1000,0);
+   string text=DoubleToString(value*100000,0);
    //text="|||||||||";
    int xdistance=(col-1)*62+35;
    int ydistance=(row-1)*16+4;

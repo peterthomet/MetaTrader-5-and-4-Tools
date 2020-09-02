@@ -36,6 +36,7 @@ struct TypeCurrency
    string name;
    double indexbasic[];
    double index[];
+   double indexonestep[];
 };
 
 struct TypeTrade
@@ -138,6 +139,7 @@ struct TypeCurrencyStrength
    CS_Prices pricetype;
    int smalength;
    int smalengthshort;
+   bool lastvaluewholerange;
    bool recalculate;
    bool currentpairsonly;
    int syncmasterindex;
@@ -153,6 +155,7 @@ struct TypeCurrencyStrength
       pricetype=pr_close;
       smalength=0;
       smalengthshort=0;
+      lastvaluewholerange=false;
       recalculate=false;
       currentpairsonly=false;
       syncmasterindex=0;
@@ -166,7 +169,7 @@ struct TypeCurrencyStrength
          }
       }
    }
-   void Init(int _Bars, int Zero, string ExtraChars, ENUM_TIMEFRAMES TimeFrameCustom, bool CurrentPairsOnly, CS_Prices _PriceType, int _smalength=0, int _smalengthshort=0)
+   void Init(int _Bars, int Zero, string ExtraChars, ENUM_TIMEFRAMES TimeFrameCustom, bool CurrentPairsOnly, CS_Prices _PriceType, int _smalength=0, int _smalengthshort=0, bool _lastvaluewholerange=false)
    {
       smalength=MathMax(0,_smalength);
       if(smalength<2)
@@ -178,11 +181,14 @@ struct TypeCurrencyStrength
 
       smalengthshort=MathMin(smalength,smalengthshort);
 
+      lastvaluewholerange=_lastvaluewholerange;
+
       bars=_Bars+smalength;
       for(int i=0; i<8; i++)
       {
          ArrayResize(Currencies.Currency[i].indexbasic,bars);
          ArrayResize(Currencies.Currency[i].index,bars);
+         ArrayResize(Currencies.Currency[i].indexonestep,bars);
       }
 
       start=0;
@@ -258,6 +264,7 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
          if(cs.IncludeCurrency(cn))
          {
             cs.Currencies.Currency[z].indexbasic[y]=0;
+            cs.Currencies.Currency[z].indexonestep[y]=0;
             if(y!=cs.start)
             {
                for(int x=0; x<28; x++)
@@ -270,14 +277,22 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                      int startshift=CS_GetIndexShift(cs.Pairs.Pair[x],cs,starttimeref,cs.start,"Start");
                      double pi=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,y+itemshift);
                      double ps=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,cs.start+startshift);
+                     double ps2=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,MathMax((y+itemshift)-1,0));
 
                      if(isbase)
-                        cs.Currencies.Currency[z].indexbasic[y]+=(pi-ps)/ps*100;
+                     {
+                        cs.Currencies.Currency[z].indexbasic[y]+=(pi-ps)/ps; //*100;
+                        cs.Currencies.Currency[z].indexonestep[y]+=(pi-ps2)/ps2; //*100;
+                     }
                      if(isquote)
-                        cs.Currencies.Currency[z].indexbasic[y]-=(pi-ps)/ps*100;
+                     {
+                        cs.Currencies.Currency[z].indexbasic[y]-=(pi-ps)/ps; //*100;
+                        cs.Currencies.Currency[z].indexonestep[y]-=(pi-ps2)/ps2; //*100;
+                     }
                   }
                }
-               cs.Currencies.Currency[z].indexbasic[y]=cs.Currencies.Currency[z].indexbasic[y]/8;
+               cs.Currencies.Currency[z].indexbasic[y]/=8;
+               cs.Currencies.Currency[z].indexonestep[y]/=8;
             }
 
             cs.Currencies.Currency[z].index[y]=cs.Currencies.Currency[z].indexbasic[y];
@@ -300,7 +315,13 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
 
             if(y==(cs.bars-1))
             {
-               cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y]-cs.Currencies.Currency[z].index[y-1];
+               cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y];
+               if(!cs.lastvaluewholerange)
+               {
+                  cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y]-cs.Currencies.Currency[z].index[y-1];
+                  if(cs.smalength==0)
+                     cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].indexonestep[y];
+               }
                cs.Currencies.LastValues[z][1]=z+1;
             }
 
