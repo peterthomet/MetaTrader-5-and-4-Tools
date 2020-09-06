@@ -31,12 +31,19 @@ enum CS_Prices
    pr_hatbiased2  // Heiken ashi trend biased (extreme) price
 };
 
+struct TypeHLC
+{
+   double high;
+   double low;
+   double close;
+};
+
 struct TypeCurrency
 {
    string name;
-   double indexbasic[];
-   double index[];
-   double indexonestep[];
+   TypeHLC indexbasic[];
+   TypeHLC index[];
+   TypeHLC indexonestep[];
 };
 
 struct TypeTrade
@@ -263,8 +270,8 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
          string cn=cs.Currencies.Currency[z].name;
          if(cs.IncludeCurrency(cn))
          {
-            cs.Currencies.Currency[z].indexbasic[y]=0;
-            cs.Currencies.Currency[z].indexonestep[y]=0;
+            cs.Currencies.Currency[z].indexbasic[y].close=0;
+            cs.Currencies.Currency[z].indexonestep[y].close=0;
             if(y!=cs.start)
             {
                for(int x=0; x<28; x++)
@@ -281,46 +288,46 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
 
                      if(isbase)
                      {
-                        cs.Currencies.Currency[z].indexbasic[y]+=(pi-ps)/ps; //*100;
-                        cs.Currencies.Currency[z].indexonestep[y]+=(pi-ps2)/ps2; //*100;
+                        cs.Currencies.Currency[z].indexbasic[y].close+=(pi-ps)/ps; //*100;
+                        cs.Currencies.Currency[z].indexonestep[y].close+=(pi-ps2)/ps2; //*100;
                      }
                      if(isquote)
                      {
-                        cs.Currencies.Currency[z].indexbasic[y]-=(pi-ps)/ps; //*100;
-                        cs.Currencies.Currency[z].indexonestep[y]-=(pi-ps2)/ps2; //*100;
+                        cs.Currencies.Currency[z].indexbasic[y].close-=(pi-ps)/ps; //*100;
+                        cs.Currencies.Currency[z].indexonestep[y].close-=(pi-ps2)/ps2; //*100;
                      }
                   }
                }
-               cs.Currencies.Currency[z].indexbasic[y]/=8;
-               cs.Currencies.Currency[z].indexonestep[y]/=8;
+               cs.Currencies.Currency[z].indexbasic[y].close/=8;
+               cs.Currencies.Currency[z].indexonestep[y].close/=8;
             }
 
-            cs.Currencies.Currency[z].index[y]=cs.Currencies.Currency[z].indexbasic[y];
+            cs.Currencies.Currency[z].index[y].close=cs.Currencies.Currency[z].indexbasic[y].close;
 
             if(cs.smalength>0&&y>=cs.smalength)
             {
                double smasum=0;
                for(int e=1; e<=cs.smalength; e++)
-                  smasum+=cs.Currencies.Currency[z].indexbasic[y-(e-1)];
-               cs.Currencies.Currency[z].index[y]=smasum/cs.smalength;
+                  smasum+=cs.Currencies.Currency[z].indexbasic[y-(e-1)].close;
+               cs.Currencies.Currency[z].index[y].close=smasum/cs.smalength;
                
                if(cs.smalengthshort>0)
                {
                   double smasum2=0;
                   for(int e=1; e<=cs.smalengthshort; e++)
-                     smasum2+=cs.Currencies.Currency[z].indexbasic[y-(e-1)];
-                  cs.Currencies.Currency[z].index[y]=(smasum2/cs.smalengthshort)-(smasum/cs.smalength);
+                     smasum2+=cs.Currencies.Currency[z].indexbasic[y-(e-1)].close;
+                  cs.Currencies.Currency[z].index[y].close=(smasum2/cs.smalengthshort)-(smasum/cs.smalength);
                }
             }
 
             if(y==(cs.bars-1))
             {
-               cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y];
+               cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y].close;
                if(!cs.lastvaluewholerange)
                {
-                  cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y]-cs.Currencies.Currency[z].index[y-1];
+                  cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y].close-cs.Currencies.Currency[z].index[y-1].close;
                   if(cs.smalength==0)
-                     cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].indexonestep[y];
+                     cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].indexonestep[y].close;
                }
                cs.Currencies.LastValues[z][1]=z+1;
             }
@@ -329,7 +336,7 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
             if(y>=cs.smalength)
             {
                int ti=((cs.bars-1)-y)+cs.offset;
-               double va=cs.Currencies.Currency[z].index[y]+1000;
+               double va=cs.Currencies.Currency[z].index[y].close+1000;
                if(cn=="USD") USDplot[ti]=va;
                if(cn=="EUR") EURplot[ti]=va;
                if(cn=="GBP") GBPplot[ti]=va;
