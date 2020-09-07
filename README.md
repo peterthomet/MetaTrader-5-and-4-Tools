@@ -1,5 +1,4 @@
-> :warning: **Be prepared, that the platform updates of MetaTrader 4 and 5 from MetaQuotes constantly break some of this code!**
-{: .gitlab-orange}
+> :warning: Be prepared, that the platform updates of MetaTrader 4 and 5 from MetaQuotes constantly break some of this code!
 
 <br/>
 <br/>
