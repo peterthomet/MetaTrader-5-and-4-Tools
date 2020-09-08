@@ -31,19 +31,25 @@ enum CS_Prices
    pr_hatbiased2  // Heiken ashi trend biased (extreme) price
 };
 
-struct TypeHLC
+struct TypeIndexValues
 {
    double high;
    double low;
    double close;
+   double value1;
+   double value1basic;
+};
+
+struct TypeIndexes
+{
+   TypeIndexValues laging;
+   TypeIndexValues step;
 };
 
 struct TypeCurrency
 {
    string name;
-   TypeHLC indexbasic[];
-   TypeHLC index[];
-   TypeHLC indexonestep[];
+   TypeIndexes index[];
 };
 
 struct TypeTrade
@@ -192,11 +198,7 @@ struct TypeCurrencyStrength
 
       bars=_Bars+smalength;
       for(int i=0; i<8; i++)
-      {
-         ArrayResize(Currencies.Currency[i].indexbasic,bars);
          ArrayResize(Currencies.Currency[i].index,bars);
-         ArrayResize(Currencies.Currency[i].indexonestep,bars);
-      }
 
       start=0;
       if(smalength>0)
@@ -270,64 +272,70 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
          string cn=cs.Currencies.Currency[z].name;
          if(cs.IncludeCurrency(cn))
          {
-            cs.Currencies.Currency[z].indexbasic[y].close=0;
-            cs.Currencies.Currency[z].indexonestep[y].close=0;
-            if(y!=cs.start)
+            cs.Currencies.Currency[z].index[y].laging.value1basic=0;
+            cs.Currencies.Currency[z].index[y].step.value1=0;
+
+            for(int x=0; x<28; x++)
             {
-               for(int x=0; x<28; x++)
+               bool isbase=(StringSubstr(cs.Pairs.Pair[x].name,0,3)==cn);
+               bool isquote=(StringSubstr(cs.Pairs.Pair[x].name,3,3)==cn);
+               if(isbase||isquote)
                {
-                  bool isbase=(StringSubstr(cs.Pairs.Pair[x].name,0,3)==cn);
-                  bool isquote=(StringSubstr(cs.Pairs.Pair[x].name,3,3)==cn);
-                  if(isbase||isquote)
-                  {
-                     int itemshift=CS_GetIndexShift(cs.Pairs.Pair[x],cs,itemtimeref,y,"Item");
-                     int startshift=CS_GetIndexShift(cs.Pairs.Pair[x],cs,starttimeref,cs.start,"Start");
-                     double pi=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,y+itemshift);
-                     double ps=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,cs.start+startshift);
-                     double ps2=CS_GetPrice(cs.pricetype,cs.Pairs.Pair[x].rates,MathMax((y+itemshift)-1,0));
+                  int itemshift=CS_GetIndexShift(cs.Pairs.Pair[x],cs,itemtimeref,y,"Item");
+                  int startshift=CS_GetIndexShift(cs.Pairs.Pair[x],cs,starttimeref,cs.start,"Start");
+                  TypeIndexValues pi=CS_GetPrices(cs.pricetype,cs.Pairs.Pair[x].rates,y+itemshift);
+                  TypeIndexValues ps=CS_GetPrices(cs.pricetype,cs.Pairs.Pair[x].rates,cs.start+startshift);
+                  TypeIndexValues ps2=CS_GetPrices(cs.pricetype,cs.Pairs.Pair[x].rates,MathMax((y+itemshift)-1,0));
 
-                     if(isbase)
-                     {
-                        cs.Currencies.Currency[z].indexbasic[y].close+=(pi-ps)/ps; //*100;
-                        cs.Currencies.Currency[z].indexonestep[y].close+=(pi-ps2)/ps2; //*100;
-                     }
-                     if(isquote)
-                     {
-                        cs.Currencies.Currency[z].indexbasic[y].close-=(pi-ps)/ps; //*100;
-                        cs.Currencies.Currency[z].indexonestep[y].close-=(pi-ps2)/ps2; //*100;
-                     }
-                  }
+                  double multiplier=1;
+                  if(isquote)
+                     multiplier=-1;
+
+                  cs.Currencies.Currency[z].index[y].laging.value1basic+=((pi.value1-ps.value1)/ps.value1)*multiplier;
+                  cs.Currencies.Currency[z].index[y].laging.high+=((pi.high-ps.high)/ps.high)*multiplier;
+                  cs.Currencies.Currency[z].index[y].laging.low+=((pi.low-ps.low)/ps.low)*multiplier;
+                  cs.Currencies.Currency[z].index[y].laging.close+=((pi.close-ps.close)/ps.close)*multiplier;
+                  cs.Currencies.Currency[z].index[y].step.value1+=((pi.value1-ps2.value1)/ps2.value1)*multiplier;
+                  cs.Currencies.Currency[z].index[y].step.high+=((pi.high-ps2.high)/ps2.high)*multiplier;
+                  cs.Currencies.Currency[z].index[y].step.low+=((pi.low-ps2.low)/ps2.low)*multiplier;
+                  cs.Currencies.Currency[z].index[y].step.close+=((pi.close-ps2.close)/ps2.close)*multiplier;
                }
-               cs.Currencies.Currency[z].indexbasic[y].close/=8;
-               cs.Currencies.Currency[z].indexonestep[y].close/=8;
             }
+            cs.Currencies.Currency[z].index[y].laging.value1basic/=8;
+            cs.Currencies.Currency[z].index[y].laging.high/=8;
+            cs.Currencies.Currency[z].index[y].laging.low/=8;
+            cs.Currencies.Currency[z].index[y].laging.close/=8;
+            cs.Currencies.Currency[z].index[y].step.value1/=8;
+            cs.Currencies.Currency[z].index[y].step.high/=8;
+            cs.Currencies.Currency[z].index[y].step.low/=8;
+            cs.Currencies.Currency[z].index[y].step.close/=8;
 
-            cs.Currencies.Currency[z].index[y].close=cs.Currencies.Currency[z].indexbasic[y].close;
+            cs.Currencies.Currency[z].index[y].laging.value1=cs.Currencies.Currency[z].index[y].laging.value1basic;
 
             if(cs.smalength>0&&y>=cs.smalength)
             {
                double smasum=0;
                for(int e=1; e<=cs.smalength; e++)
-                  smasum+=cs.Currencies.Currency[z].indexbasic[y-(e-1)].close;
-               cs.Currencies.Currency[z].index[y].close=smasum/cs.smalength;
+                  smasum+=cs.Currencies.Currency[z].index[y-(e-1)].laging.value1basic;
+               cs.Currencies.Currency[z].index[y].laging.value1=smasum/cs.smalength;
                
                if(cs.smalengthshort>0)
                {
                   double smasum2=0;
                   for(int e=1; e<=cs.smalengthshort; e++)
-                     smasum2+=cs.Currencies.Currency[z].indexbasic[y-(e-1)].close;
-                  cs.Currencies.Currency[z].index[y].close=(smasum2/cs.smalengthshort)-(smasum/cs.smalength);
+                     smasum2+=cs.Currencies.Currency[z].index[y-(e-1)].laging.value1basic;
+                  cs.Currencies.Currency[z].index[y].laging.value1=(smasum2/cs.smalengthshort)-(smasum/cs.smalength);
                }
             }
 
             if(y==(cs.bars-1))
             {
-               cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y].close;
+               cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y].laging.value1;
                if(!cs.lastvaluewholerange)
                {
-                  cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y].close-cs.Currencies.Currency[z].index[y-1].close;
+                  cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y].laging.value1-cs.Currencies.Currency[z].index[y-1].laging.value1;
                   if(cs.smalength==0)
-                     cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].indexonestep[y].close;
+                     cs.Currencies.LastValues[z][0]=cs.Currencies.Currency[z].index[y].step.value1;
                }
                cs.Currencies.LastValues[z][1]=z+1;
             }
@@ -336,7 +344,7 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
             if(y>=cs.smalength)
             {
                int ti=((cs.bars-1)-y)+cs.offset;
-               double va=cs.Currencies.Currency[z].index[y].close+1000;
+               double va=cs.Currencies.Currency[z].index[y].laging.value1+1000;
                if(cn=="USD") USDplot[ti]=va;
                if(cn=="EUR") EURplot[ti]=va;
                if(cn=="GBP") GBPplot[ti]=va;
@@ -473,6 +481,17 @@ bool CS_GetRates(TypePair& p, TypeCurrencyStrength& cs, bool master=false)
 #endif
    }
    return ret;
+}
+
+
+TypeIndexValues CS_GetPrices(int tprice, MqlRates& rates[], int i)
+{
+   TypeIndexValues v;
+   v.value1=CS_GetPrice(tprice,rates,i);
+   v.close=CS_GetPrice(pr_close,rates,i);
+   v.high=CS_GetPrice(pr_high,rates,i);
+   v.low=CS_GetPrice(pr_low,rates,i);
+   return v;
 }
 
 
