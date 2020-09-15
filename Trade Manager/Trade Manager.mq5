@@ -71,6 +71,9 @@ input double OpenLots = 0.01;
 input bool ShowInfo = true;
 input color TextColor = Gray;
 input color TextColorBold = Black;
+input color TextColorInfo = DodgerBlue;
+input color TextColorPlus = MediumSeaGreen;
+input color TextColorMinus = DeepPink;
 input int FontSize = 9;
 input int TextGap = 16;
 input bool ManageOwnTradesOnly = true;
@@ -962,15 +965,15 @@ void DisplayText()
 
    if(!IsAutoTradingEnabled())
    {
-      CreateLabel(rowindex,FontSize,DeepPink,tickchar+" Autotrading Disabled");
+      CreateLabel(rowindex,FontSize,TextColorMinus,tickchar+" Autotrading Disabled");
       rowindex++;
    }
    else
    {
       if(TimeLocal()-lasttick>60)
-         CreateLabel(rowindex,FontSize,DeepPink,tickchar+" No Market Activity");
+         CreateLabel(rowindex,FontSize,TextColorMinus,tickchar+" No Market Activity");
       else
-         CreateLabel(rowindex,FontSize,MediumSeaGreen,tickchar+" Running");
+         CreateLabel(rowindex,FontSize,TextColorPlus,tickchar+" Running");
       rowindex++;
    }
 
@@ -1001,7 +1004,7 @@ void DisplayText()
 
    if(ctrlon)
    {
-      CreateLabel(rowindex,FontSize,DodgerBlue,"Open Volume: "+DoubleToString(_OpenLots,2));
+      CreateLabel(rowindex,FontSize,TextColorInfo,"Open Volume: "+DoubleToString(_OpenLots,2));
       rowindex++;
    }
 
@@ -1009,13 +1012,13 @@ void DisplayText()
    int spreadpoints=(int)MathRound((AskX()-BidX())/Point());
    if((_StopLossPips!=DISABLEDPOINTS&&ctrlon)||tradelevelsvisible)
    {
-      color c=DodgerBlue;
+      color c=TextColorInfo;
       double risk=_StopLossPips*_OpenLots*tickvalue;
       double riskpercent=risk/(AccountBalanceX()/100);
       double atrfactor=_StopLossPips/(ATR()/Point());
       if(tradelevelsvisible)
       {
-         c=DodgerBlue;
+         c=TextColorInfo;
          risk=0;
          if(WS.tradereference[selectedtradeindex].stoplosspips!=DISABLEDPOINTS)
          {
@@ -1035,12 +1038,12 @@ void DisplayText()
    }
    if((_TakeProfitPips!=DISABLEDPOINTS&&ctrlon)||tradelevelsvisible)
    {
-      color c=DodgerBlue;
+      color c=TextColorInfo;
       double reward=_TakeProfitPips*_OpenLots*tickvalue;
       double rewardpercent=reward/(AccountBalanceX()/100);
       if(tradelevelsvisible)
       {
-         c=DodgerBlue;
+         c=TextColorInfo;
          reward=0;
          if(WS.tradereference[selectedtradeindex].takeprofitpips!=DISABLEDPOINTS)
          {
@@ -1105,7 +1108,7 @@ void DisplayText()
             totalrisk=MathMin(ptcrisk,totalrisk);
          }
 
-         color c=DeepPink;
+         color c=TextColorMinus;
          string risktext="Risk Unlimited";
          if(totalrisk!=DBL_MAX)
          {
@@ -1114,7 +1117,7 @@ void DisplayText()
             if(totalrisk<=0)
             {
                totalrisk=0-totalrisk;
-               c=MediumSeaGreen;
+               c=TextColorPlus;
                risktext="Locked: ";
             }
             string riskpercenttradingcapital="";
@@ -1128,36 +1131,36 @@ void DisplayText()
    
       if(WS.closebasketatBE)
       {
-         CreateLabel(rowindex,FontSize,DeepPink,"Close Basket at Break Even");
+         CreateLabel(rowindex,FontSize,TextColorMinus,"Close Basket at Break Even");
          rowindex++;
       }
    
       if(WS.TrailingActivated)
       {
-         CreateLabel(rowindex,FontSize,MediumSeaGreen,"Trailing Activ, Current Limit: "+DoubleToString(GetTrailingLimit(),2));
+         CreateLabel(rowindex,FontSize,TextColorPlus,"Trailing Activ, Current Limit: "+DoubleToString(GetTrailingLimit(),2));
          rowindex++;
       }
       else
       {
          if(WS.ManualBEStopLocked)
          {
-            CreateLabel(rowindex,FontSize,MediumSeaGreen,"Manual Break Even Stop Locked");
+            CreateLabel(rowindex,FontSize,TextColorPlus,"Manual Break Even Stop Locked");
             rowindex++;
          }
       
          if(WS.SoftBEStopLocked)
          {
-            CreateLabel(rowindex,FontSize,MediumSeaGreen,"Basket Break Even Stop Locked");
+            CreateLabel(rowindex,FontSize,TextColorPlus,"Basket Break Even Stop Locked");
             rowindex++;
          }
       }
 
-      color gaincolor=MediumSeaGreen;
+      color gaincolor=TextColorPlus;
       double gain=BI.gain;
       if(tradelevelsvisible)
          gain=WS.tradereference[selectedtradeindex].gain;
       if(gain<0)
-         gaincolor=DeepPink;
+         gaincolor=TextColorMinus;
       CreateLabel(rowindex,(int)MathFloor(FontSize*2.3),gaincolor,DoubleToString(gain,2));
       rowindex++;
       rowindex++;
@@ -1165,10 +1168,10 @@ void DisplayText()
       double globalgain=NormalizeDouble(WS.globalgain,2);
       if(globalgain!=NormalizeDouble(BI.gain,2))
       {
-         color closedlossescolor=MediumSeaGreen;
+         color closedlossescolor=TextColorPlus;
          double gaintotal=globalgain;
          if(gaintotal<0)
-            closedlossescolor=DeepPink;
+            closedlossescolor=TextColorMinus;
          CreateLabel(rowindex,FontSize,closedlossescolor,DoubleToString(gaintotal,2));
          rowindex++;
       }
@@ -1192,9 +1195,9 @@ void DisplayText()
 
          pairtext+=" "+DoubleToString(BI.pairsintrades[i].gain,2);
 
-         color pairstextcolor=MediumSeaGreen;
+         color pairstextcolor=TextColorPlus;
          if(BI.pairsintrades[i].gain<0)
-            pairstextcolor=DeepPink;
+            pairstextcolor=TextColorMinus;
 
          CreateLabel(rowindex,FontSize,pairstextcolor,pairtext,"",60);
          rowindex++;
@@ -1203,7 +1206,7 @@ void DisplayText()
 
    if(TimeLocal()-lasterrortime<3)
    {
-      CreateLabel(rowindex,FontSize,DeepPink,lasterrorstring);
+      CreateLabel(rowindex,FontSize,TextColorMinus,lasterrorstring);
       rowindex++;
    }
    ChartRedraw();
