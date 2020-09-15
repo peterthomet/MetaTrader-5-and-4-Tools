@@ -25,23 +25,37 @@ enum CalculationMode
    OSCILLATOR
 };
 
+enum ZeroPointTypeList
+{
+   ByBar, // Number of Bar
+   Hour, // Start of Hour
+   Day // Start of Day
+};
+
 input ENUM_TIMEFRAMES TimeFrame = PERIOD_CURRENT; // Timeframe
 input CS_Prices PriceType = pr_close; // Price Type
 input int SMALength = 6; // SMA Length for SMA Mode
 input int SMALengthOscillatorLong = 19; // SMA Length Long for Oscillator Mode
 input int SMALengthOscillatorShort = 5; // SMA Length Short for Oscillator Mode
 input int BarsCalculate = 30; // Number of Bars to calculate
-input int ZeroPoint = 30; // Zero Point
+input int ZeroPoint = 30; // Zero Point Bar
+input ZeroPointTypeList ZeroPointType = ByBar; // Zero Point Type
 input bool ValueDisplayedWholeRange = false; // Value displayed is whole Range
 
-input color Color_USD = MediumSeaGreen;            // USD line color
-input color Color_EUR = DodgerBlue;         // EUR line color
-input color Color_GBP = DeepPink;              // GBP line color
-input color Color_CHF = Black;        // CHF line color
-input color Color_JPY = Chocolate;           // JPY line color
-input color Color_AUD = DarkOrange;       // AUD line color
-input color Color_CAD = MediumVioletRed;           // CAD line color
-input color Color_NZD = Silver;         // NZD line color
+input color Color_USD = MediumSeaGreen; // USD line color
+input color Color_EUR = DodgerBlue; // EUR line color
+input color Color_GBP = DeepPink; // GBP line color
+input color Color_CHF = Black; // CHF line color
+input color Color_JPY = Chocolate; // JPY line color
+input color Color_AUD = DarkOrange; // AUD line color
+input color Color_CAD = MediumVioletRed; // CAD line color
+input color Color_NZD = Silver; // NZD line color
+
+input color Color_StandardText = DimGray; // Color Standard Text
+input color Color_BuyText = DodgerBlue; // Color Buy Text
+input color Color_SellText = DimGray; // Color Sell Text
+input color Color_BuyValue = MediumSeaGreen; // Color Buy Value
+input color Color_SellValue = DeepPink; // Color Sell Value
 
 input int wid_standard = 1; //Lines width
 input int wid_main = 3; //Lines width for current chart
@@ -89,6 +103,7 @@ datetime offsettime=0;
 int lastoffset=0;
 CalculationMode modecurrent;
 CalculationMode modelast;
+bool newbar=false;
 #ifdef __MQL5__
 //CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 //CJJMA jjmaUSD;
@@ -180,7 +195,7 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
 
 void InitCS()
 {
-   int smalong=0, smashort=0;
+   int smalong=0, smashort=0, zeropoint=GetZeroBar();
 
    if(modecurrent==SMA)
       smalong=SMALength;
@@ -193,7 +208,7 @@ void InitCS()
    
    CS.Init(
       BarsCalculate,
-      ZeroPoint,
+      zeropoint,
       StringSubstr(Symbol(),6),
       TimeFrame,
       current_pairs_only,
@@ -292,6 +307,30 @@ void OnDeinit(const int reason)
 }
 
 
+int GetZeroBar()
+{
+   int bar=ZeroPoint;
+   if(ZeroPointType!=ByBar)
+   {
+      datetime Arr[];
+      if(CopyTime(Symbol(),Period(),0,BarsCalculate,Arr)==BarsCalculate)
+      {
+         for(int i=BarsCalculate-2; i>=0; i--)
+         {
+            MqlDateTime dt;
+            TimeToStruct(Arr[i],dt);
+            if(ZeroPointType==Hour&&dt.min==45)
+            {
+               bar=BarsCalculate-1-i;
+               break;            
+            }
+         }
+      }
+   }
+   return bar;
+}
+
+
 void CheckUpDown(string currency, TypeUpdown& ud, double& arr[], int range)
 {
    double diff=arr[0+offset]-arr[range+offset];
@@ -324,12 +363,12 @@ void StrongestMove(int range)
    CheckUpDown("NZD",ud,NZDplot,range);
    
    bool signal=false;
-   color c=DimGray;
+   color c=Color_SellText;
    string pair=CS.Pairs.NormalizePairing(ud.up+ud.dn);
    bool up=false;
    if(StringFind(pair,ud.up)==0)
    {
-      c=DodgerBlue;
+      c=Color_BuyText;
       up=true;
    }
    if(StringFind(pair+CS.extrachars,Symbol())==0)
@@ -368,9 +407,9 @@ void StrongestMove(int range)
 
 void ShowTradeSet(int col, int row, string text, bool buy)
 {
-   color _color=DimGray;
+   color _color=Color_SellText;
    if(buy)
-      _color=DodgerBlue;
+      _color=Color_BuyText;
    int xdistance=((col-1)*62)+6;
    int ydistance=((row-1)*16)+20;
    string oname = appnamespace+"-SymbolButton-TradeSet-"+IntegerToString(col)+"-"+IntegerToString(row);
@@ -389,11 +428,11 @@ void ShowValue(int col, int row)
 {
    int idx=CS.Currencies.GetValueIndex(row);
    double value=CS.Currencies.LastValues[idx][0];
-   color _color=DimGray;
+   color _color=Color_StandardText;
    if(idx>5)
-      _color=MediumSeaGreen;
+      _color=Color_BuyValue;
    if(idx<2)
-      _color=DeepPink;
+      _color=Color_SellValue;
    //_color=DimGray;
    string text=DoubleToString(value*100000,0);
    //text="|||||||||";
@@ -440,7 +479,7 @@ void AddFunctionButton(int x, int y, string text)
    ObjectSetInteger(0,oname,OBJPROP_YDISTANCE,y);
    //ObjectSetString(0,oname,OBJPROP_FONT,"Segoe UI Symbol");
    ObjectSetString(0,oname,OBJPROP_TEXT,text);
-   ObjectSetInteger(0,oname,OBJPROP_COLOR,DimGray);
+   ObjectSetInteger(0,oname,OBJPROP_COLOR,Color_StandardText);
    ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,8);
 }
 
@@ -472,8 +511,11 @@ void OnTimer()
    
    incalculation=true;
 
-   if(modecurrent!=modelast)
+   if(modecurrent!=modelast||(newbar&&ZeroPointType!=ByBar))
+   {
       InitCS();
+      newbar=false;
+   }
    
    if(CS_CalculateIndex(CS,offset))
    {
@@ -557,6 +599,8 @@ int OnCalculate(const int rates_total,
          NZDplot[0]=NZDplot[1];
          if(offset==0)
             ClearUnusedBuffers();
+            
+         newbar=true;
       }
    }
    if(offset==0||prev_calculated==0)
@@ -860,6 +904,6 @@ void SwitchSymbol(string tosymbol)
          }
       }
       ChartSetSymbolPeriod(0,tosymbol+CS.extrachars,0);
-      AddSymbolButton(2, 1, currentsymbol);
+      AddSymbolButton(2, 1, currentsymbol,Color_StandardText);
    }
 }
