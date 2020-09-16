@@ -28,7 +28,11 @@ enum CalculationMode
 enum ZeroPointTypeList
 {
    ByBar, // Number of Bar
-   Hour, // Start of Hour
+   Minutes5, // 5 Minutes
+   Minutes15, // 15 Minutes
+   Minutes30, // 30 Minutes
+   Hour, // 1 Hour
+   Hours4, // 4 Hours
    Day // Start of Day
 };
 
@@ -318,12 +322,22 @@ int GetZeroBar()
          for(int i=BarsCalculate-2; i>=0; i--)
          {
             MqlDateTime dt;
+            MqlDateTime dtp;
             TimeToStruct(Arr[i],dt);
-            if(ZeroPointType==Hour&&dt.min==45)
-            {
-               bar=BarsCalculate-1-i;
-               break;            
-            }
+            TimeToStruct(Arr[i+1],dtp);
+            bar=BarsCalculate-1-i;
+            if(ZeroPointType==Minutes5 && Period()<=PERIOD_M5 && (MathFloor(dt.min/5)*5)!=(MathFloor(dtp.min/5)*5))
+               break;
+            if(ZeroPointType==Minutes15 && Period()<=PERIOD_M15 && (MathFloor(dt.min/15)*15)!=(MathFloor(dtp.min/15)*15))
+               break;
+            if(ZeroPointType==Minutes30 && Period()<=PERIOD_M30 && (MathFloor(dt.min/30)*30)!=(MathFloor(dtp.min/30)*30))
+               break;
+            if(ZeroPointType==Hour && Period()<=PERIOD_H1 && dt.hour!=dtp.hour)
+               break;
+            if(ZeroPointType==Hours4 && Period()<=PERIOD_H4 && (MathFloor(dt.hour/4)*4)!=(MathFloor(dtp.hour/4)*4))
+               break;
+            if(ZeroPointType==Day && Period()<=PERIOD_D1 && dt.day!=dtp.day)
+               break;
          }
       }
    }
@@ -599,9 +613,8 @@ int OnCalculate(const int rates_total,
          NZDplot[0]=NZDplot[1];
          if(offset==0)
             ClearUnusedBuffers();
-            
-         newbar=true;
       }
+      newbar=true;
    }
    if(offset==0||prev_calculated==0)
       timerenabled=true;
