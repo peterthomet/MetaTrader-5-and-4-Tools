@@ -28,12 +28,14 @@ enum CalculationMode
 enum ZeroPointTypeList
 {
    ByBar, // Number of Bar
+   Minutes3, // 3 Minutes
    Minutes5, // 5 Minutes
    Minutes15, // 15 Minutes
    Minutes30, // 30 Minutes
    Hour, // 1 Hour
    Hours4, // 4 Hours
-   Day // Start of Day
+   Day, // Start of Day
+   Week // Start of Week
 };
 
 input ENUM_TIMEFRAMES TimeFrame = PERIOD_CURRENT; // Timeframe
@@ -326,6 +328,8 @@ int GetZeroBar()
             TimeToStruct(Arr[i],dt);
             TimeToStruct(Arr[i+1],dtp);
             bar=BarsCalculate-1-i;
+            if(ZeroPointType==Minutes3 && Period()<=PERIOD_M3 && (MathFloor(dt.min/3)*3)!=(MathFloor(dtp.min/3)*3))
+               break;
             if(ZeroPointType==Minutes5 && Period()<=PERIOD_M5 && (MathFloor(dt.min/5)*5)!=(MathFloor(dtp.min/5)*5))
                break;
             if(ZeroPointType==Minutes15 && Period()<=PERIOD_M15 && (MathFloor(dt.min/15)*15)!=(MathFloor(dtp.min/15)*15))
@@ -337,6 +341,8 @@ int GetZeroBar()
             if(ZeroPointType==Hours4 && Period()<=PERIOD_H4 && (MathFloor(dt.hour/4)*4)!=(MathFloor(dtp.hour/4)*4))
                break;
             if(ZeroPointType==Day && Period()<=PERIOD_D1 && dt.day!=dtp.day)
+               break;
+            if(ZeroPointType==Week && Period()<=PERIOD_W1 && (dt.day_of_week==6||dt.day_of_week==5))
                break;
          }
       }
