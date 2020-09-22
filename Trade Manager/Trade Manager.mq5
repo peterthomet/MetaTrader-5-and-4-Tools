@@ -1101,6 +1101,8 @@ void DisplayText()
                }
             }
          }
+         if(totalrisk!=DBL_MAX)
+            totalrisk-=(WS.globalgain-BI.gain);
 
          if(StopLossPercentTradingCapital>0)
          {
@@ -1113,7 +1115,6 @@ void DisplayText()
          if(totalrisk!=DBL_MAX)
          {
             risktext="At Risk: ";
-            totalrisk-=(WS.globalgain-BI.gain);
             if(totalrisk<=0)
             {
                totalrisk=0-totalrisk;
