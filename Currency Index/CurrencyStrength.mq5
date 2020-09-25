@@ -78,6 +78,8 @@ input bool switch_symbol_on_click_all_charts = false; //On Click Switch Symbol a
 input double set_charts_shift = 0; //Set Chart Shift at Startup
 input bool create_multiple_charts_time_line = false; //Create multiple Charts Time Line
 input bool create_multiple_charts_price_line = false; //Create multiple Charts Price Line
+input bool draw_percent_levels = false; //Draw Percent Levels
+input color Color_percent_levels = Gainsboro; // Color Percent Levels
 
 TypeCurrencyStrength CS;
 
@@ -291,6 +293,20 @@ void OnInit()
    {
       ObjectCreate(0,appnamespace+"MouseMovePrice",OBJ_HLINE,0,0,0);
       ObjectSetInteger(0,appnamespace+"MouseMovePrice",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_FOREGROUND));
+   }
+   
+   if(draw_percent_levels)
+   {
+      for(int i=1; i<=15; i++)
+      {
+         double levelvalue=999.99+(0.00125*i);
+         string percentstring=DoubleToString((levelvalue-1000)*100,3);
+         string objname=appnamespace+"Percent"+percentstring;
+         ObjectCreate(0,objname,OBJ_HLINE,ChartWindowFind(),0,levelvalue);
+         ObjectSetInteger(0,objname,OBJPROP_COLOR,Color_percent_levels);
+         ObjectSetInteger(0,objname,OBJPROP_BACK,true);
+         ObjectSetString(0,objname,OBJPROP_TOOLTIP,percentstring+"%");
+      }
    }
 
 }
