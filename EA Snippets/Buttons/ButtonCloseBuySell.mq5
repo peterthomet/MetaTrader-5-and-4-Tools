@@ -103,6 +103,8 @@ void CreateButtons()
    ObjectSetInteger(0,on,OBJPROP_YDISTANCE,BuysButtonPositionY);
    ObjectSetInteger(0,on,OBJPROP_XSIZE,100);
    ObjectSetInteger(0,on,OBJPROP_YSIZE,22);
+   ObjectSetInteger(0,on,OBJPROP_ZORDER,1000);
+   ObjectSetString(0,on,OBJPROP_TOOLTIP,"Close Buys");
 
    on=appnamespace+IntegerToString(BuyText);
    ObjectCreate(0,on,OBJ_LABEL,0,0,0);
@@ -125,6 +127,8 @@ void CreateButtons()
    ObjectSetInteger(0,on,OBJPROP_YDISTANCE,SellsButtonPositionY);
    ObjectSetInteger(0,on,OBJPROP_XSIZE,100);
    ObjectSetInteger(0,on,OBJPROP_YSIZE,22);
+   ObjectSetInteger(0,on,OBJPROP_ZORDER,1000);
+   ObjectSetString(0,on,OBJPROP_TOOLTIP,"Close Sells");
 
    on=appnamespace+IntegerToString(SellText);
    ObjectCreate(0,on,OBJ_LABEL,0,0,0);
