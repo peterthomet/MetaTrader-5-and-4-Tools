@@ -457,6 +457,7 @@ void ShowTradeSet(int col, int row, string text, bool buy)
    ObjectSetString(0,oname,OBJPROP_TEXT,text);
    ObjectSetInteger(0,oname,OBJPROP_COLOR,_color);
    ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,9);
+   ObjectSetInteger(0,oname,OBJPROP_ZORDER,1000);
 }
 
 
@@ -502,6 +503,7 @@ void AddSymbolButton(int col, int row, string text, color _color=DimGray)
    ObjectSetString(0,oname,OBJPROP_TEXT,text);
    ObjectSetInteger(0,oname,OBJPROP_COLOR,_color);
    ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,9);
+   ObjectSetInteger(0,oname,OBJPROP_ZORDER,1000);
 }
 
 
@@ -517,6 +519,7 @@ void AddFunctionButton(int x, int y, string text)
    ObjectSetString(0,oname,OBJPROP_TEXT,text);
    ObjectSetInteger(0,oname,OBJPROP_COLOR,Color_StandardText);
    ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,8);
+   ObjectSetInteger(0,oname,OBJPROP_ZORDER,1000);
 }
 
 
@@ -760,6 +763,7 @@ int DrawObjects(string name,color _color)
    ObjectSetString(0,oname,OBJPROP_TEXT,name);
    ObjectSetInteger(0,oname,OBJPROP_COLOR,_color);
    ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,9);
+   ObjectSetInteger(0,oname,OBJPROP_ZORDER,1000);
    y_pos+=16;
    return(0);
 }
