@@ -25,23 +25,43 @@ enum CalculationMode
    OSCILLATOR
 };
 
+enum ZeroPointTypeList
+{
+   ByBar, // Number of Bar
+   Minutes3, // 3 Minutes
+   Minutes5, // 5 Minutes
+   Minutes15, // 15 Minutes
+   Minutes30, // 30 Minutes
+   Hour, // 1 Hour
+   Hours4, // 4 Hours
+   Day, // Start of Day
+   Week // Start of Week
+};
+
 input ENUM_TIMEFRAMES TimeFrame = PERIOD_CURRENT; // Timeframe
 input CS_Prices PriceType = pr_close; // Price Type
 input int SMALength = 6; // SMA Length for SMA Mode
 input int SMALengthOscillatorLong = 19; // SMA Length Long for Oscillator Mode
 input int SMALengthOscillatorShort = 5; // SMA Length Short for Oscillator Mode
 input int BarsCalculate = 30; // Number of Bars to calculate
-input int ZeroPoint = 30; // Zero Point
+input int ZeroPoint = 30; // Zero Point Bar
+input ZeroPointTypeList ZeroPointType = ByBar; // Zero Point Type
 input bool ValueDisplayedWholeRange = false; // Value displayed is whole Range
 
-input color Color_USD = MediumSeaGreen;            // USD line color
-input color Color_EUR = DodgerBlue;         // EUR line color
-input color Color_GBP = DeepPink;              // GBP line color
-input color Color_CHF = Black;        // CHF line color
-input color Color_JPY = Chocolate;           // JPY line color
-input color Color_AUD = DarkOrange;       // AUD line color
-input color Color_CAD = MediumVioletRed;           // CAD line color
-input color Color_NZD = Silver;         // NZD line color
+input color Color_USD = MediumSeaGreen; // USD line color
+input color Color_EUR = DodgerBlue; // EUR line color
+input color Color_GBP = DeepPink; // GBP line color
+input color Color_CHF = Black; // CHF line color
+input color Color_JPY = Chocolate; // JPY line color
+input color Color_AUD = DarkOrange; // AUD line color
+input color Color_CAD = MediumVioletRed; // CAD line color
+input color Color_NZD = Silver; // NZD line color
+
+input color Color_StandardText = DimGray; // Color Standard Text
+input color Color_BuyText = DodgerBlue; // Color Buy Text
+input color Color_SellText = DimGray; // Color Sell Text
+input color Color_BuyValue = MediumSeaGreen; // Color Buy Value
+input color Color_SellValue = DeepPink; // Color Sell Value
 
 input int wid_standard = 1; //Lines width
 input int wid_main = 3; //Lines width for current chart
@@ -58,6 +78,8 @@ input bool switch_symbol_on_click_all_charts = false; //On Click Switch Symbol a
 input double set_charts_shift = 0; //Set Chart Shift at Startup
 input bool create_multiple_charts_time_line = false; //Create multiple Charts Time Line
 input bool create_multiple_charts_price_line = false; //Create multiple Charts Price Line
+input bool draw_percent_levels = false; //Draw Percent Levels
+input color Color_percent_levels = Gainsboro; // Color Percent Levels
 
 TypeCurrencyStrength CS;
 
@@ -89,6 +111,8 @@ datetime offsettime=0;
 int lastoffset=0;
 CalculationMode modecurrent;
 CalculationMode modelast;
+bool NewBarBase=false;
+ulong LastMicrosecondCount=0;
 #ifdef __MQL5__
 //CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 //CJJMA jjmaUSD;
@@ -180,7 +204,7 @@ void InitBuffer(int idx, double& buffer[], ENUM_INDEXBUFFER_TYPE data_type, stri
 
 void InitCS()
 {
-   int smalong=0, smashort=0;
+   int smalong=0, smashort=0, zeropoint=GetZeroBar();
 
    if(modecurrent==SMA)
       smalong=SMALength;
@@ -193,7 +217,7 @@ void InitCS()
    
    CS.Init(
       BarsCalculate,
-      ZeroPoint,
+      zeropoint,
       StringSubstr(Symbol(),6),
       TimeFrame,
       current_pairs_only,
@@ -253,7 +277,7 @@ void OnInit()
    
    if(!istesting)
    {
-      EventSetTimer(1);
+      EventSetMillisecondTimer(1);
       ChartSetInteger(0,CHART_EVENT_MOUSE_MOVE,true);
    }
 
@@ -270,6 +294,20 @@ void OnInit()
    {
       ObjectCreate(0,appnamespace+"MouseMovePrice",OBJ_HLINE,0,0,0);
       ObjectSetInteger(0,appnamespace+"MouseMovePrice",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_FOREGROUND));
+   }
+   
+   if(draw_percent_levels)
+   {
+      for(int i=1; i<=15; i++)
+      {
+         double levelvalue=999.99+(0.00125*i);
+         string percentstring=DoubleToString((levelvalue-1000)*100,3);
+         string objname=appnamespace+"Percent"+percentstring;
+         ObjectCreate(0,objname,OBJ_HLINE,ChartWindowFind(),0,levelvalue);
+         ObjectSetInteger(0,objname,OBJPROP_COLOR,Color_percent_levels);
+         ObjectSetInteger(0,objname,OBJPROP_BACK,true);
+         ObjectSetString(0,objname,OBJPROP_TOOLTIP,percentstring+"%");
+      }
    }
 
 }
@@ -289,6 +327,44 @@ void OnDeinit(const int reason)
    GlobalVariableSet(appnamespace+IntegerToString(ChartID())+"_offset",offsetwrite);
 
    GlobalVariableSet(appnamespace+IntegerToString(ChartID())+"_mode",modecurrent);
+}
+
+
+int GetZeroBar()
+{
+   int bar=ZeroPoint;
+   if(ZeroPointType!=ByBar)
+   {
+      datetime Arr[];
+      if(CopyTime(Symbol(),Period(),offset,BarsCalculate,Arr)==BarsCalculate)
+      {
+         for(int i=BarsCalculate-2; i>=0; i--)
+         {
+            MqlDateTime dt;
+            MqlDateTime dtp;
+            TimeToStruct(Arr[i],dt);
+            TimeToStruct(Arr[i+1],dtp);
+            bar=BarsCalculate-1-i;
+            if(ZeroPointType==Minutes3 && Period()<=PERIOD_M3 && (MathFloor(dt.min/3)*3)!=(MathFloor(dtp.min/3)*3))
+               break;
+            if(ZeroPointType==Minutes5 && Period()<=PERIOD_M5 && (MathFloor(dt.min/5)*5)!=(MathFloor(dtp.min/5)*5))
+               break;
+            if(ZeroPointType==Minutes15 && Period()<=PERIOD_M15 && (MathFloor(dt.min/15)*15)!=(MathFloor(dtp.min/15)*15))
+               break;
+            if(ZeroPointType==Minutes30 && Period()<=PERIOD_M30 && (MathFloor(dt.min/30)*30)!=(MathFloor(dtp.min/30)*30))
+               break;
+            if(ZeroPointType==Hour && Period()<=PERIOD_H1 && dt.hour!=dtp.hour)
+               break;
+            if(ZeroPointType==Hours4 && Period()<=PERIOD_H4 && (MathFloor(dt.hour/4)*4)!=(MathFloor(dtp.hour/4)*4))
+               break;
+            if(ZeroPointType==Day && Period()<=PERIOD_D1 && dt.day!=dtp.day)
+               break;
+            if(ZeroPointType==Week && Period()<=PERIOD_W1 && (dt.day_of_week==6||dt.day_of_week==5))
+               break;
+         }
+      }
+   }
+   return bar;
 }
 
 
@@ -324,12 +400,12 @@ void StrongestMove(int range)
    CheckUpDown("NZD",ud,NZDplot,range);
    
    bool signal=false;
-   color c=DimGray;
+   color c=Color_SellText;
    string pair=CS.Pairs.NormalizePairing(ud.up+ud.dn);
    bool up=false;
    if(StringFind(pair,ud.up)==0)
    {
-      c=DodgerBlue;
+      c=Color_BuyText;
       up=true;
    }
    if(StringFind(pair+CS.extrachars,Symbol())==0)
@@ -368,9 +444,9 @@ void StrongestMove(int range)
 
 void ShowTradeSet(int col, int row, string text, bool buy)
 {
-   color _color=DimGray;
+   color _color=Color_SellText;
    if(buy)
-      _color=DodgerBlue;
+      _color=Color_BuyText;
    int xdistance=((col-1)*62)+6;
    int ydistance=((row-1)*16)+20;
    string oname = appnamespace+"-SymbolButton-TradeSet-"+IntegerToString(col)+"-"+IntegerToString(row);
@@ -382,6 +458,7 @@ void ShowTradeSet(int col, int row, string text, bool buy)
    ObjectSetString(0,oname,OBJPROP_TEXT,text);
    ObjectSetInteger(0,oname,OBJPROP_COLOR,_color);
    ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,9);
+   ObjectSetInteger(0,oname,OBJPROP_ZORDER,1000);
 }
 
 
@@ -389,11 +466,11 @@ void ShowValue(int col, int row)
 {
    int idx=CS.Currencies.GetValueIndex(row);
    double value=CS.Currencies.LastValues[idx][0];
-   color _color=DimGray;
+   color _color=Color_StandardText;
    if(idx>5)
-      _color=MediumSeaGreen;
+      _color=Color_BuyValue;
    if(idx<2)
-      _color=DeepPink;
+      _color=Color_SellValue;
    //_color=DimGray;
    string text=DoubleToString(value*100000,0);
    //text="|||||||||";
@@ -427,6 +504,7 @@ void AddSymbolButton(int col, int row, string text, color _color=DimGray)
    ObjectSetString(0,oname,OBJPROP_TEXT,text);
    ObjectSetInteger(0,oname,OBJPROP_COLOR,_color);
    ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,9);
+   ObjectSetInteger(0,oname,OBJPROP_ZORDER,1000);
 }
 
 
@@ -440,15 +518,18 @@ void AddFunctionButton(int x, int y, string text)
    ObjectSetInteger(0,oname,OBJPROP_YDISTANCE,y);
    //ObjectSetString(0,oname,OBJPROP_FONT,"Segoe UI Symbol");
    ObjectSetString(0,oname,OBJPROP_TEXT,text);
-   ObjectSetInteger(0,oname,OBJPROP_COLOR,DimGray);
+   ObjectSetInteger(0,oname,OBJPROP_COLOR,Color_StandardText);
    ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,8);
+   ObjectSetInteger(0,oname,OBJPROP_ZORDER,1000);
 }
 
 
 void OnTimer()
 {
-   if(incalculation || !timerenabled)
+   if((GetMicrosecondCount()-LastMicrosecondCount<1000000 && !NewBarBase && modecurrent==modelast) || incalculation || !timerenabled)
       return;
+   LastMicrosecondCount=GetMicrosecondCount();
+
    if(istesting)
    {
       datetime curtime=TimeCurrent();
@@ -472,7 +553,7 @@ void OnTimer()
    
    incalculation=true;
 
-   if(modecurrent!=modelast)
+   if(modecurrent!=modelast||(NewBarBase&&ZeroPointType!=ByBar))
       InitCS();
    
    if(CS_CalculateIndex(CS,offset))
@@ -497,6 +578,8 @@ void OnTimer()
 
       lastoffset=offset;
 
+      NewBarBase=false;
+
       ChartRedraw();
    }
    if(currentticktime != lastticktime)
@@ -507,7 +590,7 @@ void OnTimer()
    else
    {
       sameticktimecount++;
-      if(sameticktimecount>=30)
+      if(sameticktimecount>=30000)
       {
          timerenabled=false;
          Print("Timer Stopped - No Data Feed Available");
@@ -558,6 +641,7 @@ int OnCalculate(const int rates_total,
          if(offset==0)
             ClearUnusedBuffers();
       }
+      NewBarBase=true;
    }
    if(offset==0||prev_calculated==0)
       timerenabled=true;
@@ -681,6 +765,7 @@ int DrawObjects(string name,color _color)
    ObjectSetString(0,oname,OBJPROP_TEXT,name);
    ObjectSetInteger(0,oname,OBJPROP_COLOR,_color);
    ObjectSetInteger(0,oname,OBJPROP_FONTSIZE,9);
+   ObjectSetInteger(0,oname,OBJPROP_ZORDER,1000);
    y_pos+=16;
    return(0);
 }
@@ -775,7 +860,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       if(offset!=currentoffset)
       {
          SetTickTime();
-         CS.recalculate=true;
+         NewBarBase=true;
          ClearUnusedBuffers();
          timerenabled=true;
       }
@@ -860,6 +945,6 @@ void SwitchSymbol(string tosymbol)
          }
       }
       ChartSetSymbolPeriod(0,tosymbol+CS.extrachars,0);
-      AddSymbolButton(2, 1, currentsymbol);
+      AddSymbolButton(2, 1, currentsymbol,Color_StandardText);
    }
 }

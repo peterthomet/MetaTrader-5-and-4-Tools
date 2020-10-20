@@ -111,7 +111,8 @@ datetime offsettime=0;
 int lastoffset=0;
 CalculationMode modecurrent;
 CalculationMode modelast;
-bool newbar=false;
+bool NewBarBase=false;
+ulong LastMicrosecondCount=0;
 #ifdef __MQL5__
 //CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 //CJJMA jjmaUSD;
@@ -276,7 +277,7 @@ void OnInit()
    
    if(!istesting)
    {
-      EventSetTimer(1);
+      EventSetMillisecondTimer(1);
       ChartSetInteger(0,CHART_EVENT_MOUSE_MOVE,true);
    }
 
@@ -335,7 +336,7 @@ int GetZeroBar()
    if(ZeroPointType!=ByBar)
    {
       datetime Arr[];
-      if(CopyTime(Symbol(),Period(),0,BarsCalculate,Arr)==BarsCalculate)
+      if(CopyTime(Symbol(),Period(),offset,BarsCalculate,Arr)==BarsCalculate)
       {
          for(int i=BarsCalculate-2; i>=0; i--)
          {
@@ -525,8 +526,10 @@ void AddFunctionButton(int x, int y, string text)
 
 void OnTimer()
 {
-   if(incalculation || !timerenabled)
+   if((GetMicrosecondCount()-LastMicrosecondCount<1000000 && !NewBarBase && modecurrent==modelast) || incalculation || !timerenabled)
       return;
+   LastMicrosecondCount=GetMicrosecondCount();
+
    if(istesting)
    {
       datetime curtime=TimeCurrent();
@@ -550,11 +553,8 @@ void OnTimer()
    
    incalculation=true;
 
-   if(modecurrent!=modelast||(newbar&&ZeroPointType!=ByBar))
-   {
+   if(modecurrent!=modelast||(NewBarBase&&ZeroPointType!=ByBar))
       InitCS();
-      newbar=false;
-   }
    
    if(CS_CalculateIndex(CS,offset))
    {
@@ -578,6 +578,8 @@ void OnTimer()
 
       lastoffset=offset;
 
+      NewBarBase=false;
+
       ChartRedraw();
    }
    if(currentticktime != lastticktime)
@@ -588,7 +590,7 @@ void OnTimer()
    else
    {
       sameticktimecount++;
-      if(sameticktimecount>=30)
+      if(sameticktimecount>=30000)
       {
          timerenabled=false;
          Print("Timer Stopped - No Data Feed Available");
@@ -639,7 +641,7 @@ int OnCalculate(const int rates_total,
          if(offset==0)
             ClearUnusedBuffers();
       }
-      newbar=true;
+      NewBarBase=true;
    }
    if(offset==0||prev_calculated==0)
       timerenabled=true;
@@ -858,7 +860,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       if(offset!=currentoffset)
       {
          SetTickTime();
-         CS.recalculate=true;
+         NewBarBase=true;
          ClearUnusedBuffers();
          timerenabled=true;
       }
