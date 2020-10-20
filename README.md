@@ -1,8 +1,8 @@
-:warning: Be prepared, the platform updates of MetaTrader 4 and 5 from MetaQuotes constantly break some of this code!
+<!--:warning: Be prepared, the platform updates of MetaTrader 4 and 5 from MetaQuotes constantly break some of this code!
 
 <br/>
 <br/>
-
+-->
 # Indicators and EA Snippets for MetaTrader 5 and 4
 Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute improvements and let me know your ideas.
 
