@@ -10,13 +10,96 @@
 #include <CurrencyStrength.mqh>
 const int bars=90000;
 TypeCurrencyStrength CS;
+enum StateLevels
+{
+   Initial,
+   ZeroBarAvailable,
+   InitialCSLoaded
+};
+StateLevels InitState=Initial;
 
 
 void OnStart()
 {
+   InitCS();
+
+   CreateAndSelectSymbols();
+
+   LoadInitialCS();
+
+   while(!IsStopped())
+   {
+      if(CS_CalculateIndex(CS,0))
+         AddTick(CS.Currencies.Currency[1].index[bars-1].laging.close*100000+1000,CS.Currencies.Currency[1].index[bars-1].time,"EUR");
+
+      Sleep(1000);
+   }
+
+   DeleteSymbols();
+}
+
+
+void AddTick(double price, datetime time, string symbol)
+{
+   MqlTick t[1];
+   t[0].time=time;
+   t[0].last=price;
+   t[0].bid=t[0].last;
+   t[0].ask=t[0].last;
+   CustomTicksAdd(symbol,t);
+}
+
+
+bool LoadInitialCS()
+{
+   MqlRates rates[];
+   ArrayResize(rates,bars-1);
+ 
+   if(CS_CalculateIndex(CS,0))
+   {
+      for(int i=1; i<bars; i++)
+      {
+         rates[i-1].time=CS.Currencies.Currency[1].index[i].time;
+         rates[i-1].open=CS.Currencies.Currency[1].index[i-1].laging.close*100000+1000;
+         rates[i-1].high=CS.Currencies.Currency[1].index[i].laging.high*100000+1000;
+         rates[i-1].low=CS.Currencies.Currency[1].index[i].laging.low*100000+1000;
+         rates[i-1].close=CS.Currencies.Currency[1].index[i].laging.close*100000+1000;
+      }
+      
+      CustomRatesDelete("EUR",TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24),TimeCurrent());
+      CustomTicksDelete("EUR",(TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24))*1000,TimeCurrent()*1000);
+      CustomRatesUpdate("EUR",rates);
+
+      return true;
+   }
+   else
+      return false;
+}
+
+
+void DeleteSymbols()
+{
+   SymbolSelect("EUR",false);
+   CustomSymbolDelete("EUR");
+}
+
+
+void CreateAndSelectSymbols()
+{
+   CustomSymbolCreate("EUR",NULL,"EURUSD");
+   SymbolSelect("EUR",true);
+}
+
+
+bool InitCS()
+{
+   int ZeroBar=GetZeroBar();
+   if(ZeroBar==0)
+      return false;
+
    CS.Init(
       bars,
-      GetZeroBar(),
+      ZeroBar,
       "",
       PERIOD_M1,
       false,
@@ -26,75 +109,7 @@ void OnStart()
       false
       );
 
-   CustomSymbolCreate("EUR",NULL,"EURUSD");
-   SymbolSelect("EUR",true);
-
-   //datetime LastTime=TimeCurrent();
-   MqlRates rates[];
-   ArrayResize(rates,bars-1);
- 
-   if(CS_CalculateIndex(CS,0))
-   {
-      //Print(CS.Currencies.Currency[1].index[0].laging.close);
-      for(int i=1; i<bars; i++)
-      {
-         //LastTime=TimeCurrent()-(((bars-1)-i)*60);
-         rates[i-1].time=CS.Currencies.Currency[1].index[i].time;
-         rates[i-1].open=CS.Currencies.Currency[1].index[i-1].laging.close*100000+1000;
-         rates[i-1].high=CS.Currencies.Currency[1].index[i].laging.high*100000+1000;
-         rates[i-1].low=CS.Currencies.Currency[1].index[i].laging.low*100000+1000;
-         rates[i-1].close=CS.Currencies.Currency[1].index[i].laging.close*100000+1000;
-      }
-      
-      CustomRatesUpdate("EUR",rates);
-   }
-   else
-   {
-      Print("FAIL");
-   }
-
-
-/*
-   rates[0].time=TimeCurrent()-120;
-   rates[0].open=120;
-   rates[0].high=200;
-   rates[0].low=100;
-   rates[0].close=150;
-
-   rates[1].time=TimeCurrent()-60;
-   rates[1].open=150;
-   rates[1].high=160;
-   rates[1].low=120;
-   rates[1].close=130;
-
-   rates[2].time=TimeCurrent();
-   rates[2].open=130;
-   rates[2].high=140;
-   rates[2].low=90;
-   rates[2].close=100;
-*/
-
-   //CustomRatesUpdate("USD",rates);
-
-   MqlRates r[1];
-   while(!IsStopped())
-   {
-      if(CS_CalculateIndex(CS,0))
-      {
-         r[0].time=CS.Currencies.Currency[1].index[99].time;
-         r[0].open=CS.Currencies.Currency[1].index[99-1].laging.close*100000+1000;
-         r[0].high=CS.Currencies.Currency[1].index[99].laging.high*100000+1000;
-         r[0].low=CS.Currencies.Currency[1].index[99].laging.low*100000+1000;
-         r[0].close=CS.Currencies.Currency[1].index[99].laging.close*100000+1000;
-         
-         //CustomRatesUpdate("EUR",r);
-      }
-
-      Sleep(1000);
-   }
-
-   SymbolSelect("EUR",false);
-   CustomSymbolDelete("EUR");
+   return true;
 }
 
 
@@ -102,6 +117,7 @@ int GetZeroBar()
 {
    int bar=0, barsback=1500;
    datetime Arr[];
+
    if(CopyTime("EURUSD",PERIOD_M1,0,barsback,Arr)==barsback)
    {
       for(int i=barsback-2; i>=0; i--)
@@ -115,5 +131,6 @@ int GetZeroBar()
             break;
       }
    }
+
    return bar;
 }
