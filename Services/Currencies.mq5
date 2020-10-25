@@ -7,42 +7,60 @@
 #property link      "http://www.getyournet.ch"
 #property version   "1.00"
 
+input int TotalBars = 90000; // Total Bars
+
 #include <CurrencyStrength.mqh>
-const int bars=90000;
 TypeCurrencyStrength CS;
-enum StateLevels
+enum States
 {
    Initial,
    ZeroBarAvailable,
    InitialCSLoaded
 };
-StateLevels InitState=Initial;
+States InitState=Initial;
 
 
 void OnStart()
 {
-   InitCS();
-
-   CreateAndSelectSymbols();
-
-   LoadInitialCS();
-
    while(!IsStopped())
    {
-      if(CS_CalculateIndex(CS,0))
-         AddTick(CS.Currencies.Currency[1].index[bars-1].laging.close*100000+1000,CS.Currencies.Currency[1].index[bars-1].time,"EUR");
+      if(InitState==Initial)
+      {
+         if(InitCS())
+         {
+            CreateAndSelectSymbols();
+            InitState=ZeroBarAvailable;
+         }
+      }
+
+      if(InitState==ZeroBarAvailable)
+      {
+         if(LoadInitialCS())
+         {
+            //AddTick(CS.Currencies.Currency[1].index[TotalBars-1].laging.close*100000+1000,(CS.Currencies.Currency[1].index[TotalBars-1].time*1000)+1,"EUR");
+
+            InitState=InitialCSLoaded;
+         }
+      }
+
+      if(InitState==InitialCSLoaded)
+      {
+         //if(CS_CalculateIndex(CS,0))
+         //   AddTick(CS.Currencies.Currency[1].index[TotalBars-1].laging.close*100000+1000,CS.Currencies.Currency[1].index[TotalBars-1].time,"EUR");
+
+      }
 
       Sleep(1000);
    }
 
-   DeleteSymbols();
+   //DeleteSymbols();
 }
 
 
-void AddTick(double price, datetime time, string symbol)
+void AddTick(double price, long time, string symbol)
 {
    MqlTick t[1];
-   t[0].time=time;
+   t[0].time_msc=time;
    t[0].last=price;
    t[0].bid=t[0].last;
    t[0].ask=t[0].last;
@@ -53,11 +71,11 @@ void AddTick(double price, datetime time, string symbol)
 bool LoadInitialCS()
 {
    MqlRates rates[];
-   ArrayResize(rates,bars-1);
+   ArrayResize(rates,TotalBars-1);
  
    if(CS_CalculateIndex(CS,0))
    {
-      for(int i=1; i<bars; i++)
+      for(int i=1; i<TotalBars; i++)
       {
          rates[i-1].time=CS.Currencies.Currency[1].index[i].time;
          rates[i-1].open=CS.Currencies.Currency[1].index[i-1].laging.close*100000+1000;
@@ -67,7 +85,7 @@ bool LoadInitialCS()
       }
       
       CustomRatesDelete("EUR",TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24),TimeCurrent());
-      CustomTicksDelete("EUR",(TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24))*1000,TimeCurrent()*1000);
+      CustomTicksDelete("EUR",(TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24))*1000,(TimeCurrent()+1000)*1000);
       CustomRatesUpdate("EUR",rates);
 
       return true;
@@ -79,15 +97,43 @@ bool LoadInitialCS()
 
 void DeleteSymbols()
 {
+   SymbolSelect("USD",false);
+   CustomSymbolDelete("USD");
    SymbolSelect("EUR",false);
    CustomSymbolDelete("EUR");
+   SymbolSelect("GBP",false);
+   CustomSymbolDelete("GBP");
+   SymbolSelect("JPY",false);
+   CustomSymbolDelete("JPY");
+   SymbolSelect("CHF",false);
+   CustomSymbolDelete("CHF");
+   SymbolSelect("CAD",false);
+   CustomSymbolDelete("CAD");
+   SymbolSelect("AUD",false);
+   CustomSymbolDelete("AUD");
+   SymbolSelect("NZD",false);
+   CustomSymbolDelete("NZD");
 }
 
 
 void CreateAndSelectSymbols()
 {
-   CustomSymbolCreate("EUR",NULL,"EURUSD");
+   CustomSymbolCreate("USD");
+   SymbolSelect("USD",true);
+   CustomSymbolCreate("EUR");
    SymbolSelect("EUR",true);
+   CustomSymbolCreate("GBP");
+   SymbolSelect("GBP",true);
+   CustomSymbolCreate("JPY");
+   SymbolSelect("JPY",true);
+   CustomSymbolCreate("CHF");
+   SymbolSelect("CHF",true);
+   CustomSymbolCreate("CAD");
+   SymbolSelect("CAD",true);
+   CustomSymbolCreate("AUD");
+   SymbolSelect("AUD",true);
+   CustomSymbolCreate("NZD");
+   SymbolSelect("NZD",true);
 }
 
 
@@ -98,7 +144,7 @@ bool InitCS()
       return false;
 
    CS.Init(
-      bars,
+      TotalBars,
       ZeroBar,
       "",
       PERIOD_M1,

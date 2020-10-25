@@ -42,6 +42,7 @@ struct TypeIndexValues
 
 struct TypeIndexes
 {
+   datetime time;
    TypeIndexValues laging;
    TypeIndexValues step;
 };
@@ -273,7 +274,13 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
          if(cs.IncludeCurrency(cn))
          {
             cs.Currencies.Currency[z].index[y].laging.value1basic=0;
+            cs.Currencies.Currency[z].index[y].laging.high=0;
+            cs.Currencies.Currency[z].index[y].laging.low=0;
+            cs.Currencies.Currency[z].index[y].laging.close=0;
             cs.Currencies.Currency[z].index[y].step.value1=0;
+            cs.Currencies.Currency[z].index[y].step.high=0;
+            cs.Currencies.Currency[z].index[y].step.low=0;
+            cs.Currencies.Currency[z].index[y].step.close=0;
 
             for(int x=0; x<28; x++)
             {
@@ -291,13 +298,14 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                   if(isquote)
                      multiplier=-1;
 
+                  cs.Currencies.Currency[z].index[y].time=itemtimeref;
                   cs.Currencies.Currency[z].index[y].laging.value1basic+=((pi.value1-ps.value1)/ps.value1)*multiplier;
-                  cs.Currencies.Currency[z].index[y].laging.high+=((pi.high-ps.high)/ps.high)*multiplier;
-                  cs.Currencies.Currency[z].index[y].laging.low+=((pi.low-ps.low)/ps.low)*multiplier;
+                  cs.Currencies.Currency[z].index[y].laging.high+=((pi.high-ps.close)/ps.close)*multiplier;
+                  cs.Currencies.Currency[z].index[y].laging.low+=((pi.low-ps.close)/ps.close)*multiplier;
                   cs.Currencies.Currency[z].index[y].laging.close+=((pi.close-ps.close)/ps.close)*multiplier;
                   cs.Currencies.Currency[z].index[y].step.value1+=((pi.value1-ps2.value1)/ps2.value1)*multiplier;
-                  cs.Currencies.Currency[z].index[y].step.high+=((pi.high-ps2.high)/ps2.high)*multiplier;
-                  cs.Currencies.Currency[z].index[y].step.low+=((pi.low-ps2.low)/ps2.low)*multiplier;
+                  cs.Currencies.Currency[z].index[y].step.high+=((pi.high-ps2.close)/ps2.close)*multiplier;
+                  cs.Currencies.Currency[z].index[y].step.low+=((pi.low-ps2.close)/ps2.close)*multiplier;
                   cs.Currencies.Currency[z].index[y].step.close+=((pi.close-ps2.close)/ps2.close)*multiplier;
                }
             }
