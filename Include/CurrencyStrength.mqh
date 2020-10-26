@@ -294,18 +294,23 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                   TypeIndexValues ps=CS_GetPrices(cs.pricetype,cs.Pairs.Pair[x].rates,cs.start+startshift);
                   TypeIndexValues ps2=CS_GetPrices(cs.pricetype,cs.Pairs.Pair[x].rates,MathMax((y+itemshift)-1,0));
 
-                  double multiplier=1;
+                  double multiplier=1, high, low;
+                  high=pi.high;
+                  low=pi.low;
                   if(isquote)
+                  {
                      multiplier=-1;
-
+                     high=pi.low;
+                     low=pi.high;
+                  }
                   cs.Currencies.Currency[z].index[y].time=itemtimeref;
                   cs.Currencies.Currency[z].index[y].laging.value1basic+=((pi.value1-ps.value1)/ps.value1)*multiplier;
-                  cs.Currencies.Currency[z].index[y].laging.high+=((pi.high-ps.close)/ps.close)*multiplier;
-                  cs.Currencies.Currency[z].index[y].laging.low+=((pi.low-ps.close)/ps.close)*multiplier;
+                  cs.Currencies.Currency[z].index[y].laging.high+=((high-ps.close)/ps.close)*multiplier;
+                  cs.Currencies.Currency[z].index[y].laging.low+=((low-ps.close)/ps.close)*multiplier;
                   cs.Currencies.Currency[z].index[y].laging.close+=((pi.close-ps.close)/ps.close)*multiplier;
                   cs.Currencies.Currency[z].index[y].step.value1+=((pi.value1-ps2.value1)/ps2.value1)*multiplier;
-                  cs.Currencies.Currency[z].index[y].step.high+=((pi.high-ps2.close)/ps2.close)*multiplier;
-                  cs.Currencies.Currency[z].index[y].step.low+=((pi.low-ps2.close)/ps2.close)*multiplier;
+                  cs.Currencies.Currency[z].index[y].step.high+=((high-ps2.close)/ps2.close)*multiplier;
+                  cs.Currencies.Currency[z].index[y].step.low+=((low-ps2.close)/ps2.close)*multiplier;
                   cs.Currencies.Currency[z].index[y].step.close+=((pi.close-ps2.close)/ps2.close)*multiplier;
                }
             }
