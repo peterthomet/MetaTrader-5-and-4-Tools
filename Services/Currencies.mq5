@@ -70,28 +70,61 @@ void AddTick(double price, long time, string symbol)
 
 bool LoadInitialCS()
 {
-   MqlRates rates[];
-   ArrayResize(rates,TotalBars-1);
- 
    if(CS_CalculateIndex(CS,0))
    {
+      MqlRates ratesUSD[], ratesEUR[], ratesGBP[], ratesJPY[], ratesCHF[], ratesCAD[], ratesAUD[], ratesNZD[];
+      ArrayResize(ratesUSD,TotalBars-1);
+      ArrayResize(ratesEUR,TotalBars-1);
+      ArrayResize(ratesGBP,TotalBars-1);
+      ArrayResize(ratesJPY,TotalBars-1);
+      ArrayResize(ratesCHF,TotalBars-1);
+      ArrayResize(ratesCAD,TotalBars-1);
+      ArrayResize(ratesAUD,TotalBars-1);
+      ArrayResize(ratesNZD,TotalBars-1);
+
       for(int i=1; i<TotalBars; i++)
       {
-         rates[i-1].time=CS.Currencies.Currency[1].index[i].time;
-         rates[i-1].open=CS.Currencies.Currency[1].index[i-1].laging.close*100000+1000;
-         rates[i-1].high=CS.Currencies.Currency[1].index[i].laging.high*100000+1000;
-         rates[i-1].low=CS.Currencies.Currency[1].index[i].laging.low*100000+1000;
-         rates[i-1].close=CS.Currencies.Currency[1].index[i].laging.close*100000+1000;
+         GetValues(ratesUSD[i-1],CS.Currencies.Currency[0],i);
+         GetValues(ratesEUR[i-1],CS.Currencies.Currency[1],i);
+         GetValues(ratesGBP[i-1],CS.Currencies.Currency[2],i);
+         GetValues(ratesJPY[i-1],CS.Currencies.Currency[3],i);
+         GetValues(ratesCHF[i-1],CS.Currencies.Currency[4],i);
+         GetValues(ratesCAD[i-1],CS.Currencies.Currency[5],i);
+         GetValues(ratesAUD[i-1],CS.Currencies.Currency[6],i);
+         GetValues(ratesNZD[i-1],CS.Currencies.Currency[7],i);
       }
       
-      CustomRatesDelete("EUR",TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24),TimeCurrent());
-      CustomTicksDelete("EUR",(TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24))*1000,(TimeCurrent()+1000)*1000);
-      CustomRatesUpdate("EUR",rates);
+      UpdateRates(ratesUSD,"USD");
+      UpdateRates(ratesEUR,"EUR");
+      UpdateRates(ratesGBP,"GBP");
+      UpdateRates(ratesJPY,"JPY");
+      UpdateRates(ratesCHF,"CHF");
+      UpdateRates(ratesCAD,"CAD");
+      UpdateRates(ratesAUD,"AUD");
+      UpdateRates(ratesNZD,"NZD");
 
       return true;
    }
    else
       return false;
+}
+
+
+void UpdateRates(MqlRates& rates[], string symbol)
+{
+   CustomRatesDelete(symbol,TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24),TimeCurrent());
+   CustomTicksDelete(symbol,(TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24))*1000,(TimeCurrent()+1000)*1000);
+   CustomRatesUpdate(symbol,rates);
+}
+
+
+void GetValues(MqlRates& rates, TypeCurrency& currency, int i)
+{
+   rates.time=currency.index[i].time;
+   rates.open=currency.index[i-1].laging.close*100000+1000;
+   rates.high=currency.index[i].laging.high*100000+1000;
+   rates.low=currency.index[i].laging.low*100000+1000;
+   rates.close=currency.index[i].laging.close*100000+1000;
 }
 
 
