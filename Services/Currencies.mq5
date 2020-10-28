@@ -10,7 +10,7 @@
 input int TotalBars = 90000; // Total Bars
 
 #include <CurrencyStrength.mqh>
-TypeCurrencyStrength CS;
+
 enum States
 {
    Initial,
@@ -18,6 +18,8 @@ enum States
    InitialCSLoaded,
    DayCSReady
 };
+
+TypeCurrencyStrength CS;
 States InitState=Initial;
 datetime lastm1bar=0;
 
@@ -41,8 +43,6 @@ void OnStart()
       {
          if(LoadCS(CS.bars-1,true))
          {
-            //AddTick(CS.Currencies.Currency[1].index[TotalBars-1].laging.close*100000+1000,(CS.Currencies.Currency[1].index[TotalBars-1].time*1000)+1,"EUR");
-
             InitState=InitialCSLoaded;
          }
       }
@@ -54,9 +54,6 @@ void OnStart()
             CS.recalculate=true;
             InitState=DayCSReady;
          }
-
-         //if(CS_CalculateIndex(CS,0))
-         //   AddTick(CS.Currencies.Currency[1].index[TotalBars-1].laging.close*100000+1000,CS.Currencies.Currency[1].index[TotalBars-1].time,"EUR");
       }
 
       if(InitState==DayCSReady)
@@ -147,6 +144,9 @@ void UpdateRates(MqlRates& rates[], string symbol, bool deleteall)
       CustomTicksDelete(symbol,(TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24))*1000,(TimeCurrent()+1000)*1000);
    }
    CustomRatesUpdate(symbol,rates);
+   
+   int s=ArraySize(rates);
+   AddTick(rates[s-1].close,rates[s-1].time,symbol);
 }
 
 
