@@ -85,7 +85,7 @@ void OnStart()
 void AddTick(double price, datetime time, string symbol)
 {
    MqlTick t[1];
-   t[0].time=time;
+   t[0].time_msc=time*1000;
    t[0].last=price;
    t[0].bid=t[0].last;
    t[0].ask=t[0].last;
