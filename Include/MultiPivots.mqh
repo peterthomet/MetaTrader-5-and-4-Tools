@@ -366,7 +366,12 @@ void PivotsDrawPivots(TypePivotsData& PD, TypePivotsType type, TypePivots& p[], 
       TypePivotsTimeRange t=p[i].times;
       t.enddisplay=p[i-1].times.startdisplay;
       //PivotsCreateLine(PD,t,p[i].BC,p[i-1].BC,Gray,"T-BC",type,2,1,true);
-      PivotsCreateLine(PD,t,p[i].P,p[i-1].P,PD.Settings.pivottrendlinescolor,"T-P",type,2,1,true);
+
+      double gap=p[i-1].P-p[i].P;
+      PivotsCreateLine(PD,p[i-1].times,p[i-1].P+gap,p[i-1].P+(gap*2),PD.Settings.pivottrendlinescolor,"TU1-P",type,2,1,true);
+      PivotsCreateLine(PD,p[i-1].times,p[i-1].P,p[i-1].P+gap,PD.Settings.pivottrendlinescolor,"T-P",type,2,1,true);
+      PivotsCreateLine(PD,p[i-1].times,p[i].P,p[i].P+gap,PD.Settings.pivottrendlinescolor,"TL1-P",type,2,1,true);
+
       //PivotsCreateLine(PD,t,p[i].TC,p[i-1].TC,Gray,"T-TC",type,2,1,true);
    }
 }
