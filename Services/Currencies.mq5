@@ -89,7 +89,9 @@ void AddTick(double price, datetime time, string symbol)
    t[0].last=price;
    t[0].bid=t[0].last;
    t[0].ask=t[0].last;
+   t[0].volume=0;
    CustomTicksAdd(symbol,t);
+   //CustomTicksReplace(symbol,t[0].time_msc-(PeriodSeconds(PERIOD_MN1)*1000),t[0].time_msc,t);
 }
 
 
