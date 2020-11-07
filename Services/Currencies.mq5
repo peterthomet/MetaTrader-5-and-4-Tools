@@ -22,10 +22,16 @@ enum States
 TypeCurrencyStrength CS;
 States InitState=Initial;
 datetime lastm1bar=0;
+double lasttick[8];
 
 
 void OnStart()
 {
+   //ClearAllSymbolRates();
+   //   return;
+   
+   ArrayInitialize(lasttick,0);
+
    while(!IsStopped())
    {
       bool reset=false;
@@ -84,6 +90,15 @@ void OnStart()
 
 void AddTick(double price, datetime time, string symbol)
 {
+   if(lasttick[IdBySymbol(symbol)]==0)
+   {
+      lasttick[IdBySymbol(symbol)]=price;
+      return;
+   }
+
+   if(lasttick[IdBySymbol(symbol)]==price)
+      return;
+
    MqlTick t[1];
    t[0].time_msc=time*1000;
    t[0].last=price;
@@ -92,6 +107,21 @@ void AddTick(double price, datetime time, string symbol)
    t[0].volume=0;
    CustomTicksAdd(symbol,t);
    //CustomTicksReplace(symbol,t[0].time_msc-(PeriodSeconds(PERIOD_MN1)*1000),t[0].time_msc,t);
+   lasttick[IdBySymbol(symbol)]=price;
+}
+
+
+int IdBySymbol(string symbol)
+{
+   if(symbol=="USD") return 0;
+   if(symbol=="EUR") return 1;
+   if(symbol=="GBP") return 2;
+   if(symbol=="JPY") return 3;
+   if(symbol=="CHF") return 4;
+   if(symbol=="CAD") return 5;
+   if(symbol=="AUD") return 6;
+   if(symbol=="NZD") return 7;
+   return -1;
 }
 
 
@@ -138,13 +168,31 @@ bool LoadCS(int updatebars, bool deleteall)
 }
 
 
+void ClearAllSymbolRates()
+{
+   ClearSymbolRates("USD");
+   ClearSymbolRates("EUR");
+   ClearSymbolRates("GBP");
+   ClearSymbolRates("JPY");
+   ClearSymbolRates("CHF");
+   ClearSymbolRates("CAD");
+   ClearSymbolRates("AUD");
+   ClearSymbolRates("NZD");
+}
+
+
+void ClearSymbolRates(string symbol)
+{
+   CustomRatesDelete(symbol,TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24),TimeCurrent());
+   CustomTicksDelete(symbol,(TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24))*1000,(TimeCurrent()+1000)*1000);
+}
+
+
 void UpdateRates(MqlRates& rates[], string symbol, bool deleteall)
 {
    if(deleteall)
-   {
-      CustomRatesDelete(symbol,TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24),TimeCurrent());
-      CustomTicksDelete(symbol,(TimeCurrent()-(PeriodSeconds(PERIOD_MN1)*24))*1000,(TimeCurrent()+1000)*1000);
-   }
+      ClearSymbolRates(symbol);
+
    CustomRatesUpdate(symbol,rates);
    
    int s=ArraySize(rates);
@@ -155,10 +203,10 @@ void UpdateRates(MqlRates& rates[], string symbol, bool deleteall)
 void GetValues(MqlRates& rates, TypeCurrency& currency, int i)
 {
    rates.time=currency.index[i].time;
-   rates.open=currency.index[i-1].laging.close*100000+1000;
-   rates.high=currency.index[i].laging.high*100000+1000;
-   rates.low=currency.index[i].laging.low*100000+1000;
-   rates.close=currency.index[i].laging.close*100000+1000;
+   rates.open=currency.index[i-1].laging.close*100000+100000;
+   rates.high=currency.index[i].laging.high*100000+100000;
+   rates.low=currency.index[i].laging.low*100000+100000;
+   rates.close=currency.index[i].laging.close*100000+100000;
 }
 
 
