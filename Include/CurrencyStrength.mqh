@@ -232,7 +232,7 @@ struct TypeCurrencyStrength
 };
 
 
-bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
+bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0, int baseindex=-1)
 {
    int limit=cs.bars;
 
@@ -268,7 +268,8 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
    {
       datetime itemtimeref=cs.Pairs.Pair[cs.syncmasterindex].rates[y].time;
    
-      for(int z=0; z<8; z++)
+      int z;
+      for(z=0; z<8; z++)
       {
          string cn=cs.Currencies.Currency[z].name;
          if(cs.IncludeCurrency(cn))
@@ -352,25 +353,27 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0)
                }
                cs.Currencies.LastValues[z][1]=z+1;
             }
-
-#ifdef CS_INDICATOR_MODE
-            if(y>=cs.smalength)
-            {
-               int ti=((cs.bars-1)-y)+cs.offset;
-               double va=cs.Currencies.Currency[z].index[y].laging.value1+1000;
-               if(cn=="USD") USDplot[ti]=va;
-               if(cn=="EUR") EURplot[ti]=va;
-               if(cn=="GBP") GBPplot[ti]=va;
-               if(cn=="CHF") CHFplot[ti]=va;
-               if(cn=="JPY") JPYplot[ti]=va;
-               if(cn=="CAD") CADplot[ti]=va;
-               if(cn=="AUD") AUDplot[ti]=va;
-               if(cn=="NZD") NZDplot[ti]=va;
-            }
-#endif
-
          }
       }
+      
+#ifdef CS_INDICATOR_MODE
+      if(y>=cs.smalength)
+      {
+         int ti=((cs.bars-1)-y)+cs.offset;
+         double base=0;
+         if(baseindex>-1)
+            base=cs.Currencies.Currency[baseindex].index[y].laging.value1;
+         USDplot[ti]=cs.Currencies.Currency[0].index[y].laging.value1-base+1000;
+         EURplot[ti]=cs.Currencies.Currency[1].index[y].laging.value1-base+1000;
+         GBPplot[ti]=cs.Currencies.Currency[2].index[y].laging.value1-base+1000;
+         JPYplot[ti]=cs.Currencies.Currency[3].index[y].laging.value1-base+1000;
+         CHFplot[ti]=cs.Currencies.Currency[4].index[y].laging.value1-base+1000;
+         CADplot[ti]=cs.Currencies.Currency[5].index[y].laging.value1-base+1000;
+         AUDplot[ti]=cs.Currencies.Currency[6].index[y].laging.value1-base+1000;
+         NZDplot[ti]=cs.Currencies.Currency[7].index[y].laging.value1-base+1000;
+      }
+#endif
+     
    }
    
    ArraySort(cs.Currencies.LastValues);
