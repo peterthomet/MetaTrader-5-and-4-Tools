@@ -103,7 +103,6 @@ bool timerenabled=false;
 bool istesting;
 datetime lasttestevent;
 datetime lastalert;
-bool MoveToCursor;
 bool CrossHair=false;
 int offset=0;
 datetime offsettimeref=0;
@@ -113,6 +112,7 @@ CalculationMode modecurrent;
 CalculationMode modelast;
 bool NewBarBase=false;
 ulong LastMicrosecondCount=0;
+int basecurrency=-1;
 #ifdef __MQL5__
 //CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 //CJJMA jjmaUSD;
@@ -556,7 +556,7 @@ void OnTimer()
    if(modecurrent!=modelast||(NewBarBase&&ZeroPointType!=ByBar))
       InitCS();
    
-   if(CS_CalculateIndex(CS,offset))
+   if(CS_CalculateIndex(CS,offset,basecurrency))
    {
       WriteComment(" ");
       
@@ -792,18 +792,8 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 {
    if(id==CHARTEVENT_KEYDOWN)
    {
-      if (ctrl_pressed == false && lparam == 17)
-      {
-         ctrl_pressed = true;
-      }
-      else if (ctrl_pressed == true)
-      {
-         if (lparam == 57)
-         {
-            MoveToCursor=!MoveToCursor;
-            ctrl_pressed = false;
-         }
-      }
+      if(lparam == 17)
+         ctrl_pressed = !ctrl_pressed;
    }
    if(id==CHARTEVENT_MOUSE_MOVE)
    {
@@ -889,17 +879,53 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       {
          string z=ObjectGetString(0,sparam,OBJPROP_TEXT);
          z=StringSubstr(z,StringLen(z)-3);
+
          if(currencyclicked==NULL)
          {
             currencyclicked=z;
          }
          else
          {
-            SwitchSymbol(CS.Pairs.NormalizePairing(z+currencyclicked));
+            if(currencyclicked==z)
+            {
+               if(z=="USD")
+                  SwitchBaseCurrency(0);
+               if(z=="EUR")
+                  SwitchBaseCurrency(1);
+               if(z=="GBP")
+                  SwitchBaseCurrency(2);
+               if(z=="JPY")
+                  SwitchBaseCurrency(3);
+               if(z=="CHF")
+                  SwitchBaseCurrency(4);
+               if(z=="CAD")
+                  SwitchBaseCurrency(5);
+               if(z=="AUD")
+                  SwitchBaseCurrency(6);
+               if(z=="NZD")
+                  SwitchBaseCurrency(7);
+
+               CS.recalculate=true;
+               SetTickTime();
+               timerenabled=true;
+            }
+            else
+            {
+               SwitchSymbol(CS.Pairs.NormalizePairing(z+currencyclicked));
+            }
             currencyclicked=NULL;
          }
       }
    }
+}
+
+
+void SwitchBaseCurrency(int base)
+{
+   if(basecurrency==-1)
+      basecurrency=base;
+   else
+      basecurrency=-1;
 }
 
 
