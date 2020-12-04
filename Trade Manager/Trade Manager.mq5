@@ -145,6 +145,7 @@ uint repeatlasttick=0;
 int repeatcount=0;
 double atr;
 int atrday;
+int InstrumentSelected;
 const double DISABLEDPOINTS=1000000;
 
 enum BEStopModes
@@ -152,6 +153,19 @@ enum BEStopModes
    None=1,
    HardSingle=2,
    SoftBasket=3
+};
+
+enum Instruments
+{
+   CurrentPair,
+   USD,
+   EUR,
+   GBP,
+   JPY,
+   CHF,
+   CAD,
+   AUD,
+   NZD,
 };
 
 struct TypeTradeInfo
@@ -331,6 +345,8 @@ void OnInit()
 {
    atr=0;
    atrday=-1;
+   
+   InstrumentSelected=CurrentPair;
 
    ctrlon=false;
    tradelevelsvisible=false;
@@ -566,6 +582,8 @@ void SetGlobalVariables()
    else
       GlobalVariableDel(varname);
 
+   GlobalVariableSet(appnamespace+"InstrumentSelected",InstrumentSelected);
+
    int asize=ArraySize(WS.tradereference);
    for(int i=0; i<asize; i++)
    {
@@ -607,6 +625,9 @@ void GetGlobalVariables()
    varname=appnamespace+"closebasketatBE";
    if(GlobalVariableCheck(varname))
       WS.closebasketatBE=true;
+   varname=appnamespace+"InstrumentSelected";
+   if(GlobalVariableCheck(varname))
+      InstrumentSelected=(int)GlobalVariableGet(varname);
       
    int varcount=GlobalVariablesTotal();
    for(int i=0; i<varcount; i++)
@@ -1005,6 +1026,29 @@ void DisplayText()
    if(ctrlon)
    {
       CreateLabel(rowindex,FontSize,TextColorInfo,"Open Volume: "+DoubleToString(_OpenLots,2));
+      rowindex++;
+      
+      string instrumenttext;
+      if(InstrumentSelected==CurrentPair)
+         instrumenttext="Current Pair";
+      if(InstrumentSelected==USD)
+         instrumenttext="USD Pairs";
+      if(InstrumentSelected==EUR)
+         instrumenttext="EUR Pairs";
+      if(InstrumentSelected==GBP)
+         instrumenttext="GBP Pairs";
+      if(InstrumentSelected==JPY)
+         instrumenttext="JPY Pairs";
+      if(InstrumentSelected==CHF)
+         instrumenttext="CHF Pairs";
+      if(InstrumentSelected==CAD)
+         instrumenttext="CAD Pairs";
+      if(InstrumentSelected==AUD)
+         instrumenttext="AUD Pairs";
+      if(InstrumentSelected==NZD)
+         instrumenttext="NZD Pairs";
+
+      CreateLabel(rowindex,FontSize,TextColorInfo,instrumenttext);
       rowindex++;
    }
 
@@ -1900,9 +1944,175 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
          //lastctrl=TimeLocal();
          if (lparam == 49)
-            OpenBuy();
+         {
+            if(InstrumentSelected==CurrentPair)
+               OpenBuy();
+            if(InstrumentSelected==USD)
+            {
+               OpenSell("EURUSD");
+               OpenSell("GBPUSD");
+               OpenBuy("USDJPY");
+               OpenBuy("USDCHF");
+               OpenBuy("USDCAD");
+               OpenSell("AUDUSD");
+               OpenSell("NZDUSD");
+            }
+            if(InstrumentSelected==EUR)
+            {
+               OpenBuy("EURUSD");
+               OpenBuy("EURGBP");
+               OpenBuy("EURJPY");
+               OpenBuy("EURCHF");
+               OpenBuy("EURCAD");
+               OpenBuy("EURAUD");
+               OpenBuy("EURNZD");
+            }
+            if(InstrumentSelected==GBP)
+            {
+               OpenBuy("GBPUSD");
+               OpenSell("EURGBP");
+               OpenBuy("GBPJPY");
+               OpenBuy("GBPCHF");
+               OpenBuy("GBPCAD");
+               OpenBuy("GBPAUD");
+               OpenBuy("GBPNZD");
+            }
+            if(InstrumentSelected==JPY)
+            {
+               OpenSell("USDJPY");
+               OpenSell("EURJPY");
+               OpenSell("GBPJPY");
+               OpenSell("CHFJPY");
+               OpenSell("CADJPY");
+               OpenSell("AUDJPY");
+               OpenSell("NZDJPY");
+            }
+            if(InstrumentSelected==CHF)
+            {
+               OpenSell("USDCHF");
+               OpenSell("EURCHF");
+               OpenSell("GBPCHF");
+               OpenBuy("CHFJPY");
+               OpenSell("CADCHF");
+               OpenSell("AUDCHF");
+               OpenSell("NZDCHF");
+            }
+            if(InstrumentSelected==CAD)
+            {
+               OpenSell("USDCAD");
+               OpenSell("EURCAD");
+               OpenSell("GBPCAD");
+               OpenBuy("CADJPY");
+               OpenBuy("CADCHF");
+               OpenSell("AUDCAD");
+               OpenSell("NZDCAD");
+            }
+            if(InstrumentSelected==AUD)
+            {
+               OpenBuy("AUDUSD");
+               OpenSell("EURAUD");
+               OpenSell("GBPAUD");
+               OpenBuy("AUDJPY");
+               OpenBuy("AUDCHF");
+               OpenBuy("AUDCAD");
+               OpenBuy("AUDNZD");
+            }
+            if(InstrumentSelected==NZD)
+            {
+               OpenBuy("NZDUSD");
+               OpenSell("EURNZD");
+               OpenSell("GBPNZD");
+               OpenBuy("NZDJPY");
+               OpenBuy("NZDCHF");
+               OpenBuy("NZDCAD");
+               OpenSell("AUDNZD");
+            }
+         }
          if (lparam == 51)
-            OpenSell();
+         {
+            if(InstrumentSelected==CurrentPair)
+               OpenSell();
+            if(InstrumentSelected==USD)
+            {
+               OpenBuy("EURUSD");
+               OpenBuy("GBPUSD");
+               OpenSell("USDJPY");
+               OpenSell("USDCHF");
+               OpenSell("USDCAD");
+               OpenBuy("AUDUSD");
+               OpenBuy("NZDUSD");
+            }
+            if(InstrumentSelected==EUR)
+            {
+               OpenSell("EURUSD");
+               OpenSell("EURGBP");
+               OpenSell("EURJPY");
+               OpenSell("EURCHF");
+               OpenSell("EURCAD");
+               OpenSell("EURAUD");
+               OpenSell("EURNZD");
+            }
+            if(InstrumentSelected==GBP)
+            {
+               OpenSell("GBPUSD");
+               OpenBuy("EURGBP");
+               OpenSell("GBPJPY");
+               OpenSell("GBPCHF");
+               OpenSell("GBPCAD");
+               OpenSell("GBPAUD");
+               OpenSell("GBPNZD");
+            }
+            if(InstrumentSelected==JPY)
+            {
+               OpenBuy("USDJPY");
+               OpenBuy("EURJPY");
+               OpenBuy("GBPJPY");
+               OpenBuy("CHFJPY");
+               OpenBuy("CADJPY");
+               OpenBuy("AUDJPY");
+               OpenBuy("NZDJPY");
+            }
+            if(InstrumentSelected==CHF)
+            {
+               OpenBuy("USDCHF");
+               OpenBuy("EURCHF");
+               OpenBuy("GBPCHF");
+               OpenSell("CHFJPY");
+               OpenBuy("CADCHF");
+               OpenBuy("AUDCHF");
+               OpenBuy("NZDCHF");
+            }
+            if(InstrumentSelected==CAD)
+            {
+               OpenBuy("USDCAD");
+               OpenBuy("EURCAD");
+               OpenBuy("GBPCAD");
+               OpenSell("CADJPY");
+               OpenSell("CADCHF");
+               OpenBuy("AUDCAD");
+               OpenBuy("NZDCAD");
+            }
+            if(InstrumentSelected==AUD)
+            {
+               OpenSell("AUDUSD");
+               OpenBuy("EURAUD");
+               OpenBuy("GBPAUD");
+               OpenSell("AUDJPY");
+               OpenSell("AUDCHF");
+               OpenSell("AUDCAD");
+               OpenSell("AUDNZD");
+            }
+            if(InstrumentSelected==NZD)
+            {
+               OpenSell("NZDUSD");
+               OpenBuy("EURNZD");
+               OpenBuy("GBPNZD");
+               OpenSell("NZDJPY");
+               OpenSell("NZDCHF");
+               OpenSell("NZDCAD");
+               OpenBuy("AUDNZD");
+            }
+         }
          if (lparam == 48)
             closeallcommand=true;
          if (lparam == 56)
@@ -1956,6 +2166,13 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
                _TakeProfitPips=breach;
             _TakeProfitPips+=((0.1*ExtendedRepeatingFactor())*pipsfactor);
             DrawLevels();
+         }
+
+         if (lparam == 67)
+         {
+            InstrumentSelected+=1;
+            if(InstrumentSelected>NZD)
+               InstrumentSelected=0;
          }
       }
 
