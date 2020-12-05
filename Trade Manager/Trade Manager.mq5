@@ -1028,28 +1028,30 @@ void DisplayText()
       CreateLabel(rowindex,FontSize,TextColorInfo,"Open Volume: "+DoubleToString(_OpenLots,2));
       rowindex++;
       
-      string instrumenttext;
-      if(InstrumentSelected==CurrentPair)
-         instrumenttext="Current Pair";
+      string instrumenttext="Open all ";
       if(InstrumentSelected==USD)
-         instrumenttext="USD Pairs";
+         instrumenttext+="USD";
       if(InstrumentSelected==EUR)
-         instrumenttext="EUR Pairs";
+         instrumenttext+="EUR";
       if(InstrumentSelected==GBP)
-         instrumenttext="GBP Pairs";
+         instrumenttext+="GBP";
       if(InstrumentSelected==JPY)
-         instrumenttext="JPY Pairs";
+         instrumenttext+="JPY";
       if(InstrumentSelected==CHF)
-         instrumenttext="CHF Pairs";
+         instrumenttext+="CHF";
       if(InstrumentSelected==CAD)
-         instrumenttext="CAD Pairs";
+         instrumenttext+="CAD";
       if(InstrumentSelected==AUD)
-         instrumenttext="AUD Pairs";
+         instrumenttext+="AUD";
       if(InstrumentSelected==NZD)
-         instrumenttext="NZD Pairs";
+         instrumenttext+="NZD";
+      instrumenttext+=" Pairs";
 
-      CreateLabel(rowindex,FontSize,TextColorInfo,instrumenttext);
-      rowindex++;
+      if(InstrumentSelected!=CurrentPair)
+      {
+         CreateLabel(rowindex,FontSize,TextColorInfo,instrumenttext);
+         rowindex++;
+      }
    }
 
    double tickvalue=CurrentSymbolTickValue();
@@ -2168,11 +2170,15 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             DrawLevels();
          }
 
-         if (lparam == 67)
+         if (lparam == 88)
          {
             InstrumentSelected+=1;
             if(InstrumentSelected>NZD)
-               InstrumentSelected=0;
+               InstrumentSelected=USD;
+         }
+         if (lparam == 89)
+         {
+            InstrumentSelected=0;
          }
       }
 
