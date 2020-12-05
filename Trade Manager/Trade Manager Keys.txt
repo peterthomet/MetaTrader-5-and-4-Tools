@@ -15,8 +15,10 @@
    <S> Increase Stop Loss
    <D> Decrease Take Profit
    <F> Increase Take Profit
-   
-   
+   <X> Toggle Currency to open Buy/Sell Bag (7 Trades)
+   <Y> Reset open Buy/Sell Bag to current Pair
+
+
 <Shift> Activates and Deactivates the Single Trade Management Mode
 
    Keys in Single Trade Management Mode:
