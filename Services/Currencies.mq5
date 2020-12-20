@@ -7,7 +7,7 @@
 #property link      "http://www.getyournet.ch"
 #property version   "1.00"
 
-input int TotalBars = 90000; // Total Bars
+input int TotalBars = 200000; // Total Bars
 
 #include <CurrencyStrength.mqh>
 
@@ -27,8 +27,11 @@ double lasttick[8];
 
 void OnStart()
 {
+
    //ClearAllSymbolRates();
    //   return;
+
+   Sleep(10000);
    
    ArrayInitialize(lasttick,0);
 
@@ -47,7 +50,8 @@ void OnStart()
 
       if(InitState==InitialCSReady)
       {
-         if(LoadCS(CS.bars-1,true))
+         if(LoadCS(1,true) &&
+         LoadCS(CS.bars-1,true))
          {
             InitState=InitialCSLoaded;
          }
@@ -85,6 +89,7 @@ void OnStart()
    }
 
    //DeleteSymbols();
+
 }
 
 
