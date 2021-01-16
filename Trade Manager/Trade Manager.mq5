@@ -1014,7 +1014,10 @@ void DisplayText()
       rowindex++;
    }
 
-   CreateLabel(rowindex,FontSize,TextColor,"Balance: "+DoubleToString(AccountBalanceX(),0));
+   string moretradingcapital="";
+   if(AvailableTradingCapital>AccountBalanceX())
+      moretradingcapital=" | "+IntegerToString(AvailableTradingCapital);
+   CreateLabel(rowindex,FontSize,TextColor,"Balance: "+DoubleToString(AccountBalanceX(),0)+moretradingcapital);
    rowindex++;
    
    CreateLabel(rowindex,FontSize,TextColor,"Free Margin: "+DoubleToString(AccountFreeMarginX(),1));
@@ -1022,6 +1025,18 @@ void DisplayText()
 
    CreateLabel(rowindex,FontSize,TextColor,"Leverage: "+IntegerToString(AccountInfoInteger(ACCOUNT_LEVERAGE)));
    rowindex++;
+
+   if(StopLossPercentTradingCapital>0)
+   {
+      CreateLabel(rowindex,FontSize,TextColor,"General Stop Loss: "+DoubleToString(StopLossPercentTradingCapital,1)+"%");
+      rowindex++;
+   }
+
+   if(TakeProfitPercentTradingCapital>0)
+   {
+      CreateLabel(rowindex,FontSize,TextColor,"General Take Profit: "+DoubleToString(TakeProfitPercentTradingCapital,1)+"%");
+      rowindex++;
+   }
 
    if(ctrlon)
    {
