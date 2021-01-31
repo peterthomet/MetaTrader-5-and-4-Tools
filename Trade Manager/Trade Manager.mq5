@@ -51,6 +51,12 @@ enum TypeStopLossPercentTradingCapitalAction
    CloseAllTrades
 };
 
+enum TypeTesterMode
+{
+   EveryTick,
+   Timer10Seconds
+};
+
 input TypeInstance Instance = 1;
 input TypeAutomation Automation = NoAutomation;
 input double BreakEvenAfterPips = 5;
@@ -115,6 +121,7 @@ input bool Hour20 = true;
 input bool Hour21 = true;
 input bool Hour22 = true;
 input bool Hour23 = true;
+input TypeTesterMode TesterMode = EveryTick;
 
 string appname="Trade Manager";
 string appnamespace="";
@@ -288,6 +295,8 @@ struct TypePairsTradesInfo
    string pair;
    double buyvolume;
    double sellvolume;
+   double buygain;
+   double sellgain;
    double gain;
    double gainpips;
    TypeTradeInfo tradeinfo[];
@@ -296,6 +305,8 @@ struct TypePairsTradesInfo
       pair="";
       buyvolume=0;
       sellvolume=0;
+      buygain=0;
+      sellgain=0;
       gain=0;
       gainpips=0;
       ArrayResize(tradeinfo,0);
@@ -428,32 +439,66 @@ void OnInit()
       ObjectSetInteger(0,objname,OBJPROP_COLOR,c);
       ObjectSetInteger(0,objname,OBJPROP_BGCOLOR,c);
    }
+
+   //InitStrategies();
    
+   InitTesting();
+
    if(!istesting)
    {
       if(!EventSetMillisecondTimer(200))
          initerror=true;
    }
-   if(istesting)
-   {
+}
+
+
+void InitTesting()
+{
+   if(!istesting)
+      return;
+
+   WS.StopMode=None;
+   _OpenLots=0.1;
+
+   OpenBuy("GBPUSD");
+   OpenSell("EURGBP");
+   OpenBuy("GBPJPY");
+   OpenBuy("GBPCHF");
+   OpenBuy("GBPCAD");
+   OpenBuy("GBPAUD");
+   OpenBuy("GBPNZD");
+
+   OpenSell("GBPUSD");
+   OpenBuy("EURGBP");
+   OpenSell("GBPJPY");
+   OpenSell("GBPCHF");
+   OpenSell("GBPCAD");
+   OpenSell("GBPAUD");
+   OpenSell("GBPNZD");
+
 #ifdef __MQL5__
-      //OpenDBConnection();
-      //CloseDBConnection();
+   //OpenDBConnection();
+   //CloseDBConnection();
 #endif
+   if(TesterMode==Timer10Seconds)
       EventSetTimer(10);
-   }
+}
 
+
+void InitStrategies()
+{
    ArrayResize(strats,1);
-
    //strats[0]=new StrategyOutOfTheBox;
-   strats[0]=new StrategyPivotsH4FibonacciR1S1Reversal;
    //strats[0]=new StrategyLittleDD;
-
+   strats[0]=new StrategyPivotsH4FibonacciR1S1Reversal;
 }
 
 
 void OnDeinit(const int reason)
 {
+   for(int i=ArraySize(strats)-1; i>=0; i--)
+      delete strats[i];
+
    EventKillTimer();
 #ifdef __MQL5__
    if(istesting)
@@ -479,7 +524,7 @@ void OnTick()
    if(ctrlon)
       DrawLevels();
 
-   if(!istesting)
+   if(!istesting||TesterMode==EveryTick)
       Manage();
 }
 
@@ -750,6 +795,7 @@ bool ManageOrders()
                BI.sells++;
                BI.sellvolume+=OrderLotsX();
                BI.pairsintrades[pidx].sellvolume+=OrderLotsX();
+               BI.pairsintrades[pidx].sellgain+=gain;
                if(OrderStopLossX()==0||OrderStopLossX()>BESL)
                   NeedSetSL=true;
             }
@@ -761,6 +807,7 @@ bool ManageOrders()
                BI.buys++;
                BI.buyvolume+=OrderLotsX();
                BI.pairsintrades[pidx].buyvolume+=OrderLotsX();
+               BI.pairsintrades[pidx].buygain+=gain;
                if(OrderStopLossX()==0||OrderStopLossX()<BESL)
                   NeedSetSL=true;
             }
@@ -1246,22 +1293,24 @@ void DisplayText()
          color paircolor=TextColor;
          if(BI.pairsintrades[i].pair+SymbolExtraChars==Symbol())
             paircolor=TextColorBold;
-         CreateLabel(rowindex,FontSize,paircolor,BI.pairsintrades[i].pair,"-TMSymbolButton");
+         CreateLabel(rowindex,FontSize,paircolor,BI.pairsintrades[i].pair,"-TMSymbolButton",0,"");
 
-         string pairtext="";
-
+         int hshift=60;
          if(BI.pairsintrades[i].buyvolume>0)
-            pairtext+=DoubleToString(BI.pairsintrades[i].buyvolume,2)+" Buy";
+         {
+            color pcolor=TextColorPlus;
+            if(BI.pairsintrades[i].buygain<0)
+               pcolor=TextColorMinus;
+            CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].buyvolume,2)+" "+DoubleToString(BI.pairsintrades[i].buygain,2)+" ▲","-TMBuys"+BI.pairsintrades[i].pair,hshift,"Click to Close");
+            hshift+=90;
+         }
          if(BI.pairsintrades[i].sellvolume>0)
-            pairtext+=" "+DoubleToString(BI.pairsintrades[i].sellvolume,2)+" Sell";
-
-         pairtext+=" "+DoubleToString(BI.pairsintrades[i].gain,2);
-
-         color pairstextcolor=TextColorPlus;
-         if(BI.pairsintrades[i].gain<0)
-            pairstextcolor=TextColorMinus;
-
-         CreateLabel(rowindex,FontSize,pairstextcolor,pairtext,"",60);
+         {
+            color pcolor=TextColorPlus;
+            if(BI.pairsintrades[i].sellgain<0)
+               pcolor=TextColorMinus;
+            CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].sellvolume,2)+" "+DoubleToString(BI.pairsintrades[i].sellgain,2)+" ▼","-TMSells"+BI.pairsintrades[i].pair,hshift,"Click to Close");
+         }
          rowindex++;
       }
    }
@@ -1275,7 +1324,7 @@ void DisplayText()
 }
 
 
-void CreateLabel(int RI, int fontsize, color c, string text, string group="", int xshift=0)
+void CreateLabel(int RI, int fontsize, color c, string text, string group="", int xshift=0, string tooltip="")
 {
    string objname=appnamespace+"Text"+IntegerToString(RI+1)+group;
    ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
@@ -1287,6 +1336,8 @@ void CreateLabel(int RI, int fontsize, color c, string text, string group="", in
    ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,fontsize);
    ObjectSetString(0,objname,OBJPROP_FONT,"Arial");
    ObjectSetString(0,objname,OBJPROP_TEXT,text);
+   if(StringLen(tooltip)>0)
+      ObjectSetString(0,objname,OBJPROP_TOOLTIP,tooltip);
 }
 
 
@@ -1945,6 +1996,17 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
    {
       if(StringFind(sparam,"-TMSymbolButton")>-1)
          SwitchSymbol(ObjectGetString(0,sparam,OBJPROP_TEXT));
+
+      if(StringFind(sparam,"-TMSBuys")>-1)
+      {
+         string pair=StringSubstr(sparam,8);
+         Print("TODO Close Pair Buys");
+      }
+      if(StringFind(sparam,"-TMSSells")>-1)
+      {
+         string pair=StringSubstr(sparam,8);
+         Print("TODO Close Pair Sells");
+      }
    }
    
    if(id==CHARTEVENT_KEYDOWN)
