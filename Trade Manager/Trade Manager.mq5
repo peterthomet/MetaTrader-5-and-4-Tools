@@ -1288,8 +1288,8 @@ void DisplayText()
       int asize=ArraySize(BI.pairsintrades);
       if(asize>0)
       {
-         CreateLabel(rowindex,FontSize,TextColor,"Sells","1",65,"Click to Close");
-         CreateLabel(rowindex,FontSize,TextColor,"Buys","2",140,"Click to Close");
+         CreateLabel(rowindex,FontSize,TextColor,"Sells","1",65);
+         CreateLabel(rowindex,FontSize,TextColor,"Buys","2",140);
          rowindex++;
       }
       for(int i=0; i<asize; i++)
@@ -1305,7 +1305,10 @@ void DisplayText()
             color pcolor=TextColorPlus;
             if(BI.pairsintrades[i].buygain<0)
                pcolor=TextColorMinus;
-            CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].buyvolume,2)+" "+DoubleToString(BI.pairsintrades[i].buygain,2),"-TMBuys"+BI.pairsintrades[i].pair,140,"Click to Close");
+            string begin=DoubleToString(BI.pairsintrades[i].buyvolume,2)+" "+DoubleToString(BI.pairsintrades[i].buygain,2);
+            if(ctrlon)
+               begin=DoubleToString(BI.pairsintrades[i].buygain,2)+" \x2715";
+            CreateLabel(rowindex,FontSize,pcolor,begin,"-TMBuys"+BI.pairsintrades[i].pair,140,"Click to Close");
             hshift+=90;
          }
          if(BI.pairsintrades[i].sellvolume>0)
@@ -1313,7 +1316,10 @@ void DisplayText()
             color pcolor=TextColorPlus;
             if(BI.pairsintrades[i].sellgain<0)
                pcolor=TextColorMinus;
-            CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].sellvolume,2)+" "+DoubleToString(BI.pairsintrades[i].sellgain,2),"-TMSells"+BI.pairsintrades[i].pair,65,"Click to Close");
+            string begin=DoubleToString(BI.pairsintrades[i].sellvolume,2)+" "+DoubleToString(BI.pairsintrades[i].sellgain,2);
+            if(ctrlon)
+               begin=DoubleToString(BI.pairsintrades[i].sellgain,2)+" \x2715";
+            CreateLabel(rowindex,FontSize,pcolor,begin,"-TMSells"+BI.pairsintrades[i].pair,65,"Click to Close");
          }
          rowindex++;
       }
@@ -2001,17 +2007,20 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       if(StringFind(sparam,"-TMSymbolButton")>-1)
          SwitchSymbol(ObjectGetString(0,sparam,OBJPROP_TEXT));
 
-      int f1=StringFind(sparam,"-TMBuys");
-      if(f1>-1)
+      if(ctrlon)
       {
-         string pair=StringSubstr(sparam,f1+7);
-         Print("TODO Close Buys "+pair);
-      }
-      f1=StringFind(sparam,"-TMSells");
-      if(f1>-1)
-      {
-         string pair=StringSubstr(sparam,f1+8);
-         Print("TODO Close Sells "+pair);
+         int f1=StringFind(sparam,"-TMBuys");
+         if(f1>-1)
+         {
+            string pair=StringSubstr(sparam,f1+7);
+            Print("TODO Close Buys "+pair);
+         }
+         f1=StringFind(sparam,"-TMSells");
+         if(f1>-1)
+         {
+            string pair=StringSubstr(sparam,f1+8);
+            Print("TODO Close Sells "+pair);
+         }
       }
    }
    
