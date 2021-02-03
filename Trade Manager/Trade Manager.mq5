@@ -237,6 +237,32 @@ struct TypeTradeReference
    }
 };
 
+struct TypeCloseCommand
+{
+   string command;
+   bool executed;
+   TypeCloseCommand()
+   {
+      command="";
+      executed=false;
+   }
+};
+
+struct TypeCloseCommands
+{
+   TypeCloseCommand commands[];
+   void Init()
+   {
+      ArrayResize(commands,0);
+   }
+   void Add(string command)
+   {
+      int size=ArraySize(commands);
+      ArrayResize(commands,size+1);
+      commands[size].command=command;
+   }
+};
+
 struct TypeWorkingState
 {
    BEStopModes StopMode;
@@ -250,6 +276,7 @@ struct TypeWorkingState
    TypeTradeReference tradereference[];
    double globalgain;
    datetime lastorderexecution;
+   TypeCloseCommands closecommands;
    void Init()
    {
       closebasketatBE=false;
@@ -263,6 +290,7 @@ struct TypeWorkingState
       ArrayResize(tradereference,0);
       globalgain=0;
       lastorderexecution=0;
+      closecommands.Init();
    };
    void Reset()
    {
@@ -276,6 +304,7 @@ struct TypeWorkingState
       ArrayResize(tradereference,0);
       globalgain=0;
       ToggleTradeLevels(true);
+      closecommands.Init();
    };
    void ResetLocks()
    {
