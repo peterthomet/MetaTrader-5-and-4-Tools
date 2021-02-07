@@ -261,6 +261,19 @@ struct TypeCloseCommands
       ArrayResize(commands,size+1);
       commands[size].command=command;
    }
+   int GetNextCommandIndex()
+   {
+      int index=-1;
+      for(int i=ArraySize(commands)-1; i>=0; i--)
+      {
+         if(!commands[i].executed)
+         {
+            index=i;
+            break;
+         }
+      }
+      return index;
+   }
 };
 
 struct TypeWorkingState
@@ -488,6 +501,7 @@ void InitTesting()
 
    WS.StopMode=None;
    _OpenLots=0.1;
+   //ctrlon=true;
 
    OpenBuy("GBPUSD");
    OpenSell("EURGBP");
@@ -497,13 +511,16 @@ void InitTesting()
    OpenBuy("GBPAUD");
    OpenBuy("GBPNZD");
 
-   OpenSell("GBPUSD");
-   OpenBuy("EURGBP");
-   OpenSell("GBPJPY");
-   OpenSell("GBPCHF");
-   OpenSell("GBPCAD");
-   OpenSell("GBPAUD");
-   OpenSell("GBPNZD");
+   //OpenSell("GBPUSD");
+   //OpenBuy("EURGBP");
+   //OpenSell("GBPJPY");
+   //OpenSell("GBPCHF");
+   //OpenSell("GBPCAD");
+   //OpenSell("GBPAUD");
+   //OpenSell("GBPNZD");
+
+   //closeallcommand=true;
+   WS.closecommands.Add("All");
 
 #ifdef __MQL5__
    //OpenDBConnection();
