@@ -137,7 +137,6 @@ string tickchar="";
 int magicnumberfloor=0;
 int basemagicnumber=0;
 int hedgeoffsetmagicnumber=10000;
-int closeallcommand=false;
 double _BreakEvenAfterPips;
 double _AboveBEPips;
 double _StartTrailingPips;
@@ -239,11 +238,11 @@ struct TypeTradeReference
 
 struct TypeCloseCommand
 {
-   string command;
+   string filter;
    bool executed;
    TypeCloseCommand()
    {
-      command="";
+      filter="";
       executed=false;
    }
 };
@@ -255,11 +254,11 @@ struct TypeCloseCommands
    {
       ArrayResize(commands,0);
    }
-   void Add(string command)
+   void Add(string filter="")
    {
       int size=ArraySize(commands);
       ArrayResize(commands,size+1);
-      commands[size].command=command;
+      commands[size].filter=filter;
    }
    int GetNextCommandIndex()
    {
@@ -520,7 +519,7 @@ void InitTesting()
    //OpenSell("GBPNZD");
 
    //closeallcommand=true;
-   WS.closecommands.Add("All");
+   WS.closecommands.Add();
 
 #ifdef __MQL5__
    //OpenDBConnection();
@@ -593,8 +592,15 @@ void Manage()
    if(working||initerror)
       return;
    working=true;
-   if(closeallcommand)
-      CloseAllInternal();
+
+   int closecommandindex=WS.closecommands.GetNextCommandIndex();
+   while(closecommandindex>-1)
+   {
+      CloseAllInternal(WS.closecommands.commands[closecommandindex].filter);
+      WS.closecommands.commands[closecommandindex].executed=true;
+      closecommandindex=WS.closecommands.GetNextCommandIndex();
+   }
+
    if(ManageOrders())
    {
       ManageBasket();
@@ -1354,7 +1360,7 @@ void DisplayText()
             string begin=DoubleToString(BI.pairsintrades[i].buyvolume,2)+" "+DoubleToString(BI.pairsintrades[i].buygain,2);
             if(ctrlon)
                begin=DoubleToString(BI.pairsintrades[i].buygain,2)+" \x2715";
-            CreateLabel(rowindex,FontSize,pcolor,begin,"-TMBuys"+BI.pairsintrades[i].pair,140,"Click to Close");
+            CreateLabel(rowindex,FontSize,pcolor,begin,"-TMCC-Buys-"+BI.pairsintrades[i].pair,140,"Click to Close");
             hshift+=90;
          }
          if(BI.pairsintrades[i].sellvolume>0)
@@ -1365,7 +1371,7 @@ void DisplayText()
             string begin=DoubleToString(BI.pairsintrades[i].sellvolume,2)+" "+DoubleToString(BI.pairsintrades[i].sellgain,2);
             if(ctrlon)
                begin=DoubleToString(BI.pairsintrades[i].sellgain,2)+" \x2715";
-            CreateLabel(rowindex,FontSize,pcolor,begin,"-TMSells"+BI.pairsintrades[i].pair,65,"Click to Close");
+            CreateLabel(rowindex,FontSize,pcolor,begin,"-TMCC-Sells"+BI.pairsintrades[i].pair,65,"Click to Close");
          }
          rowindex++;
       }
@@ -1981,10 +1987,14 @@ void WriteToClose()
 }
 
 
-void CloseAllInternal()
+void CloseAllInternal(string filter="")
 {
-   //WriteToClose();
-   
+   bool closeall=StringLen(filter)==0;
+   bool buys=StringFind(filter,"Buys")!=0;
+   string asset="";
+   if(!closeall)
+      asset=StringSubstr(filter,5);
+
    int total=OrdersTotalX();
    int cnt=0, delcnt=0;
 #ifdef __MQL4__
@@ -1994,12 +2004,12 @@ void CloseAllInternal()
    {
       if(OrderSelectX(cnt))
          if(IsOrderToManage())
-            if(CloseSelectedOrder())
-               delcnt++;
+            if(closeall || ((OrderTypeBuy()&&buys)||(!OrderTypeBuy()&&!buys)))
+               if(CloseSelectedOrder())
+                  delcnt++;
    }
    if(delcnt>0)
       DeleteText();
-   closeallcommand=false;
 }
 
 
@@ -2055,18 +2065,9 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
       if(ctrlon)
       {
-         int f1=StringFind(sparam,"-TMBuys");
+         int f1=StringFind(sparam,"-TMCC-");
          if(f1>-1)
-         {
-            string pair=StringSubstr(sparam,f1+7);
-            Print("TODO Close Buys "+pair);
-         }
-         f1=StringFind(sparam,"-TMSells");
-         if(f1>-1)
-         {
-            string pair=StringSubstr(sparam,f1+8);
-            Print("TODO Close Sells "+pair);
-         }
+            WS.closecommands.Add(StringSubstr(sparam,f1+6));
       }
    }
    
@@ -2254,7 +2255,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             }
          }
          if (lparam == 48)
-            closeallcommand=true;
+             WS.closecommands.Add();
          if (lparam == 56)
             SetBEClose();
          if (lparam == 54)
