@@ -1367,15 +1367,16 @@ void DisplayText()
       }
    
       int asize=ArraySize(BI.pairsintrades);
-      if(asize>0)
-      {
-         CreateLabel(rowindex,FontSize,TextColor,"Sells","1",65);
-         CreateLabel(rowindex,FontSize,TextColor,"Buys","2",140);
-         rowindex++;
-      }
 
       if(TradesViewSelected==ByPairs)
       {
+         if(asize>0)
+         {
+            CreateLabel(rowindex,FontSize,TextColor,"Sells","1",65);
+            CreateLabel(rowindex,FontSize,TextColor,"Buys","2",140);
+            rowindex++;
+         }
+
          for(int i=0; i<asize; i++)
          {
             color paircolor=TextColor;
@@ -1389,10 +1390,7 @@ void DisplayText()
                color pcolor=TextColorPlus;
                if(BI.pairsintrades[i].buygain<0)
                   pcolor=TextColorMinus;
-               string begin=DoubleToString(BI.pairsintrades[i].buyvolume,2)+" "+DoubleToString(BI.pairsintrades[i].buygain,2);
-               //if(ctrlon)
-               //   begin=DoubleToString(BI.pairsintrades[i].buygain,2)+" \x2715";
-               CreateLabel(rowindex,FontSize,pcolor,begin,"-TMCC-Buys-"+BI.pairsintrades[i].pair,140,"Click to Close");
+               CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].buyvolume,2)+" "+DoubleToString(BI.pairsintrades[i].buygain,2),"-TMCC-Buys-"+BI.pairsintrades[i].pair,140,"Click to Close");
                hshift+=90;
             }
             if(BI.pairsintrades[i].sellvolume>0)
@@ -1400,42 +1398,75 @@ void DisplayText()
                color pcolor=TextColorPlus;
                if(BI.pairsintrades[i].sellgain<0)
                   pcolor=TextColorMinus;
-               string begin=DoubleToString(BI.pairsintrades[i].sellvolume,2)+" "+DoubleToString(BI.pairsintrades[i].sellgain,2);
-               //if(ctrlon)
-               //   begin=DoubleToString(BI.pairsintrades[i].sellgain,2)+" \x2715";
-               CreateLabel(rowindex,FontSize,pcolor,begin,"-TMCC-Sells"+BI.pairsintrades[i].pair,65,"Click to Close");
+               CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].sellvolume,2)+" "+DoubleToString(BI.pairsintrades[i].sellgain,2),"-TMCC-Sells"+BI.pairsintrades[i].pair,65,"Click to Close");
             }
             rowindex++;
          }
       }
 
-      if(TradesViewSelected==ByCurrencies) // Under construction
+      if(TradesViewSelected==ByCurrencies)
       {
          TypeCurrenciesTradesInfo ti[8];
+         string currencies[8]={"USD","EUR","GBP","JPY","CHF","CAD","AUD","NZD"};
          for(int i=0; i<asize; i++)
          {
-            if(StringFind(BI.pairsintrades[i].pair,"USD")==0)
+            int basepos=-1, quotepos=-1;
+            for(int p=0; p<8; p++)
             {
-               ti[0].buygain+=BI.pairsintrades[i].buygain;
-               ti[0].buyvolume+=BI.pairsintrades[i].buyvolume;
-               ti[0].sellgain+=BI.pairsintrades[i].sellgain;
-               ti[0].sellvolume+=BI.pairsintrades[i].sellvolume;
+               int pos=StringFind(BI.pairsintrades[i].pair,currencies[p]);
+               if(pos==0)
+                  basepos=p;
+               if(pos==3)
+                  quotepos=p;
+               if(basepos>-1&&quotepos>-1)
+                  break;
             }
-            if(StringFind(BI.pairsintrades[i].pair,"USD")==3)
+            if(basepos>-1)
             {
-               ti[0].buygain+=BI.pairsintrades[i].sellgain;
-               ti[0].buyvolume+=BI.pairsintrades[i].sellvolume;
-               ti[0].sellgain+=BI.pairsintrades[i].buygain;
-               ti[0].sellvolume+=BI.pairsintrades[i].buyvolume;
+               ti[basepos].buygain+=BI.pairsintrades[i].buygain;
+               ti[basepos].buyvolume+=BI.pairsintrades[i].buyvolume;
+               ti[basepos].sellgain+=BI.pairsintrades[i].sellgain;
+               ti[basepos].sellvolume+=BI.pairsintrades[i].sellvolume;
+            }
+            if(quotepos>-1)
+            {
+               ti[quotepos].buygain+=BI.pairsintrades[i].sellgain;
+               ti[quotepos].buyvolume+=BI.pairsintrades[i].sellvolume;
+               ti[quotepos].sellgain+=BI.pairsintrades[i].buygain;
+               ti[quotepos].sellvolume+=BI.pairsintrades[i].buyvolume;
             }
          }
 
-         CreateLabel(rowindex,FontSize,TextColor,"USD","-TMCurrency",0,"");
-         CreateLabel(rowindex,FontSize,TextColor,DoubleToString(ti[0].buyvolume,2)+" "+DoubleToString(ti[0].buygain,2),"-TMCC-Buys-USD",140,"Click to Close");
-         CreateLabel(rowindex,FontSize,TextColor,DoubleToString(ti[0].sellvolume,2)+" "+DoubleToString(ti[0].sellgain,2),"-TMCC-SellsUSD",65,"Click to Close");
-         for(int i=0; i<7; i++)
+         bool headercreated=false;
+         for(int i=0; i<8; i++)
          {
+            if(ti[i].buyvolume>0||ti[i].sellvolume>0)
+            {
+               if(!headercreated)
+               {
+                  CreateLabel(rowindex,FontSize,TextColor,"Sells","1",35);
+                  CreateLabel(rowindex,FontSize,TextColor,"Buys","2",110);
+                  headercreated=true;
+                  rowindex++;
+               }
 
+               CreateLabel(rowindex,FontSize,TextColor,currencies[i],"-TMCurrency",0,"");
+               if(ti[i].buyvolume>0)
+               {
+                  color pcolor=TextColorPlus;
+                  if(ti[i].buygain<0)
+                     pcolor=TextColorMinus;
+                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ti[i].buyvolume,2)+" "+DoubleToString(ti[i].buygain,2),"-TMCC-Buys-"+currencies[i],110,"Click to Close");
+               }
+               if(ti[i].sellvolume>0)
+               {
+                  color pcolor=TextColorPlus;
+                  if(ti[i].sellgain<0)
+                     pcolor=TextColorMinus;
+                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ti[i].sellvolume,2)+" "+DoubleToString(ti[i].sellgain,2),"-TMCC-Sells"+currencies[i],35,"Click to Close");
+               }
+               rowindex++;
+            }
          }
       }
    }
@@ -2067,7 +2098,11 @@ void CloseAllInternal(string filter="")
    {
       if(OrderSelectX(cnt))
          if(IsOrderToManage())
-            if(closeall || (((OrderTypeBuy()&&buys) || (!OrderTypeBuy()&&!buys)) && OrderSymbolX()==asset) )
+            if(closeall 
+                  || (((OrderTypeBuy()&&buys) || (!OrderTypeBuy()&&!buys)) && OrderSymbolX()==asset) 
+                  || (((OrderTypeBuy()&&buys) || (!OrderTypeBuy()&&!buys)) && StringFind(OrderSymbolX(),asset)==0 ) 
+                  || (((OrderTypeBuy()&&!buys) || (!OrderTypeBuy()&&buys)) && StringFind(OrderSymbolX(),asset)==3 ) 
+               )
                if(CloseSelectedOrder())
                   delcnt++;
    }
