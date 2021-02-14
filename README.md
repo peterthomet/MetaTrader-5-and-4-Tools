@@ -32,6 +32,7 @@ Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute 
    **<code>F</code>** Increase Take Profit<br>
    **<code>X</code>** Toggle Currency to open Buy/Sell Bag (7 Trades)<br>
    **<code>Y</code>** Reset open Buy/Sell Bag to current Pair<br>
+   **<code>V</code>** Toggle View of opened Trades by Pairs or Currencies<br>
  
    
 ### <code>Shift</code> Activates and Deactivates the Single Trade Management Mode
