@@ -155,6 +155,36 @@ int InstrumentSelected;
 int TradesViewSelected;
 const double DISABLEDPOINTS=1000000;
 
+struct TypeTextObjects
+{
+   string objects[];
+   void AddObject(string name)
+   {
+      bool found=false;
+      int size=ArraySize(objects);
+      for(int i=0; i<size; i++)
+      {
+         if(objects[i]==name)
+         {
+            found=true;
+            break;
+         }
+      }
+      if(!found)
+      {
+         ArrayResize(objects,size+1);
+         objects[size]=name;
+      }
+   }
+   void HideAll()
+   {
+      int size=ArraySize(objects);
+      for(int i=0; i<size; i++)
+         ObjectSetInteger(0,objects[i],OBJPROP_XDISTANCE,-1000);
+   }
+};
+TypeTextObjects TextObjects;
+
 enum BEStopModes
 {
    None=1,
@@ -1494,6 +1524,7 @@ void CreateLabel(int RI, int fontsize, color c, string text, string group="", in
    ObjectSetString(0,objname,OBJPROP_TEXT,text);
    if(StringLen(tooltip)>0)
       ObjectSetString(0,objname,OBJPROP_TOOLTIP,tooltip);
+   TextObjects.AddObject(objname);
 }
 
 
@@ -1771,7 +1802,9 @@ void DeleteLevels()
 
 void DeleteText()
 {
-   ObjectsDeleteAll(0,appnamespace+"Text");
+   //ObjectsDeleteAll(0,appnamespace+"Text");
+   // Workaround: We move objects out of view, because if we delete it, click events can get lost
+   TextObjects.HideAll();
 }
 
 
@@ -2158,6 +2191,8 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 {
    if(id==CHARTEVENT_OBJECT_CLICK)
    {
+      //Print("CHARTEVENT_OBJECT_CLICK "+sparam);
+
       if(StringFind(sparam,"-TMSymbolButton")>-1)
          SwitchSymbol(ObjectGetString(0,sparam,OBJPROP_TEXT));
 
