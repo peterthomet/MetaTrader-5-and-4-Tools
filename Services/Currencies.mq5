@@ -23,16 +23,12 @@ TypeCurrencyStrength CS;
 States InitState=Initial;
 datetime lastm1bar=0;
 double lasttick[8];
+bool secondinit=false;
 
 
 void OnStart()
 {
 
-   //ClearAllSymbolRates();
-   //   return;
-
-   Sleep(10000);
-   
    ArrayInitialize(lasttick,0);
 
    while(!IsStopped())
@@ -50,8 +46,8 @@ void OnStart()
 
       if(InitState==InitialCSReady)
       {
-         if(LoadCS(1,true) &&
-         LoadCS(CS.bars-1,true))
+         Print("Init Start");
+         if(LoadCS(CS.bars-1,true))
          {
             InitState=InitialCSLoaded;
          }
@@ -81,14 +77,20 @@ void OnStart()
             {
                LoadCS(3,false);
             }
+            
+            if(!secondinit)
+            {
+               Print("First Init done, we wait one minute and run the second Init");
+               Sleep(60000);
+               InitState=Initial;
+               secondinit=true;
+            }
          }
       }
 
       if(!reset)
          Sleep(1000);
    }
-
-   //DeleteSymbols();
 
 }
 
