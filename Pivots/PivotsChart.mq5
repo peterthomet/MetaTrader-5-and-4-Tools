@@ -10,8 +10,8 @@
 #property indicator_buffers 5
 #property indicator_plots   1
 #property indicator_type1   DRAW_COLOR_CANDLES
-#property indicator_color1  C'0,172,230', LightSlateGray, DeepPink
-#property indicator_label1  "Buy Momentum | Default | Sell Momentum"
+#property indicator_color1  C'0,172,230', LightSlateGray, DeepPink, Wheat
+#property indicator_label1  "Buy Momentum | Default | Sell Momentum | Developing"
 
 double OpenBuffer[];
 double HighBuffer[];
@@ -50,7 +50,7 @@ int OnCalculate(const int rates_total,const int prev_calculated,
                 const long &Volume[],
                 const int &Spread[])
 {
-   int i,limit;
+   int i, limit;
 
    if(prev_calculated==0)
    {
@@ -63,29 +63,26 @@ int OnCalculate(const int rates_total,const int prev_calculated,
    else
       limit=prev_calculated-2;
 
-   for(i=limit;i<rates_total && !IsStopped();i++)
+   for(i=limit; i<rates_total && !IsStopped(); i++)
    {
       double pivot=(High[i]+Low[i]+Close[i])/3;
       double range1=(High[i]+Low[i])/2;
       double range2=(pivot-range1)+pivot;
 
-      double haOpen=range1;
-      double haClose=range2;
-
-      double haHigh=High[i];
-      double haLow=Low[i];
-
-      LowBuffer[i-1]=haLow;
-      LowBuffer[i]=haOpen;
-      HighBuffer[i-1]=haHigh;
-      HighBuffer[i]=haClose;
-      OpenBuffer[i]=haOpen;
-      CloseBuffer[i]=haClose;
+      OpenBuffer[i]=range1;
+      HighBuffer[i-1]=High[i];
+      HighBuffer[i]=range2;
+      LowBuffer[i-1]=Low[i];
+      LowBuffer[i]=range1;
+      CloseBuffer[i]=range2;
 
       ColorBuffer[i]=1;
-      if(haLow>(OpenBuffer[i-1]+CloseBuffer[i-1])/2 && haHigh>(OpenBuffer[i-1]+CloseBuffer[i-1])/2)
+      if(i==rates_total-1)
+         ColorBuffer[i]=3;
+
+      if(Low[i]>(OpenBuffer[i-1]+CloseBuffer[i-1])/2 && High[i]>(OpenBuffer[i-1]+CloseBuffer[i-1])/2)
          ColorBuffer[i-1]=0;
-      if(haLow<(OpenBuffer[i-1]+CloseBuffer[i-1])/2 && haHigh<(OpenBuffer[i-1]+CloseBuffer[i-1])/2)
+      if(Low[i]<(OpenBuffer[i-1]+CloseBuffer[i-1])/2 && High[i]<(OpenBuffer[i-1]+CloseBuffer[i-1])/2)
          ColorBuffer[i-1]=2;
       
    }
