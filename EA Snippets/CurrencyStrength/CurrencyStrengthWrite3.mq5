@@ -14,6 +14,7 @@ datetime lastmaxtime=-1;
 TypeCurrencyStrength CS[1];
 int bars=45;
 int db;
+string table;
 
 
 void OnInit()
@@ -33,11 +34,14 @@ void OnInit()
    db=DatabaseOpen("CS.sqlite", DATABASE_OPEN_READWRITE | DATABASE_OPEN_CREATE |DATABASE_OPEN_COMMON);
    if(db!=INVALID_HANDLE)
    {
-      if(DatabaseTableExists(db, "Minutes45MinuteRange"))
-         DatabaseExecute(db, "DROP TABLE Minutes45MinuteRange");
+      table="Minutes45MinuteRange";
+   
+      if(DatabaseTableExists(db, table))
+         DatabaseExecute(db, "DROP TABLE "+table);
 
-      DatabaseExecute(db, "CREATE TABLE Minutes45MinuteRange("
+      DatabaseExecute(db, "CREATE TABLE "+table+"("
                        "TIME INT PRIMARY KEY NOT NULL,"
+                       "YYYYDDDHHMM INT NOT NULL,"
                        "C1 INT NOT NULL,"
                        "C2 INT NOT NULL,"
                        "C3 INT NOT NULL,"
@@ -58,82 +62,40 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-   datetime currentTime=TimeTradeServer();
-   MqlDateTime dt;
-   TimeToStruct(currentTime,dt);
-   if(dt.hour<2)
+   MqlRates bar[1];
+   if(CopyRates(_Symbol,_Period,1,1,bar)==-1)
       return;
 
-   if(CS_CalculateIndex(CS[0],1))
+   MqlDateTime dt;
+   TimeToStruct(bar[0].time,dt);
+   if(dt.hour<2||dt.hour>22)
+      return;
+
+   if(dt.min!=lastMinute)
    {
-   
+      CS[0].recalculate=true;
+      if(CS_CalculateIndex(CS[0],1))
+      {
+         string valstring;
+         for(int i=0; i<8; i++)
+         {
+            int idx=CS[0].Currencies.GetValueIndex(i+1);
+            double value=CS[0].Currencies.LastValues[idx][0];
+
+            valstring+=",";
+            valstring+=DoubleToString(value*100000,0);
+         }
+
+         string command="INSERT INTO "+table+"(TIME,YYYYDDDHHMM,C1,C2,C3,C4,C5,C6,C7,C8) VALUES("
+            +IntegerToString(bar[0].time)
+            +","+IntegerToString(dt.year)+IntegerToString(dt.day_of_year,3,'0')+IntegerToString(dt.hour,2,'0')+IntegerToString(dt.min,2,'0')
+            +valstring
+            +")";
+            
+         DatabaseExecute(db,command);
+      
+         lastMinute=dt.min;
+      }
    }
 }
 
-
-//void Manage()
-//{
-//   if(working)
-//      return;
-//   working=true;
-//
-//
-//   datetime currentTime=TimeTradeServer();
-//   MqlDateTime dt;
-//   TimeToStruct(currentTime,dt);
-//   
-//   if(dt.min!=lastMinute)
-//   {
-//      if(CS_CalculateIndex(CS[0]))
-//      {
-//         if(lastmaxtime==-1)
-//            lastmaxtime=CS[0].Pairs.maxtime;
-//
-//         if(lastmaxtime!=CS[0].Pairs.maxtime)
-//         {
-//            barshift++;
-//            lastmaxtime=CS[0].Pairs.maxtime;
-//         }
-//      
-//         string valstring;
-//         for(int i=0; i<8; i++)
-//         {
-//            valstring+=",";
-//            double value=CS[0].Currencies.Currency[i].index[bars-1]-CS[0].Currencies.Currency[i].index[bars-(1+barshift)];  // Index bezieht sich auf letzte Bar!!!
-//            valstring+=DoubleToString(value*1000,0);
-//         }
-//
-//         cmd1.CommandText("INSERT INTO Strength(Zeit,[1],[2],[3],[4],[5],[6],[7],[8]) VALUES("
-//            +DTString(dt)
-//            +valstring
-//            +")");
-//         cmd1.ExecuteNonQuery();
-//         
-//         lastTime=currentTime;
-//         lastMinute=dt.min;
-//      }
-//   }
-//
-//
-//   working=false;
-//}
-
-
-string DTString(MqlDateTime& dt)
-{
-   string ret;
-   ret+="'";
-   ret+=IntegerToString(dt.year);
-   ret+="-";
-   ret+=IntegerToString(dt.mon);
-   ret+="-";
-   ret+=IntegerToString(dt.day);
-   ret+=" ";
-   ret+=IntegerToString(dt.hour);
-   ret+=":";
-   ret+=IntegerToString(dt.min);
-   ret+=":";
-   ret+="0";
-   ret+="'";
-   return ret;
-}
