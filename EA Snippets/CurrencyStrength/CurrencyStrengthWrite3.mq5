@@ -32,8 +32,8 @@ void OnInit()
       );
 
    CS[1].Init(
-      2,
-      2,
+      3,
+      3,
       StringSubstr(Symbol(),6),
       PERIOD_D1,
       false,
@@ -53,7 +53,11 @@ void OnInit()
 
       DatabaseExecute(db, "CREATE TABLE "+table+"("
                        "TIME INT PRIMARY KEY NOT NULL,"
-                       "YYYYDDDHHMM INT NOT NULL,"
+                       "YEAR INT NOT NULL,"
+                       "DAY INT NOT NULL,"
+                       "DAYOFWEEK INT NOT NULL,"
+                       "HOUR INT NOT NULL,"
+                       "MINUTE INT NOT NULL,"
                        "C1 INT NOT NULL,"
                        "C2 INT NOT NULL,"
                        "C3 INT NOT NULL,"
@@ -112,9 +116,13 @@ void OnTick()
             valstring+=DoubleToString(value*100000,0);
          }
 
-         string command="INSERT INTO "+table+"(TIME,YYYYDDDHHMM,C1,C2,C3,C4,C5,C6,C7,C8,D1,D2,D3,D4,D5,D6,D7,D8) VALUES("
+         string command="INSERT INTO "+table+"(TIME,YEAR,DAY,DAYOFWEEK,HOUR,MINUTE,C1,C2,C3,C4,C5,C6,C7,C8,D1,D2,D3,D4,D5,D6,D7,D8) VALUES("
             +IntegerToString(bar[0].time)
-            +","+IntegerToString(dt.year)+IntegerToString(dt.day_of_year,3,'0')+IntegerToString(dt.hour,2,'0')+IntegerToString(dt.min,2,'0')
+            +","+IntegerToString(dt.year)
+            +","+IntegerToString(dt.day_of_year)
+            +","+IntegerToString(dt.day_of_week)
+            +","+IntegerToString(dt.hour)
+            +","+IntegerToString(dt.min)
             +valstring
             +")";
             
