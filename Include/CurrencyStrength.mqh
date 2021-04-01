@@ -415,7 +415,7 @@ int CS_GetIndexShift(TypePair& p, TypeCurrencyStrength& cs, datetime timeref, in
    if(index>(p.ratescount-1))
       ret=(p.ratescount-1)-index;
 
-   while(p.rates[index+ret].time>timeref&&(index+ret)>=0)
+   while(p.rates[index+ret].time>timeref&&(index+ret)>=0) // TOFIX: Array out of Range Bug 418/17 - Weekend gap
       ret--;
 
    while(p.rates[index+ret].time<timeref&&(index+ret)<(p.ratescount-1))
@@ -460,7 +460,7 @@ bool CS_GetRates(TypePair& p, TypeCurrencyStrength& cs, bool master=false)
       //starttime+=(PeriodSeconds(cs.timeframe)*1);
       int readcount=0;
       datetime readstarttime=INT_MAX;
-      while(readstarttime>refstarttime&&readcount<20&&!IsStopped())
+      while(readstarttime>refstarttime&&readcount<3000&&!IsStopped())
       {
          copied=CopyRates(p.name+cs.extrachars,cs.timeframe,starttime,endtime,p.rates);
          if(copied>0)
@@ -473,6 +473,7 @@ bool CS_GetRates(TypePair& p, TypeCurrencyStrength& cs, bool master=false)
          
          //if(readcount>1) PrintFormat("Additional Read %d %s with lower Time ",readcount,p.name);
       }
+      //Print(readcount);
    }
    p.ratescount=copied;
 
