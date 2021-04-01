@@ -149,84 +149,100 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-   MqlRates bar[1];
-   if(CopyRates(_Symbol,_Period,1,1,bar)==-1)
+   MqlRates bar[2];
+   if(CopyRates(_Symbol,_Period,0,2,bar)==-1)
       return;
 
-   MqlDateTime dt;
-   TimeToStruct(bar[0].time,dt);
-   if(dt.hour<2||dt.hour>22)
-      return;
+   MqlDateTime dtcurrent;
+   TimeToStruct(bar[1].time,dtcurrent);
 
-   if(dt.min!=lastMinute)
+   MqlDateTime dtlast;
+   TimeToStruct(bar[0].time,dtlast);
+
+//   if(dtlast.hour<2||dtlast.hour>22)
+//      return;
+
+   if(lastM15!=MathAbs(dtcurrent.min/15))
+   {
+      CS[4].recalculate=true;
+      lastM15=MathAbs(dtcurrent.min/15);
+   }
+
+   if(lastDay!=dtcurrent.day_of_year)
+   {
+      CS[1].recalculate=true;
+      CS[2].recalculate=true;
+      CS[3].recalculate=true;
+      lastDay=dtcurrent.day_of_year;
+   }
+
+   if(dtlast.min!=lastMinute)
    {
       CS[0].recalculate=true;
-      if(lastDay!=dt.day_of_year)
+      if(CS_CalculateIndex(CS[0],1))
       {
-         CS[1].recalculate=true;
-         CS[2].recalculate=true;
-         CS[3].recalculate=true;
-         lastDay=dt.day_of_year;
-      }
-      if(lastM15!=MathAbs(dt.min/15))
-      {
-         CS[4].recalculate=true;
-         lastM15=MathAbs(dt.min/15);
-      }
-      if(CS_CalculateIndex(CS[0],1) && CS_CalculateIndex(CS[1]) && CS_CalculateIndex(CS[2]) && CS_CalculateIndex(CS[3]) && CS_CalculateIndex(CS[4]))
-      {
-         string valstring;
-         for(int i=0; i<8; i++)
+         if(lastMinute!=-1)
          {
-            int idx=CS[0].Currencies.GetValueIndex(i+1);
-            double value=CS[0].Currencies.LastValues[idx][0];
-            valstring+=",";
-            valstring+=DoubleToString(value*100000,0);
+            string valstring;
+            for(int i=0; i<8; i++)
+            {
+               int idx=CS[0].Currencies.GetValueIndex(i+1);
+               double value=CS[0].Currencies.LastValues[idx][0];
+               valstring+=",";
+               valstring+=DoubleToString(value*100000,0);
+            }
+            for(int i=0; i<8; i++)
+            {
+               int idx=CS[1].Currencies.GetValueIndex(i+1);
+               double value=CS[1].Currencies.LastValues[idx][0];
+               valstring+=",";
+               valstring+=DoubleToString(value*100000,0);
+            }
+            for(int i=0; i<8; i++)
+            {
+               int idx=CS[2].Currencies.GetValueIndex(i+1);
+               double value=CS[2].Currencies.LastValues[idx][0];
+               valstring+=",";
+               valstring+=DoubleToString(value*100000,0);
+            }
+            for(int i=0; i<8; i++)
+            {
+               int idx=CS[3].Currencies.GetValueIndex(i+1);
+               double value=CS[3].Currencies.LastValues[idx][0];
+               valstring+=",";
+               valstring+=DoubleToString(value*100000,0);
+            }
+            for(int i=0; i<8; i++)
+            {
+               int idx=CS[4].Currencies.GetValueIndex(i+1);
+               double value=CS[4].Currencies.LastValues[idx][0];
+               valstring+=",";
+               valstring+=DoubleToString(value*100000,0);
+            }
+   
+            string command="INSERT INTO "+table+"(TIME,YEAR,MONTH,DAY,DAYOFWEEK,HOUR,MINUTE,C1,C2,C3,C4,C5,C6,C7,C8,D1,D2,D3,D4,D5,D6,D7,D8,DD1,DD2,DD3,DD4,DD5,DD6,DD7,DD8,DDD1,DDD2,DDD3,DDD4,DDD5,DDD6,DDD7,DDD8,O1,O2,O3,O4,O5,O6,O7,O8) VALUES("
+               +IntegerToString(bar[0].time)
+               +","+IntegerToString(dtlast.year)
+               +","+IntegerToString(dtlast.mon)
+               +","+IntegerToString(dtlast.day_of_year)
+               +","+IntegerToString(dtlast.day_of_week)
+               +","+IntegerToString(dtlast.hour)
+               +","+IntegerToString(dtlast.min)
+               +valstring
+               +")";
+               
+            DatabaseExecute(db,command);
          }
-         for(int i=0; i<8; i++)
-         {
-            int idx=CS[1].Currencies.GetValueIndex(i+1);
-            double value=CS[1].Currencies.LastValues[idx][0];
-            valstring+=",";
-            valstring+=DoubleToString(value*100000,0);
-         }
-         for(int i=0; i<8; i++)
-         {
-            int idx=CS[2].Currencies.GetValueIndex(i+1);
-            double value=CS[2].Currencies.LastValues[idx][0];
-            valstring+=",";
-            valstring+=DoubleToString(value*100000,0);
-         }
-         for(int i=0; i<8; i++)
-         {
-            int idx=CS[3].Currencies.GetValueIndex(i+1);
-            double value=CS[3].Currencies.LastValues[idx][0];
-            valstring+=",";
-            valstring+=DoubleToString(value*100000,0);
-         }
-         for(int i=0; i<8; i++)
-         {
-            int idx=CS[4].Currencies.GetValueIndex(i+1);
-            double value=CS[4].Currencies.LastValues[idx][0];
-            valstring+=",";
-            valstring+=DoubleToString(value*100000,0);
-         }
-
-         string command="INSERT INTO "+table+"(TIME,YEAR,MONTH,DAY,DAYOFWEEK,HOUR,MINUTE,C1,C2,C3,C4,C5,C6,C7,C8,D1,D2,D3,D4,D5,D6,D7,D8,DD1,DD2,DD3,DD4,DD5,DD6,DD7,DD8,DDD1,DDD2,DDD3,DDD4,DDD5,DDD6,DDD7,DDD8,O1,O2,O3,O4,O5,O6,O7,O8) VALUES("
-            +IntegerToString(bar[0].time)
-            +","+IntegerToString(dt.year)
-            +","+IntegerToString(dt.mon)
-            +","+IntegerToString(dt.day_of_year)
-            +","+IntegerToString(dt.day_of_week)
-            +","+IntegerToString(dt.hour)
-            +","+IntegerToString(dt.min)
-            +valstring
-            +")";
-            
-         DatabaseExecute(db,command);
       
-         lastMinute=dt.min;
+         lastMinute=dtlast.min;
       }
+   }
+   else
+   {
+      CS_CalculateIndex(CS[1]);
+      CS_CalculateIndex(CS[2]);
+      CS_CalculateIndex(CS[3]);
+      CS_CalculateIndex(CS[4]);
    }
 }
 
