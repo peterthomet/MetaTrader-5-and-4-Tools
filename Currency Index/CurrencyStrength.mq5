@@ -270,6 +270,10 @@ void OnInit()
       offset=1;
       offsettime=offsetread;
    }
+// Debug
+//   offset=1;
+//   offsettime=1615775175;
+// ---
    
    AddFunctionButton(6,16,"RAW |");
    AddFunctionButton(39,16,"SMA |");
