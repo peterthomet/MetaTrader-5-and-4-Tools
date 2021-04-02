@@ -460,7 +460,7 @@ bool CS_GetRates(TypePair& p, TypeCurrencyStrength& cs, bool master=false)
       //starttime+=(PeriodSeconds(cs.timeframe)*1);
       int readcount=0;
       datetime readstarttime=INT_MAX;
-      while(readstarttime>refstarttime&&readcount<3000&&!IsStopped())
+      while(readstarttime>refstarttime&&readcount<10000&&!IsStopped())
       {
          copied=CopyRates(p.name+cs.extrachars,cs.timeframe,starttime,endtime,p.rates);
          if(copied>0)
@@ -473,7 +473,8 @@ bool CS_GetRates(TypePair& p, TypeCurrencyStrength& cs, bool master=false)
          
          //if(readcount>1) PrintFormat("Additional Read %d %s with lower Time ",readcount,p.name);
       }
-      //Print(readcount);
+      //if(readcount>1)
+      //   Print(readcount);
    }
    p.ratescount=copied;
 
