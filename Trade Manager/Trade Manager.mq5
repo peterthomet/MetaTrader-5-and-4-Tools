@@ -552,18 +552,18 @@ void InitTesting()
    if(!istesting)
       return;
 
-   WS.StopMode=None;
-   _OpenLots=0.1;
+   //WS.StopMode=None;
+   //_OpenLots=0.1;
    //ctrlon=true;
-   TradesViewSelected=ByCurrencies;
+   //TradesViewSelected=ByCurrencies;
 
-   OpenBuy("GBPUSD");
-   OpenSell("EURGBP");
-   OpenBuy("GBPJPY");
-   OpenBuy("GBPCHF");
-   OpenBuy("GBPCAD");
-   OpenBuy("GBPAUD");
-   OpenBuy("GBPNZD");
+   //OpenBuy("GBPUSD");
+   //OpenSell("EURGBP");
+   //OpenBuy("GBPJPY");
+   //OpenBuy("GBPCHF");
+   //OpenBuy("GBPCAD");
+   //OpenBuy("GBPAUD");
+   //OpenBuy("GBPNZD");
 
    //OpenSell("GBPUSD");
    //OpenBuy("EURGBP");
@@ -574,6 +574,11 @@ void InitTesting()
    //OpenSell("GBPNZD");
 
    //WS.closecommands.Add();
+
+
+   ArrayResize(strats,1);
+   strats[0]=new StrategyCSDBTesting;
+
 
 #ifdef __MQL5__
    //OpenDBConnection();
@@ -3271,6 +3276,131 @@ public:
             OpenBuy(NULL,0.01,0,0,400);
          if(rates[1].close<rates[2].open && rates[2].close>rates[2].open && rates[3].close>rates[3].open)
             OpenSell(NULL,0.01,0,0,400);
+      }
+   }
+};
+
+
+class StrategyCSDBTesting : public Strategy
+{
+public:
+   int db;
+   int request;
+
+   struct TypeRow
+   {
+      int TIME;
+      int YEAR;
+      int MONTH;
+      int DAY;
+      int DAYOFWEEK;
+      int HOUR;
+      int MINUTE;
+      int C1;
+      int C2;
+      int C3;
+      int C4;
+      int C5;
+      int C6;
+      int C7;
+      int C8;
+      int D1;
+      int D2;
+      int D3;
+      int D4;
+      int D5;
+      int D6;
+      int D7;
+      int D8;
+      int DD1;
+      int DD2;
+      int DD3;
+      int DD4;
+      int DD5;
+      int DD6;
+      int DD7;
+      int DD8;
+      int DDD1;
+      int DDD2;
+      int DDD3;
+      int DDD4;
+      int DDD5;
+      int DDD6;
+      int DDD7;
+      int DDD8;
+      int O1;
+      int O2;
+      int O3;
+      int O4;
+      int O5;
+      int O6;
+      int O7;
+      int O8;
+   };
+   TypeRow row;
+  
+   StrategyCSDBTesting()
+   {
+      db=DatabaseOpen("CS.sqlite", DATABASE_OPEN_READONLY |DATABASE_OPEN_COMMON);
+      request=DatabasePrepare(db, "SELECT * FROM MinutesCS WHERE TIME=?");   
+   }
+
+   ~StrategyCSDBTesting()
+   {
+      DatabaseClose(db);
+   }
+   
+   void Calculate() {}
+
+   void IdleCalculate()
+   {
+      MqlRates rates[];
+      ArraySetAsSeries(rates,true); 
+      int copied=CopyRates(Symbol(),0,0,1,rates); 
+      if(copied==1)
+      {
+         MqlDateTime dtcurrent;
+         TimeToStruct(rates[0].time,dtcurrent);
+         if(dtcurrent.hour<11||dtcurrent.hour>18)
+            return;
+
+         DatabaseReset(request);
+         DatabaseBind(request,0,rates[0].time);
+         if(!DatabaseReadBind(request,row))
+            return;
+
+         if(row.C3>row.C1&&row.C3>row.C2&&row.C3>row.C4&&row.C3>row.C5&&row.C3>row.C6&&row.C3>row.C7&&row.C3>row.C8)
+         {
+            OpenBuy("GBPUSD");
+            OpenSell("EURGBP");
+            OpenBuy("GBPJPY");
+            OpenBuy("GBPCHF");
+            OpenBuy("GBPCAD");
+            OpenBuy("GBPAUD");
+            OpenBuy("GBPNZD");
+         }
+
+         if(row.C3<row.C1&&row.C3<row.C2&&row.C3<row.C4&&row.C3<row.C5&&row.C3<row.C6&&row.C3<row.C7&&row.C3<row.C8)
+         {
+            OpenSell("GBPUSD");
+            OpenBuy("EURGBP");
+            OpenSell("GBPJPY");
+            OpenSell("GBPCHF");
+            OpenSell("GBPCAD");
+            OpenSell("GBPAUD");
+            OpenSell("GBPNZD");
+         }
+
+
+//      
+//         //if(rates[1].close>rates[1].open && rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open && rates[0].close<=rates[2].open)
+//         //if(rates[1].close>rates[1].open && rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open)
+//         double lastcandlehight=(rates[1].close-rates[1].open)/Point();
+//         //if(rates[1].close>rates[1].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open && lastcandlehight>=30)
+//         if(rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open)
+//            OpenBuy(NULL,0.01,0,0,400);
+//         if(rates[1].close<rates[2].open && rates[2].close>rates[2].open && rates[3].close>rates[3].open)
+//            OpenSell(NULL,0.01,0,0,400);
       }
    }
 };
