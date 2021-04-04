@@ -3365,42 +3365,33 @@ public:
             return;
 
          DatabaseReset(request);
-         DatabaseBind(request,0,rates[0].time);
+         DatabaseBind(request,0,rates[0].time-60);
          if(!DatabaseReadBind(request,row))
             return;
 
+         double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
+
          if(row.C3>row.C1&&row.C3>row.C2&&row.C3>row.C4&&row.C3>row.C5&&row.C3>row.C6&&row.C3>row.C7&&row.C3>row.C8)
          {
-            OpenBuy("GBPUSD");
-            OpenSell("EURGBP");
-            OpenBuy("GBPJPY");
-            OpenBuy("GBPCHF");
-            OpenBuy("GBPCAD");
-            OpenBuy("GBPAUD");
-            OpenBuy("GBPNZD");
+            OpenBuy("GBPUSD",openlots);
+            OpenSell("EURGBP",openlots);
+            OpenBuy("GBPJPY",openlots);
+            OpenBuy("GBPCHF",openlots);
+            OpenBuy("GBPCAD",openlots);
+            OpenBuy("GBPAUD",openlots);
+            OpenBuy("GBPNZD",openlots);
          }
 
          if(row.C3<row.C1&&row.C3<row.C2&&row.C3<row.C4&&row.C3<row.C5&&row.C3<row.C6&&row.C3<row.C7&&row.C3<row.C8)
          {
-            OpenSell("GBPUSD");
-            OpenBuy("EURGBP");
-            OpenSell("GBPJPY");
-            OpenSell("GBPCHF");
-            OpenSell("GBPCAD");
-            OpenSell("GBPAUD");
-            OpenSell("GBPNZD");
+            OpenSell("GBPUSD",openlots);
+            OpenBuy("EURGBP",openlots);
+            OpenSell("GBPJPY",openlots);
+            OpenSell("GBPCHF",openlots);
+            OpenSell("GBPCAD",openlots);
+            OpenSell("GBPAUD",openlots);
+            OpenSell("GBPNZD",openlots);
          }
-
-
-//      
-//         //if(rates[1].close>rates[1].open && rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open && rates[0].close<=rates[2].open)
-//         //if(rates[1].close>rates[1].open && rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open)
-//         double lastcandlehight=(rates[1].close-rates[1].open)/Point();
-//         //if(rates[1].close>rates[1].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open && lastcandlehight>=30)
-//         if(rates[1].close>rates[2].open && rates[2].close<rates[2].open && rates[3].close<rates[3].open)
-//            OpenBuy(NULL,0.01,0,0,400);
-//         if(rates[1].close<rates[2].open && rates[2].close>rates[2].open && rates[3].close>rates[3].open)
-//            OpenSell(NULL,0.01,0,0,400);
       }
    }
 };
