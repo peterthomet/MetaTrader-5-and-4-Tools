@@ -3361,7 +3361,7 @@ public:
       {
          MqlDateTime dtcurrent;
          TimeToStruct(rates[0].time,dtcurrent);
-         if(dtcurrent.hour<11||dtcurrent.hour>18)
+         if(!_TradingHours[dtcurrent.hour])
             return;
 
          DatabaseReset(request);
@@ -3371,29 +3371,36 @@ public:
 
          double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
 
-         if(row.C3>row.C1&&row.C3>row.C2&&row.C3>row.C4&&row.C3>row.C5&&row.C3>row.C6&&row.C3>row.C7&&row.C3>row.C8)
-         {
-            OpenBuy("GBPUSD",openlots);
-            OpenSell("EURGBP",openlots);
-            OpenBuy("GBPJPY",openlots);
-            OpenBuy("GBPCHF",openlots);
-            OpenBuy("GBPCAD",openlots);
-            OpenBuy("GBPAUD",openlots);
-            OpenBuy("GBPNZD",openlots);
-         }
+         if(row.C3>row.C1&&row.C3>row.C2&&row.C3>row.C4&&row.C3>row.C5&&row.C3>row.C6&&row.C3>row.C7&&row.C3>row.C8 &&true)
+            BuyGBP(openlots);
+         if(row.C3<row.C1&&row.C3<row.C2&&row.C3<row.C4&&row.C3<row.C5&&row.C3<row.C6&&row.C3<row.C7&&row.C3<row.C8 &&true)
+            SellGBP(openlots);
 
-         if(row.C3<row.C1&&row.C3<row.C2&&row.C3<row.C4&&row.C3<row.C5&&row.C3<row.C6&&row.C3<row.C7&&row.C3<row.C8)
-         {
-            OpenSell("GBPUSD",openlots);
-            OpenBuy("EURGBP",openlots);
-            OpenSell("GBPJPY",openlots);
-            OpenSell("GBPCHF",openlots);
-            OpenSell("GBPCAD",openlots);
-            OpenSell("GBPAUD",openlots);
-            OpenSell("GBPNZD",openlots);
-         }
       }
    }
+   
+   void BuyGBP(double openlots)
+   {
+      OpenBuy("GBPUSD",openlots);
+      OpenSell("EURGBP",openlots);
+      OpenBuy("GBPJPY",openlots);
+      OpenBuy("GBPCHF",openlots);
+      OpenBuy("GBPCAD",openlots);
+      OpenBuy("GBPAUD",openlots);
+      OpenBuy("GBPNZD",openlots);
+   }
+
+   void SellGBP(double openlots)
+   {
+      OpenSell("GBPUSD",openlots);
+      OpenBuy("EURGBP",openlots);
+      OpenSell("GBPJPY",openlots);
+      OpenSell("GBPCHF",openlots);
+      OpenSell("GBPCAD",openlots);
+      OpenSell("GBPAUD",openlots);
+      OpenSell("GBPNZD",openlots);
+   }
+   
 };
 
 
