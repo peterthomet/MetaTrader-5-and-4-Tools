@@ -3341,7 +3341,7 @@ public:
   
    StrategyCSDBTesting()
    {
-      db=DatabaseOpen("CS.sqlite", DATABASE_OPEN_READONLY |DATABASE_OPEN_COMMON);
+      db=DatabaseOpen("CS.sqlite", DATABASE_OPEN_READONLY | DATABASE_OPEN_COMMON);
       request=DatabasePrepare(db, "SELECT * FROM MinutesCS WHERE TIME=?");   
    }
 
@@ -3349,7 +3349,44 @@ public:
    {
       DatabaseClose(db);
    }
-   
+
+#define CS_Day_Follow
+
+#ifdef CS_Day_Follow
+
+   void IdleCalculate() {}
+
+   void Calculate()
+   {
+      MqlRates rates[];
+      ArraySetAsSeries(rates,true); 
+      int copied=CopyRates(Symbol(),0,0,1,rates); 
+      if(copied==1)
+      {
+         MqlDateTime dtcurrent;
+         TimeToStruct(rates[0].time,dtcurrent);
+         if(!_TradingHours[dtcurrent.hour])
+            return;
+
+         DatabaseReset(request);
+         DatabaseBind(request,0,rates[0].time-60);
+         if(!DatabaseReadBind(request,row))
+            return;
+
+         double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
+
+         if(row.C3>row.C1&&row.C3>row.C2&&row.C3>row.C4&&row.C3>row.C5&&row.C3>row.C6&&row.C3>row.C7&&row.C3>row.C8 &&true)
+            BuyGBP(openlots);
+         if(row.C3<row.C1&&row.C3<row.C2&&row.C3<row.C4&&row.C3<row.C5&&row.C3<row.C6&&row.C3<row.C7&&row.C3<row.C8 &&true)
+            SellGBP(openlots);
+
+      }
+   }
+
+#endif
+
+#ifdef Simple_45Min_CS_GBP_Basket
+
    void Calculate() {}
 
    void IdleCalculate()
@@ -3378,6 +3415,8 @@ public:
 
       }
    }
+
+#endif
    
    void BuyGBP(double openlots)
    {
