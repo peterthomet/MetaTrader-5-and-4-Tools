@@ -3286,6 +3286,9 @@ class StrategyCSDBTesting : public Strategy
 public:
    int db;
    int request;
+   datetime lastminute;
+   int lastday;
+   int daytrend;
 
    struct TypeRow
    {
@@ -3341,6 +3344,10 @@ public:
   
    StrategyCSDBTesting()
    {
+      lastminute=0;
+      lastday=0;
+      daytrend=-1;
+      
       db=DatabaseOpen("CS.sqlite", DATABASE_OPEN_READONLY | DATABASE_OPEN_COMMON);
       request=DatabasePrepare(db, "SELECT * FROM MinutesCS WHERE TIME=?");   
    }
@@ -3368,18 +3375,46 @@ public:
          if(!_TradingHours[dtcurrent.hour])
             return;
 
+         if(!MathMod(dtcurrent.min,15)==0)
+            return;
+
+         if(rates[0].time==lastminute)
+            return;
+
          DatabaseReset(request);
          DatabaseBind(request,0,rates[0].time-60);
          if(!DatabaseReadBind(request,row))
             return;
 
+         bool isnewday=lastday!=dtcurrent.day_of_year;
+         if(isnewday)
+            daytrend=-1;
+
          double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
 
-         if(row.C3>row.C1&&row.C3>row.C2&&row.C3>row.C4&&row.C3>row.C5&&row.C3>row.C6&&row.C3>row.C7&&row.C3>row.C8 &&true)
-            BuyGBP(openlots);
-         if(row.C3<row.C1&&row.C3<row.C2&&row.C3<row.C4&&row.C3<row.C5&&row.C3<row.C6&&row.C3<row.C7&&row.C3<row.C8 &&true)
-            SellGBP(openlots);
+         //if((daytrend==OP_BUY && row.D3<0) || (daytrend==OP_SELL && row.D3>0))
+         //   CloseAllInternal();
 
+         //if(dtcurrent.hour==18)
+         //{
+         //   CloseAllInternal();
+         //   return;
+         //}
+
+         if(row.D3>=125 && (isnewday /*|| daytrend==OP_SELL*/))
+         {
+            SellGBP(openlots);
+            lastday=dtcurrent.day_of_year;
+            daytrend=OP_SELL;
+         }
+         if(row.D3<=-125 && (isnewday /*|| daytrend==OP_BUY*/))
+         {
+            BuyGBP(openlots);
+            lastday=dtcurrent.day_of_year;
+            daytrend=OP_BUY;
+         }
+
+         lastminute=rates[0].time;
       }
    }
 
