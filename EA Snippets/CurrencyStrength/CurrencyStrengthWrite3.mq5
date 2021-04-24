@@ -13,10 +13,57 @@ int lastDay=-1;
 int barshift=1;
 datetime lastmaxtime=-1;
 
-TypeCurrencyStrength CS[5];
+TypeCurrencyStrength CS[6];
 int bars=45;
 int db;
 string table;
+
+
+void M15DayInit()
+{
+   int zeropoint=100;
+
+   datetime Arr[];
+   if(CopyTime(Symbol(),PERIOD_M15,0,100,Arr)==100)
+   {
+      for(int i=100-2; i>=0; i--)
+      {
+         MqlDateTime dt;
+         MqlDateTime dtp;
+         TimeToStruct(Arr[i],dt);
+         TimeToStruct(Arr[i+1],dtp);
+         zeropoint=100-1-i;
+         if(dt.day!=dtp.day)
+            break;
+      }
+   }
+
+   CS[4].Init(
+      100,
+      zeropoint,
+      StringSubstr(Symbol(),6),
+      PERIOD_M15,
+      false,
+      pr_close,
+      19,
+      5,
+      true
+      );
+   CS[4].recalculate=true;
+
+   CS[5].Init(
+      100,
+      zeropoint,
+      StringSubstr(Symbol(),6),
+      PERIOD_M15,
+      false,
+      pr_close,
+      6,
+      0,
+      true
+      );
+   CS[5].recalculate=true;
+}
 
 
 void OnInit()
@@ -69,17 +116,7 @@ void OnInit()
       true
       );
 
-   CS[4].Init(
-      10,
-      10,
-      StringSubstr(Symbol(),6),
-      PERIOD_M15,
-      false,
-      pr_close,
-      19,
-      5,
-      true
-      );
+   M15DayInit();
 
    db=DatabaseOpen("CS.sqlite", DATABASE_OPEN_READWRITE | DATABASE_OPEN_CREATE |DATABASE_OPEN_COMMON);
    if(db!=INVALID_HANDLE)
@@ -136,7 +173,15 @@ void OnInit()
                        +"O5 INT NOT NULL,"
                        +"O6 INT NOT NULL,"
                        +"O7 INT NOT NULL,"
-                       +"O8 INT NOT NULL );");
+                       +"O8 INT NOT NULL,"
+                       +"MA1 INT NOT NULL,"
+                       +"MA2 INT NOT NULL,"
+                       +"MA3 INT NOT NULL,"
+                       +"MA4 INT NOT NULL,"
+                       +"MA5 INT NOT NULL,"
+                       +"MA6 INT NOT NULL,"
+                       +"MA7 INT NOT NULL,"
+                       +"MA8 INT NOT NULL );");
    }
 }
 
@@ -164,7 +209,7 @@ void OnTick()
 
    if(lastM15!=MathAbs(dtcurrent.min/15))
    {
-      CS[4].recalculate=true;
+      M15DayInit();
       lastM15=MathAbs(dtcurrent.min/15);
    }
 
@@ -219,8 +264,15 @@ void OnTick()
                valstring+=",";
                valstring+=DoubleToString(value*100000,0);
             }
+            for(int i=0; i<8; i++)
+            {
+               int idx=CS[5].Currencies.GetValueIndex(i+1);
+               double value=CS[5].Currencies.LastValues[idx][0];
+               valstring+=",";
+               valstring+=DoubleToString(value*100000,0);
+            }
    
-            string command="INSERT INTO "+table+"(TIME,YEAR,MONTH,DAY,DAYOFWEEK,HOUR,MINUTE,C1,C2,C3,C4,C5,C6,C7,C8,D1,D2,D3,D4,D5,D6,D7,D8,DD1,DD2,DD3,DD4,DD5,DD6,DD7,DD8,DDD1,DDD2,DDD3,DDD4,DDD5,DDD6,DDD7,DDD8,O1,O2,O3,O4,O5,O6,O7,O8) VALUES("
+            string command="INSERT INTO "+table+"(TIME,YEAR,MONTH,DAY,DAYOFWEEK,HOUR,MINUTE,C1,C2,C3,C4,C5,C6,C7,C8,D1,D2,D3,D4,D5,D6,D7,D8,DD1,DD2,DD3,DD4,DD5,DD6,DD7,DD8,DDD1,DDD2,DDD3,DDD4,DDD5,DDD6,DDD7,DDD8,O1,O2,O3,O4,O5,O6,O7,O8,MA1,MA2,MA3,MA4,MA5,MA6,MA7,MA8) VALUES("
                +IntegerToString(bar[0].time)
                +","+IntegerToString(dtlast.year)
                +","+IntegerToString(dtlast.mon)
@@ -243,6 +295,7 @@ void OnTick()
       CS_CalculateIndex(CS[2]);
       CS_CalculateIndex(CS[3]);
       CS_CalculateIndex(CS[4]);
+      CS_CalculateIndex(CS[5]);
    }
 }
 
