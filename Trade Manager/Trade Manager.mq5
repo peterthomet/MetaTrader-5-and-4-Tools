@@ -3339,8 +3339,17 @@ public:
       int O6;
       int O7;
       int O8;
+      int MA1;
+      int MA2;
+      int MA3;
+      int MA4;
+      int MA5;
+      int MA6;
+      int MA7;
+      int MA8;
    };
    TypeRow row;
+   TypeRow M15RowCache[3];
   
    StrategyCSDBTesting()
    {
@@ -3375,7 +3384,7 @@ public:
          if(!_TradingHours[dtcurrent.hour])
             return;
 
-         if(!MathMod(dtcurrent.min,15)==0)
+         if(MathMod(dtcurrent.min,15)!=0)
             return;
 
          if(rates[0].time==lastminute)
@@ -3385,6 +3394,10 @@ public:
          DatabaseBind(request,0,rates[0].time-60);
          if(!DatabaseReadBind(request,row))
             return;
+         
+         M15RowCache[2]=M15RowCache[1];
+         M15RowCache[1]=M15RowCache[0];
+         M15RowCache[0]=row;
 
          bool isnewday=lastday!=dtcurrent.day_of_year;
          if(isnewday)
