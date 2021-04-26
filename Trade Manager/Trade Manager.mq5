@@ -3349,7 +3349,8 @@ public:
       int MA8;
    };
    TypeRow row;
-   TypeRow M15RowCache[3];
+   TypeRow rc[3];
+   TypeRow rw[3];
   
    StrategyCSDBTesting()
    {
@@ -3395,9 +3396,9 @@ public:
          if(!DatabaseReadBind(request,row))
             return;
          
-         M15RowCache[2]=M15RowCache[1];
-         M15RowCache[1]=M15RowCache[0];
-         M15RowCache[0]=row;
+         rc[2]=rc[1];
+         rc[1]=rc[0];
+         rc[0]=row;
 
          bool isnewday=lastday!=dtcurrent.day_of_year;
          if(isnewday)
@@ -3414,13 +3415,74 @@ public:
          //   return;
          //}
 
-         if(row.D3>=125 && (isnewday /*|| daytrend==OP_SELL*/))
+         for(int i=0; i<=2; i++)
+         {
+            int s=rc[i].O3;
+            rw[i].O1=rc[i].O1-s;
+            rw[i].O2=rc[i].O2-s;
+            rw[i].O3=rc[i].O3-s;
+            rw[i].O4=rc[i].O4-s;
+            rw[i].O5=rc[i].O5-s;
+            rw[i].O6=rc[i].O6-s;
+            rw[i].O7=rc[i].O7-s;
+            rw[i].O8=rc[i].O8-s;
+         }
+
+         //if(row.D3>=125 && (isnewday /*|| daytrend==OP_SELL*/))
+//         if(
+//            rw[1].O1>rw[2].O1 &&
+//            rw[1].O2>rw[2].O2 &&
+//            rw[1].O4>rw[2].O4 &&
+//            rw[1].O5>rw[2].O5 &&
+//            rw[1].O6>rw[2].O6 &&
+//            rw[1].O7>rw[2].O7 &&
+//            rw[1].O8>rw[2].O8 &&
+//
+//            rw[0].O1<rw[1].O1 &&
+//            rw[0].O2<rw[1].O2 &&
+//            rw[0].O4<rw[1].O4 &&
+//            rw[0].O5<rw[1].O5 &&
+//            rw[0].O6<rw[1].O6 &&
+//            rw[0].O7<rw[1].O7 &&
+//            rw[0].O8<rw[1].O8
+//         )
+         if(
+            rc[1].O3>rc[2].O3 &&
+            rc[0].O3<rc[1].O3 &&
+            rc[1].O3>=100 &&
+            rc[0].MA3>=75 &&
+            isnewday
+         )
          {
             SellGBP(openlots);
             lastday=dtcurrent.day_of_year;
             daytrend=OP_SELL;
          }
-         if(row.D3<=-125 && (isnewday /*|| daytrend==OP_BUY*/))
+         //if(row.D3<=-125 && (isnewday /*|| daytrend==OP_BUY*/))
+//         if(
+//            rw[1].O1<rw[2].O1 &&
+//            rw[1].O2<rw[2].O2 &&
+//            rw[1].O4<rw[2].O4 &&
+//            rw[1].O5<rw[2].O5 &&
+//            rw[1].O6<rw[2].O6 &&
+//            rw[1].O7<rw[2].O7 &&
+//            rw[1].O8<rw[2].O8 &&
+//
+//            rw[0].O1>rw[1].O1 &&
+//            rw[0].O2>rw[1].O2 &&
+//            rw[0].O4>rw[1].O4 &&
+//            rw[0].O5>rw[1].O5 &&
+//            rw[0].O6>rw[1].O6 &&
+//            rw[0].O7>rw[1].O7 &&
+//            rw[0].O8>rw[1].O8
+//         )
+         if(
+            rc[1].O3<rc[2].O3 &&
+            rc[0].O3>rc[1].O3 &&
+            rc[1].O3<=-100 &&
+            rc[0].MA3<=-75 &&
+            isnewday
+         )
          {
             BuyGBP(openlots);
             lastday=dtcurrent.day_of_year;
