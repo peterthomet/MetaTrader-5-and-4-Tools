@@ -3428,6 +3428,10 @@ public:
             rw[i].O8=rc[i].O8-s;
          }
 
+         // Not on Thursday, bad performance
+         if(dtcurrent.day_of_week==4)
+            return;
+
          //if(row.D3>=125 && (isnewday /*|| daytrend==OP_SELL*/))
 //         if(
 //            rw[1].O1>rw[2].O1 &&
@@ -3450,8 +3454,8 @@ public:
             rc[1].O3>rc[2].O3 &&
             rc[0].O3<rc[1].O3 &&
             rc[1].O3>=100 &&
-            rc[0].MA3>=75 &&
-            isnewday
+            rc[0].MA3>=75 /*&&
+            isnewday*/
          )
          {
             SellGBP(openlots);
@@ -3480,8 +3484,8 @@ public:
             rc[1].O3<rc[2].O3 &&
             rc[0].O3>rc[1].O3 &&
             rc[1].O3<=-100 &&
-            rc[0].MA3<=-75 &&
-            isnewday
+            rc[0].MA3<=-75 /*&&
+            isnewday*/
          )
          {
             BuyGBP(openlots);
