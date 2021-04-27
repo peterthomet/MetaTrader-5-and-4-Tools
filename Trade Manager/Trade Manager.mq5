@@ -3367,9 +3367,9 @@ public:
       DatabaseClose(db);
    }
 
-#define CS_Day_Follow
+#define CS_GBP_Reverse_Basket
 
-#ifdef CS_Day_Follow
+#ifdef CS_GBP_Reverse_Basket
 
    void IdleCalculate() {}
 
@@ -3405,11 +3405,12 @@ public:
             daytrend=-1;
 
          double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
+         //openlots=_OpenLots;
 
          //if((daytrend==OP_BUY && row.D3<0) || (daytrend==OP_SELL && row.D3>0))
          //   CloseAllInternal();
 
-         //if(dtcurrent.hour==18)
+         //if(dtcurrent.hour==22)
          //{
          //   CloseAllInternal();
          //   return;
