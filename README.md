@@ -7,8 +7,8 @@
 
 <br/>
 
-> ### :warning: <code>MT4 abandoned.
-> ### Only the code for MT5 is up to date and gets further updates.</code>
+> ### :warning: MT4 abandoned.
+> ### Only the code for MT5 is up to date and gets further updates.
 
 <br/>
 
