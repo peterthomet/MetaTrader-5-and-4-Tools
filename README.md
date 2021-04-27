@@ -7,7 +7,7 @@
 
 <br/>
 
-> :warning: **I don't use MT4 anymore. Only the code for MT5 is up to date.**
+> :warning: **MT4 abandoned. Only the code for MT5 is up to date and gets further updates.**
 
 <br/>
 
