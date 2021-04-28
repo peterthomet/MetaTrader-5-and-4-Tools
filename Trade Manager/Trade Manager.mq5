@@ -3,7 +3,7 @@
 // getYourNet.ch
 //
 
-#property copyright "Copyright 2019, getYourNet.ch | Read the Manual..."
+#property copyright "Copyright 2021, getYourNet.ch"
 #property link "http://shop.getyournet.ch/trademanager"
 
 #ifdef __MQL4__
