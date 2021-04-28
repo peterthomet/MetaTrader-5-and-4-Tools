@@ -3283,9 +3283,22 @@ public:
 
 class StrategyCSDBTesting : public Strategy
 {
+
+#define CS_DB_Backtest
+
 public:
+
+#ifdef CS_DB_Backtest
+
    int db;
    int request;
+
+#else
+
+   TypeCurrencyStrength CS[2];
+
+#endif
+
    datetime lastminute;
    int lastday;
    int daytrend;
@@ -3358,14 +3371,80 @@ public:
       lastday=0;
       daytrend=-1;
       
+#ifdef CS_DB_Backtest
+
       db=DatabaseOpen("CS.sqlite", DATABASE_OPEN_READONLY | DATABASE_OPEN_COMMON);
       request=DatabasePrepare(db, "SELECT * FROM MinutesCS WHERE TIME=?");   
+
+#else
+
+      M15DayInit();
+
+#endif
    }
 
    ~StrategyCSDBTesting()
    {
+#ifdef CS_DB_Backtest
+
       DatabaseClose(db);
+
+#endif
    }
+
+#ifdef CS_DB_Backtest
+
+#else
+
+   void M15DayInit()
+   {
+      int zeropoint=100;
+   
+      datetime Arr[];
+      if(CopyTime(Symbol(),PERIOD_M15,0,100,Arr)==100)
+      {
+         for(int i=100-2; i>=0; i--)
+         {
+            MqlDateTime dt;
+            MqlDateTime dtp;
+            TimeToStruct(Arr[i],dt);
+            TimeToStruct(Arr[i+1],dtp);
+            zeropoint=100-1-i;
+            if(dt.day!=dtp.day)
+               break;
+         }
+      }
+   
+      CS[0].Init(
+         100,
+         zeropoint,
+         StringSubstr(Symbol(),6),
+         PERIOD_M15,
+         false,
+         pr_close,
+         19,
+         5,
+         true
+         );
+      CS[0].recalculate=true;
+   
+      CS[1].Init(
+         100,
+         zeropoint,
+         StringSubstr(Symbol(),6),
+         PERIOD_M15,
+         false,
+         pr_close,
+         6,
+         0,
+         true
+         );
+      CS[1].recalculate=true;
+   }
+
+#endif
+
+
 
 #define CS_GBP_Reverse_Basket
 
@@ -3382,19 +3461,55 @@ public:
       {
          MqlDateTime dtcurrent;
          TimeToStruct(rates[0].time,dtcurrent);
-         if(!_TradingHours[dtcurrent.hour])
-            return;
 
          if(MathMod(dtcurrent.min,15)!=0)
+         {
+#ifdef CS_DB_Backtest
+
+#else
+
+            CS_CalculateIndex(CS[0]);
+            CS_CalculateIndex(CS[1]);
+
+#endif
+            return;
+         }
+#ifdef CS_DB_Backtest
+
+#else
+
+         else
+         {
+            M15DayInit();
+         }
+
+#endif
+
+         if(!_TradingHours[dtcurrent.hour])
             return;
 
          if(rates[0].time==lastminute)
             return;
 
+#ifdef CS_DB_Backtest
+
          DatabaseReset(request);
          DatabaseBind(request,0,rates[0].time-60);
          if(!DatabaseReadBind(request,row))
             return;
+#else
+
+         int idx;
+         double value;
+         idx=CS[0].Currencies.GetValueIndex(3);
+         value=CS[0].Currencies.LastValues[idx][0];
+         row.O3=(int)MathRound(value*100000);
+
+         idx=CS[1].Currencies.GetValueIndex(3);
+         value=CS[1].Currencies.LastValues[idx][0];
+         row.MA3=(int)MathRound(value*100000);
+
+#endif
          
          rc[2]=rc[1];
          rc[1]=rc[0];
