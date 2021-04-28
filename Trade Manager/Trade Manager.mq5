@@ -51,12 +51,6 @@ enum TypeStopLossPercentTradingCapitalAction
    CloseAllTrades
 };
 
-enum TypeTesterMode
-{
-   EveryTick,
-   Timer10Seconds
-};
-
 input TypeInstance Instance = 1;
 input TypeAutomation Automation = NoAutomation;
 input double BreakEvenAfterPips = 5;
@@ -96,6 +90,8 @@ input int AvailableTradingCapital = 0;
 input int StartHour = 0;
 input int StartMinute = 0;
 input int MinPoints1 = 0;
+input group "Harvesters";
+input bool Harvester_CSGBPBaskets = false;
 input group "Trading Hours";
 input bool Hour0 = true;
 input bool Hour1 = true;
@@ -121,7 +117,6 @@ input bool Hour20 = true;
 input bool Hour21 = true;
 input bool Hour22 = true;
 input bool Hour23 = true;
-input TypeTesterMode TesterMode = EveryTick;
 
 string appname="Trade Manager";
 string appnamespace="";
@@ -535,7 +530,7 @@ void OnInit()
       ObjectSetInteger(0,objname,OBJPROP_BGCOLOR,c);
    }
 
-   //InitStrategies();
+   InitStrategies();
    
    InitTesting();
 
@@ -575,26 +570,28 @@ void InitTesting()
 
    //WS.closecommands.Add();
 
-
-   ArrayResize(strats,1);
-   strats[0]=new StrategyCSDBTesting;
-
+   //ArrayResize(strats,1);
+   //strats[0]=new StrategyCSGBPBaskets;
+   //strats[0]=new StrategyOutOfTheBox;
+   //strats[0]=new StrategyLittleDD;
+   //strats[0]=new StrategyPivotsH4FibonacciR1S1Reversal;
 
 #ifdef __MQL5__
    //OpenDBConnection();
    //CloseDBConnection();
 #endif
-   if(TesterMode==Timer10Seconds)
-      EventSetTimer(10);
 }
 
 
 void InitStrategies()
 {
-   ArrayResize(strats,1);
-   //strats[0]=new StrategyOutOfTheBox;
-   //strats[0]=new StrategyLittleDD;
-   strats[0]=new StrategyPivotsH4FibonacciR1S1Reversal;
+   ArrayResize(strats,0);
+
+   if(Harvester_CSGBPBaskets)
+   {
+      ArrayResize(strats,1);
+      strats[0]=new StrategyCSGBPBaskets;
+   }
 }
 
 
@@ -628,20 +625,12 @@ void OnTick()
    if(ctrlon)
       DrawLevels();
 
-   if(!istesting||TesterMode==EveryTick)
-      Manage();
+   Manage();
 }
 
 
 void OnTimer()
 {
-   //int lastctrlspan=(int)(TimeLocal()-lastctrl);
-   //if(lastctrlspan>1&&ctrlon)
-   //{
-   //   DeleteLevels();
-   //   DeleteLegend();
-   //   ctrlon=false;
-   //}
    Manage();
 }
 
@@ -666,9 +655,8 @@ void Manage()
       DisplayText();
    }
 
-   if(istesting)
-      for(int i=ArraySize(strats)-1; i>=0; i--)
-         strats[i].Calculate();
+   for(int i=ArraySize(strats)-1; i>=0; i--)
+      strats[i].Calculate();
 
    working=false;
 }
@@ -976,20 +964,17 @@ void ManageBasket()
       WS.Reset();
       ClearGlobalReferences();
       
-      if(istesting)
-      {
-         for(int i=ArraySize(strats)-1; i>=0; i--)
-            strats[i].IdleCalculate();
+      for(int i=ArraySize(strats)-1; i>=0; i--)
+         strats[i].IdleCalculate();
 
 #ifdef __MQL5__
-         //#include <TradeManagerEntryTesting1.mqh>
-         
-         // Dredging Test
-         //OpenBuy();
-         //OpenSell();
+      //#include <TradeManagerEntryTesting1.mqh>
+      
+      // Dredging Test
+      //OpenBuy();
+      //OpenSell();
 #endif
 
-      }
       return;
    }
    
@@ -1158,6 +1143,19 @@ void DisplayText()
          CreateLabel(rowindex,FontSize,TextColorMinus,tickchar+" No Market Activity");
       else
          CreateLabel(rowindex,FontSize,TextColorPlus,tickchar+" Running");
+      rowindex++;
+   }
+   
+   for(int i=ArraySize(strats)-1; i>=0; i--)
+   {
+      color c=TextColorPlus;
+
+      MqlDateTime tc;
+      TimeCurrent(tc);
+      if(!_TradingHours[tc.hour])
+         c=TextColorMinus;
+   
+      CreateLabel(rowindex,FontSize,c,strats[i].GetName());
       rowindex++;
    }
 
@@ -2878,6 +2876,7 @@ double ATR()
 interface Strategy 
 {
 public:
+   string GetName();
    void IdleCalculate();
    void Calculate();
 };
@@ -3281,12 +3280,22 @@ public:
 };
 
 
-class StrategyCSDBTesting : public Strategy
+class StrategyCSGBPBaskets : public Strategy
 {
 
-#define CS_DB_Backtest
+//#define CS_DB_Backtest
 
 public:
+
+#ifdef CS_DB_Backtest
+
+   string GetName() { return "Harvester CSGBPBaskets DB Backtest"; }
+
+#else
+
+   string GetName() { return "Harvester CSGBPBaskets"; }
+
+#endif
 
 #ifdef CS_DB_Backtest
 
@@ -3365,7 +3374,7 @@ public:
    TypeRow rc[3];
    TypeRow rw[3];
   
-   StrategyCSDBTesting()
+   StrategyCSGBPBaskets()
    {
       lastminute=0;
       lastday=0;
@@ -3383,7 +3392,7 @@ public:
 #endif
    }
 
-   ~StrategyCSDBTesting()
+   ~StrategyCSGBPBaskets()
    {
 #ifdef CS_DB_Backtest
 
