@@ -117,6 +117,14 @@ input bool Hour20 = true;
 input bool Hour21 = true;
 input bool Hour22 = true;
 input bool Hour23 = true;
+input group "Trading Weekdays";
+input bool Sunday = true;
+input bool Monday = true;
+input bool Tuesday = true;
+input bool Wednesday = true;
+input bool Thursday = true;
+input bool Friday = true;
+input bool Saturday = true;
 
 string appname="Trade Manager";
 string appnamespace="";
@@ -139,6 +147,7 @@ double _TakeProfitPips;
 double _StopLossPips;
 double _OpenLots;
 bool _TradingHours[24];
+bool _TradingWeekdays[7];
 bool ctrlon;
 bool tradelevelsvisible;
 int selectedtradeindex;
@@ -506,6 +515,14 @@ void OnInit()
    _TradingHours[21]=Hour21;
    _TradingHours[22]=Hour22;
    _TradingHours[23]=Hour23;
+
+   _TradingWeekdays[0]=Sunday;
+   _TradingWeekdays[1]=Monday;
+   _TradingWeekdays[2]=Tuesday;
+   _TradingWeekdays[3]=Wednesday;
+   _TradingWeekdays[4]=Thursday;
+   _TradingWeekdays[5]=Friday;
+   _TradingWeekdays[6]=Saturday;
 
    WS.Init();
    
@@ -1152,7 +1169,7 @@ void DisplayText()
 
       MqlDateTime tc;
       TimeCurrent(tc);
-      if(!_TradingHours[tc.hour])
+      if(!_TradingHours[tc.hour]||!_TradingWeekdays[tc.day_of_week])
          c=TextColorMinus;
    
       CreateLabel(rowindex,FontSize,c,strats[i].GetName());
@@ -3497,6 +3514,9 @@ public:
          if(!_TradingHours[dtcurrent.hour])
             return;
 
+         if(!_TradingWeekdays[dtcurrent.day_of_week])
+            return;
+
          if(rates[0].time==lastminute)
             return;
 
@@ -3552,10 +3572,6 @@ public:
             rw[i].O7=rc[i].O7-s;
             rw[i].O8=rc[i].O8-s;
          }
-
-         // Not on Thursday, bad performance
-         if(dtcurrent.day_of_week==4)
-            return;
 
          //if(row.D3>=125 && (isnewday /*|| daytrend==OP_SELL*/))
 //         if(
