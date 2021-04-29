@@ -637,7 +637,7 @@ void OnTimer()
 
 void Manage()
 {
-   if(working||initerror)
+   if(working||initerror||!TerminalInfoInteger(TERMINAL_CONNECTED))
       return;
    working=true;
 
