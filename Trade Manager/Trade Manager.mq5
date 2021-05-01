@@ -3300,7 +3300,7 @@ public:
 class StrategyCSGBPBaskets : public Strategy
 {
 
-//#define CS_DB_Backtest
+#define CS_DB_Backtest
 
 public:
 
@@ -3328,6 +3328,13 @@ public:
    datetime lastminute;
    int lastday;
    int daytrend;
+
+   struct TypeTimes
+   {
+      datetime t1;
+      MqlDateTime t2;
+   };
+   TypeTimes times;
 
    struct TypeRow
    {
@@ -3386,7 +3393,6 @@ public:
       int MA6;
       int MA7;
       int MA8;
-      
       TypeRow()
       {
          TIME=0;
@@ -3473,9 +3479,93 @@ public:
 
 #endif
 
+   bool GetM1Time()
+   {
+      datetime time[];
+      int copied=CopyTime(Symbol(),PERIOD_M1,0,1,time); 
+      if(copied==1)
+      {
+         times.t1=time[0];
+         TimeToStruct(time[0],times.t2);
+         return true;
+      }
+      return false;
+   }
+   
+   bool IsM15NewBar()
+   {
+      if(MathMod(times.t2.min,15)!=0)
+      {
+#ifdef CS_DB_Backtest
 
+#else
+
+         CS_CalculateIndex(CS[0]);
+         CS_CalculateIndex(CS[1]);
+
+#endif
+         return false;
+      }
+#ifdef CS_DB_Backtest
+
+#else
+
+      else
+      {
+         M15DayInit();
+      }
+
+#endif
+
+      return true;
+   }
+
+   bool IsTradingTime()
+   {
+      if(!_TradingHours[times.t2.hour])
+         return false;
+      if(!_TradingWeekdays[times.t2.day_of_week])
+         return false;
+      return true;
+   }
+
+   void GetIndexData()
+   {
+#ifdef CS_DB_Backtest
+
+      for(int i=0; i<100; i++)
+      {
+         int t=(int)times.t1-60-(PeriodSeconds(PERIOD_M15)*i);
+         DatabaseReset(request);
+         DatabaseBind(request,0,t);
+         if(!DatabaseReadBind(request,r[i]))
+            break;
+      }
+
+#else
+
+      for(int i=0; i<100; i++)
+      {
+         for(int z=0; z<8; z++)
+         {
+            int Ox=(int)MathRound(CS[0].Currencies.Currency[z].index[CS[0].bars-1-i].laging.value1*100000);
+            int MAx=(int)MathRound(CS[1].Currencies.Currency[z].index[CS[1].bars-1-i].laging.value1*100000);
+            if(z==0) { r[i].O1=Ox; r[i].MA1=MAx; }
+            if(z==1) { r[i].O2=Ox; r[i].MA2=MAx; }
+            if(z==2) { r[i].O3=Ox; r[i].MA3=MAx; }
+            if(z==3) { r[i].O4=Ox; r[i].MA4=MAx; }
+            if(z==4) { r[i].O5=Ox; r[i].MA5=MAx; }
+            if(z==5) { r[i].O6=Ox; r[i].MA6=MAx; }
+            if(z==6) { r[i].O7=Ox; r[i].MA7=MAx; }
+            if(z==7) { r[i].O8=Ox; r[i].MA8=MAx; }
+         }
+      }
+
+#endif
+   }
 
 #define CS_GBP_Reverse_Basket
+//#define Simple_45Min_CS_GBP_Basket
 
 #ifdef CS_GBP_Reverse_Basket
 
@@ -3483,110 +3573,62 @@ public:
 
    void Calculate()
    {
-      MqlRates rates[];
-      ArraySetAsSeries(rates,true); 
-      int copied=CopyRates(Symbol(),PERIOD_M1,0,1,rates); 
-      if(copied==1)
+      if(!GetM1Time())
+         return;
+
+      if(!IsM15NewBar())
+         return;
+
+      if(!IsTradingTime())
+         return;
+
+      if(times.t1==lastminute)
+         return;
+
+      GetIndexData();
+      
+      bool isnewday=lastday!=times.t2.day_of_year;
+      if(isnewday)
+         daytrend=-1;
+
+      double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
+      //openlots=_OpenLots;
+
+      //if((daytrend==OP_BUY && row.D3<0) || (daytrend==OP_SELL && row.D3>0))
+      //   CloseAllInternal();
+
+      //if(dtcurrent.hour==22)
+      //{
+      //   CloseAllInternal();
+      //   return;
+      //}
+
+      if(
+         r[1].O3>r[2].O3 &&
+         r[0].O3<r[1].O3 &&
+         r[1].O3>=100 &&
+         r[0].MA3>=75 /*&&
+         isnewday*/
+      )
       {
-         MqlDateTime dtcurrent;
-         TimeToStruct(rates[0].time,dtcurrent);
-
-         if(MathMod(dtcurrent.min,15)!=0)
-         {
-#ifdef CS_DB_Backtest
-
-#else
-
-            CS_CalculateIndex(CS[0]);
-            CS_CalculateIndex(CS[1]);
-
-#endif
-            return;
-         }
-#ifdef CS_DB_Backtest
-
-#else
-
-         else
-         {
-            M15DayInit();
-         }
-
-#endif
-
-         if(!_TradingHours[dtcurrent.hour])
-            return;
-
-         if(!_TradingWeekdays[dtcurrent.day_of_week])
-            return;
-
-         if(rates[0].time==lastminute)
-            return;
-
-#ifdef CS_DB_Backtest
-
-         for(int i=0; i<100; i++)
-         {
-            int time=(int)rates[0].time-60-(PeriodSeconds(PERIOD_M15)*i);
-            DatabaseReset(request);
-            DatabaseBind(request,0,time);
-            if(!DatabaseReadBind(request,r[i]))
-               break;
-         }
-
-#else
-
-         for(int i=0; i<100; i++)
-         {
-            r[i].O3=(int)MathRound(CS[0].Currencies.Currency[2].index[CS[0].bars-1-i].laging.value1*100000);
-            r[i].MA3=(int)MathRound(CS[1].Currencies.Currency[2].index[CS[1].bars-1-i].laging.value1*100000);
-         }
-
-#endif
-         
-         bool isnewday=lastday!=dtcurrent.day_of_year;
-         if(isnewday)
-            daytrend=-1;
-
-         double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
-         //openlots=_OpenLots;
-
-         //if((daytrend==OP_BUY && row.D3<0) || (daytrend==OP_SELL && row.D3>0))
-         //   CloseAllInternal();
-
-         //if(dtcurrent.hour==22)
-         //{
-         //   CloseAllInternal();
-         //   return;
-         //}
-
-         if(
-            r[1].O3>r[2].O3 &&
-            r[0].O3<r[1].O3 &&
-            r[1].O3>=100 &&
-            r[0].MA3>=75 /*&&
-            isnewday*/
-         )
-         {
-            SellGBP(openlots);
-            lastday=dtcurrent.day_of_year;
-            daytrend=OP_SELL;
-         }
-         if(
-            r[1].O3<r[2].O3 &&
-            r[0].O3>r[1].O3 &&
-            r[1].O3<=-100 &&
-            r[0].MA3<=-75 /*&&
-            isnewday*/
-         )
-         {
-            BuyGBP(openlots);
-            lastday=dtcurrent.day_of_year;
-            daytrend=OP_BUY;
-         }
-
-         lastminute=rates[0].time;
+         SellGBP(openlots);
+         lastday=times.t2.day_of_year;
+         daytrend=OP_SELL;
       }
+      if(
+         r[1].O3<r[2].O3 &&
+         r[0].O3>r[1].O3 &&
+         r[1].O3<=-100 &&
+         r[0].MA3<=-75 /*&&
+         isnewday*/
+      )
+      {
+         BuyGBP(openlots);
+         lastday=times.t2.day_of_year;
+         daytrend=OP_BUY;
+      }
+
+      lastminute=times.t1;
    }
 
 #endif
