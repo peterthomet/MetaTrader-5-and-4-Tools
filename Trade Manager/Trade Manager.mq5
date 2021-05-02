@@ -3311,9 +3311,10 @@ class StrategyCSBase : public Strategy
 {
 public:
 
-   string GetName() {return "";}
+   string Name;
+   string Namespace;
 
-   string GetShortName() {return "";}
+   string GetName() {return Name;}
 
    int db;
    int request;
@@ -3394,20 +3395,20 @@ public:
    };
    TypeRow r[100];
   
-   StrategyCSBase()
+   void Init()
    {
       lastminute=0;
       lastday=0;
       daytrend=-1;
 
-      string s=GetShortName();
-      string varname=appnamespace+s+"lastminute";
+      string s=appnamespace+Namespace+" ";
+      string varname=s+"lastminute";
       if(GlobalVariableCheck(varname))
          lastminute=(int)GlobalVariableGet(varname);
-      varname=appnamespace+s+"lastday";
+      varname=s+"lastday";
       if(GlobalVariableCheck(varname))
          lastday=(int)GlobalVariableGet(varname);
-      varname=appnamespace+s+"daytrend";
+      varname=s+"daytrend";
       if(GlobalVariableCheck(varname))
          daytrend=(int)GlobalVariableGet(varname);
       
@@ -3425,10 +3426,10 @@ public:
 
    ~StrategyCSBase()
    {
-      string s=GetShortName();
-      GlobalVariableSet(appnamespace+s+"lastminute",lastminute);
-      GlobalVariableSet(appnamespace+s+"lastday",lastday);
-      GlobalVariableSet(appnamespace+s+"daytrend",daytrend);
+      string s=appnamespace+Namespace+" ";
+      GlobalVariableSet(s+"lastminute",lastminute);
+      GlobalVariableSet(s+"lastday",lastday);
+      GlobalVariableSet(s+"daytrend",daytrend);
 
       if(UseCurrencyStrengthDatabase)
          DatabaseClose(db);
@@ -3588,17 +3589,14 @@ class StrategyCSGBPReversal : public StrategyCSBase
 {
 public:
 
-   string GetName()
+   StrategyCSGBPReversal()
    {
       if(UseCurrencyStrengthDatabase)
-         return "Harvester CSGBPReversal DB";
+         Name="Harvester CSGBPReversal DB";
       else
-         return "Harvester CSGBPReversal";
-   }
-
-   string GetShortName()
-   {
-      return "HARVCSGBPBaskets";
+         Name="Harvester CSGBPReversal";
+      Namespace="HARVCSGBPReversal";
+      Init();
    }
 
    void IdleCalculate() {}
@@ -3669,17 +3667,14 @@ class StrategyCSGBP45MinStrength : public StrategyCSBase
 {
 public:
 
-   string GetName()
+   StrategyCSGBP45MinStrength()
    {
       if(UseCurrencyStrengthDatabase)
-         return "Harvester CSGBP45MinStrength DB";
+         Name="Harvester CSGBP45MinStrength DB";
       else
-         return "Harvester CSGBP45MinStrength";
-   }
-
-   string GetShortName()
-   {
-      return "HARVCSGBP45MinStrength";
+         Name="Harvester CSGBP45MinStrength";
+      Namespace="HARVCSGBP45MinStrength";
+      Init();
    }
 
    void IdleCalculate()
