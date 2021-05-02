@@ -3591,15 +3591,12 @@ public:
 
    StrategyCSGBPReversal()
    {
+      Name="Harvester CSGBPReversal";
       if(UseCurrencyStrengthDatabase)
-         Name="Harvester CSGBPReversal DB";
-      else
-         Name="Harvester CSGBPReversal";
+         Name+=" DB";
       Namespace="HARVCSGBPReversal";
       Init();
    }
-
-   void IdleCalculate() {}
 
    void Calculate()
    {
@@ -3669,10 +3666,9 @@ public:
 
    StrategyCSGBP45MinStrength()
    {
+      Name="Harvester CSGBP45MinStrength";
       if(UseCurrencyStrengthDatabase)
-         Name="Harvester CSGBP45MinStrength DB";
-      else
-         Name="Harvester CSGBP45MinStrength";
+         Name+=" DB";
       Namespace="HARVCSGBP45MinStrength";
       Init();
    }
@@ -3702,8 +3698,6 @@ public:
 
       lastminute=times.t1;
    }
-
-   void Calculate() {}
 };
 
 
