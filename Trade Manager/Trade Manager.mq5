@@ -3634,8 +3634,9 @@ public:
          r[1].O3>r[2].O3 &&
          r[0].O3<r[1].O3 &&
          r[1].O3>=100 &&
-         r[0].MA3>=75 /*&&
-         isnewday*/
+         r[0].MA3>=75 &&
+         //isnewday &&
+         true
       )
       {
          SellGBP(openlots);
@@ -3646,8 +3647,9 @@ public:
          r[1].O3<r[2].O3 &&
          r[0].O3>r[1].O3 &&
          r[1].O3<=-100 &&
-         r[0].MA3<=-75 /*&&
-         isnewday*/
+         r[0].MA3<=-75 &&
+         //isnewday &&
+         true
       )
       {
          BuyGBP(openlots);
@@ -3691,10 +3693,28 @@ public:
 
       double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
 
-      if(r[0].C3>r[0].C1&&r[0].C3>r[0].C2&&r[0].C3>r[0].C4&&r[0].C3>r[0].C5&&r[0].C3>r[0].C6&&r[0].C3>r[0].C7&&r[0].C3>r[0].C8)
-         BuyGBP(openlots);
-      if(r[0].C3<r[0].C1&&r[0].C3<r[0].C2&&r[0].C3<r[0].C4&&r[0].C3<r[0].C5&&r[0].C3<r[0].C6&&r[0].C3<r[0].C7&&r[0].C3<r[0].C8)
+      if(
+         r[0].C3>r[0].C1 &&
+         r[0].C3>r[0].C2 &&
+         r[0].C3>r[0].C4 &&
+         r[0].C3>r[0].C5 &&
+         r[0].C3>r[0].C6 &&
+         r[0].C3>r[0].C7 &&
+         r[0].C3>r[0].C8 &&
+         true
+      )
          SellGBP(openlots);
+      if(
+         r[0].C3<r[0].C1 &&
+         r[0].C3<r[0].C2 &&
+         r[0].C3<r[0].C4 &&
+         r[0].C3<r[0].C5 &&
+         r[0].C3<r[0].C6 &&
+         r[0].C3<r[0].C7 &&
+         r[0].C3<r[0].C8 &&
+         true
+      )
+         BuyGBP(openlots);
 
       lastminute=times.t1;
    }
