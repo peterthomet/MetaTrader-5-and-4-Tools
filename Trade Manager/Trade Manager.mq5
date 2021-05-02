@@ -92,6 +92,7 @@ input int StartMinute = 0;
 input int MinPoints1 = 0;
 input group "Harvesters";
 input bool Harvester_CSGBPBaskets = false;
+input bool UseCurrencyStrengthDatabase = false;
 input group "Trading Hours";
 input bool Hour0 = true;
 input bool Hour1 = true;
@@ -3299,31 +3300,24 @@ public:
 
 class StrategyCSGBPBaskets : public Strategy
 {
-
-#define CS_DB_Backtest
-
 public:
 
-#ifdef CS_DB_Backtest
+   string GetName()
+   {
+      if(UseCurrencyStrengthDatabase)
+         return "Harvester CSGBPBaskets Database";
+      else
+         return "Harvester CSGBPBaskets";
+   }
 
-   string GetName() { return "Harvester CSGBPBaskets DB Backtest"; }
-
-#else
-
-   string GetName() { return "Harvester CSGBPBaskets"; }
-
-#endif
-
-#ifdef CS_DB_Backtest
+   string GetShortName()
+   {
+      return "HARVCSGBPBaskets";
+   }
 
    int db;
    int request;
-
-#else
-
-   TypeCurrencyStrength CS[2];
-
-#endif
+   TypeCurrencyStrength CS[];
 
    datetime lastminute;
    int lastday;
@@ -3405,31 +3399,40 @@ public:
       lastminute=0;
       lastday=0;
       daytrend=-1;
+
+      string s=GetShortName();
+      string varname=appnamespace+s+"lastminute";
+      if(GlobalVariableCheck(varname))
+         lastminute=(int)GlobalVariableGet(varname);
+      varname=appnamespace+s+"lastday";
+      if(GlobalVariableCheck(varname))
+         lastday=(int)GlobalVariableGet(varname);
+      varname=appnamespace+s+"daytrend";
+      if(GlobalVariableCheck(varname))
+         daytrend=(int)GlobalVariableGet(varname);
       
-#ifdef CS_DB_Backtest
-
-      db=DatabaseOpen("CS.sqlite", DATABASE_OPEN_READONLY | DATABASE_OPEN_COMMON);
-      request=DatabasePrepare(db, "SELECT * FROM MinutesCS WHERE TIME=?");   
-
-#else
-
-      M15DayInit();
-
-#endif
+      if(UseCurrencyStrengthDatabase)
+      {
+         db=DatabaseOpen("CS.sqlite", DATABASE_OPEN_READONLY | DATABASE_OPEN_COMMON);
+         request=DatabasePrepare(db, "SELECT * FROM MinutesCS WHERE TIME=?");
+      }
+      else
+      {
+         ArrayResize(CS,2);
+         M15DayInit();
+      }
    }
 
    ~StrategyCSGBPBaskets()
    {
-#ifdef CS_DB_Backtest
+      string s=GetShortName();
+      GlobalVariableSet(appnamespace+s+"lastminute",lastminute);
+      GlobalVariableSet(appnamespace+s+"lastday",lastday);
+      GlobalVariableSet(appnamespace+s+"daytrend",daytrend);
 
-      DatabaseClose(db);
-
-#endif
+      if(UseCurrencyStrengthDatabase)
+         DatabaseClose(db);
    }
-
-#ifdef CS_DB_Backtest
-
-#else
 
    void M15DayInit()
    {
@@ -3477,8 +3480,6 @@ public:
       CS[1].recalculate=true;
    }
 
-#endif
-
    bool GetM1Time()
    {
       datetime time[];
@@ -3496,27 +3497,18 @@ public:
    {
       if(MathMod(times.t2.min,15)!=0)
       {
-#ifdef CS_DB_Backtest
-
-#else
-
-         CS_CalculateIndex(CS[0]);
-         CS_CalculateIndex(CS[1]);
-
-#endif
+         if(!UseCurrencyStrengthDatabase)
+         {
+            CS_CalculateIndex(CS[0]);
+            CS_CalculateIndex(CS[1]);
+         }
          return false;
       }
-#ifdef CS_DB_Backtest
-
-#else
-
       else
       {
-         M15DayInit();
+         if(!UseCurrencyStrengthDatabase)
+            M15DayInit();
       }
-
-#endif
-
       return true;
    }
 
@@ -3531,37 +3523,36 @@ public:
 
    void GetIndexData()
    {
-#ifdef CS_DB_Backtest
-
-      for(int i=0; i<100; i++)
+      if(UseCurrencyStrengthDatabase)
       {
-         int t=(int)times.t1-60-(PeriodSeconds(PERIOD_M15)*i);
-         DatabaseReset(request);
-         DatabaseBind(request,0,t);
-         if(!DatabaseReadBind(request,r[i]))
-            break;
-      }
-
-#else
-
-      for(int i=0; i<100; i++)
-      {
-         for(int z=0; z<8; z++)
+         for(int i=0; i<100; i++)
          {
-            int Ox=(int)MathRound(CS[0].Currencies.Currency[z].index[CS[0].bars-1-i].laging.value1*100000);
-            int MAx=(int)MathRound(CS[1].Currencies.Currency[z].index[CS[1].bars-1-i].laging.value1*100000);
-            if(z==0) { r[i].O1=Ox; r[i].MA1=MAx; }
-            if(z==1) { r[i].O2=Ox; r[i].MA2=MAx; }
-            if(z==2) { r[i].O3=Ox; r[i].MA3=MAx; }
-            if(z==3) { r[i].O4=Ox; r[i].MA4=MAx; }
-            if(z==4) { r[i].O5=Ox; r[i].MA5=MAx; }
-            if(z==5) { r[i].O6=Ox; r[i].MA6=MAx; }
-            if(z==6) { r[i].O7=Ox; r[i].MA7=MAx; }
-            if(z==7) { r[i].O8=Ox; r[i].MA8=MAx; }
+            int t=(int)times.t1-60-(PeriodSeconds(PERIOD_M15)*i);
+            DatabaseReset(request);
+            DatabaseBind(request,0,t);
+            if(!DatabaseReadBind(request,r[i]))
+               break;
          }
       }
-
-#endif
+      else
+      {
+         for(int i=0; i<100; i++)
+         {
+            for(int z=0; z<8; z++)
+            {
+               int Ox=(int)MathRound(CS[0].Currencies.Currency[z].index[CS[0].bars-1-i].laging.value1*100000);
+               int MAx=(int)MathRound(CS[1].Currencies.Currency[z].index[CS[1].bars-1-i].laging.value1*100000);
+               if(z==0) { r[i].O1=Ox; r[i].MA1=MAx; }
+               if(z==1) { r[i].O2=Ox; r[i].MA2=MAx; }
+               if(z==2) { r[i].O3=Ox; r[i].MA3=MAx; }
+               if(z==3) { r[i].O4=Ox; r[i].MA4=MAx; }
+               if(z==4) { r[i].O5=Ox; r[i].MA5=MAx; }
+               if(z==5) { r[i].O6=Ox; r[i].MA6=MAx; }
+               if(z==6) { r[i].O7=Ox; r[i].MA7=MAx; }
+               if(z==7) { r[i].O8=Ox; r[i].MA8=MAx; }
+            }
+         }
+      }
    }
 
 #define CS_GBP_Reverse_Basket
@@ -3639,29 +3630,28 @@ public:
 
    void IdleCalculate()
    {
-      MqlRates rates[];
-      ArraySetAsSeries(rates,true); 
-      int copied=CopyRates(Symbol(),0,0,1,rates); 
-      if(copied==1)
-      {
-         MqlDateTime dtcurrent;
-         TimeToStruct(rates[0].time,dtcurrent);
-         if(!_TradingHours[dtcurrent.hour])
-            return;
+      if(!UseCurrencyStrengthDatabase)
+         return;
 
-         DatabaseReset(request);
-         DatabaseBind(request,0,rates[0].time-60);
-         if(!DatabaseReadBind(request,row))
-            return;
+      if(!GetM1Time())
+         return;
 
-         double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
+      if(!IsTradingTime())
+         return;
 
-         if(row.C3>row.C1&&row.C3>row.C2&&row.C3>row.C4&&row.C3>row.C5&&row.C3>row.C6&&row.C3>row.C7&&row.C3>row.C8 &&true)
-            BuyGBP(openlots);
-         if(row.C3<row.C1&&row.C3<row.C2&&row.C3<row.C4&&row.C3<row.C5&&row.C3<row.C6&&row.C3<row.C7&&row.C3<row.C8 &&true)
-            SellGBP(openlots);
+      if(times.t1==lastminute)
+         return;
 
-      }
+      GetIndexData();
+
+      double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
+
+      if(r[0].C3>r[0].C1&&r[0].C3>r[0].C2&&r[0].C3>r[0].C4&&r[0].C3>r[0].C5&&r[0].C3>r[0].C6&&r[0].C3>r[0].C7&&r[0].C3>r[0].C8)
+         BuyGBP(openlots);
+      if(r[0].C3<r[0].C1&&r[0].C3<r[0].C2&&r[0].C3<r[0].C4&&r[0].C3<r[0].C5&&r[0].C3<r[0].C6&&r[0].C3<r[0].C7&&r[0].C3<r[0].C8)
+         SellGBP(openlots);
+
+      lastminute=times.t1;
    }
 
 #endif
