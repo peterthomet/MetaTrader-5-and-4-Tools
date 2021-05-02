@@ -91,7 +91,8 @@ input int StartHour = 0;
 input int StartMinute = 0;
 input int MinPoints1 = 0;
 input group "Harvesters";
-input bool Harvester_CSGBPBaskets = false;
+input bool Harvester_CSGBPReversal = false;
+input bool Harvester_CSGBP45MinStrength = false;
 input bool UseCurrencyStrengthDatabase = false;
 input group "Trading Hours";
 input bool Hour0 = true;
@@ -604,11 +605,19 @@ void InitTesting()
 void InitStrategies()
 {
    ArrayResize(strats,0);
+   int i=0;
 
-   if(Harvester_CSGBPBaskets)
+   if(Harvester_CSGBPReversal)
    {
-      ArrayResize(strats,1);
-      strats[0]=new StrategyCSGBPBaskets;
+      ArrayResize(strats,i+1);
+      strats[i]=new StrategyCSGBPReversal;
+      i++;
+   }
+   if(Harvester_CSGBP45MinStrength)
+   {
+      ArrayResize(strats,i+1);
+      strats[i]=new StrategyCSGBP45MinStrength;
+      i++;
    }
 }
 
@@ -3298,22 +3307,13 @@ public:
 };
 
 
-class StrategyCSGBPBaskets : public Strategy
+class StrategyCSBase : public Strategy
 {
 public:
 
-   string GetName()
-   {
-      if(UseCurrencyStrengthDatabase)
-         return "Harvester CSGBPBaskets Database";
-      else
-         return "Harvester CSGBPBaskets";
-   }
+   string GetName() {return "";}
 
-   string GetShortName()
-   {
-      return "HARVCSGBPBaskets";
-   }
+   string GetShortName() {return "";}
 
    int db;
    int request;
@@ -3394,7 +3394,7 @@ public:
    };
    TypeRow r[100];
   
-   StrategyCSGBPBaskets()
+   StrategyCSBase()
    {
       lastminute=0;
       lastday=0;
@@ -3423,7 +3423,7 @@ public:
       }
    }
 
-   ~StrategyCSGBPBaskets()
+   ~StrategyCSBase()
    {
       string s=GetShortName();
       GlobalVariableSet(appnamespace+s+"lastminute",lastminute);
@@ -3555,10 +3555,51 @@ public:
       }
    }
 
-#define CS_GBP_Reverse_Basket
-//#define Simple_45Min_CS_GBP_Basket
+   void IdleCalculate() {}
 
-#ifdef CS_GBP_Reverse_Basket
+   void Calculate() {}
+   
+   void BuyGBP(double openlots)
+   {
+      OpenBuy("GBPUSD",openlots);
+      OpenSell("EURGBP",openlots);
+      OpenBuy("GBPJPY",openlots);
+      OpenBuy("GBPCHF",openlots);
+      OpenBuy("GBPCAD",openlots);
+      OpenBuy("GBPAUD",openlots);
+      OpenBuy("GBPNZD",openlots);
+   }
+
+   void SellGBP(double openlots)
+   {
+      OpenSell("GBPUSD",openlots);
+      OpenBuy("EURGBP",openlots);
+      OpenSell("GBPJPY",openlots);
+      OpenSell("GBPCHF",openlots);
+      OpenSell("GBPCAD",openlots);
+      OpenSell("GBPAUD",openlots);
+      OpenSell("GBPNZD",openlots);
+   }
+   
+};
+
+
+class StrategyCSGBPReversal : public StrategyCSBase
+{
+public:
+
+   string GetName()
+   {
+      if(UseCurrencyStrengthDatabase)
+         return "Harvester CSGBPReversal DB";
+      else
+         return "Harvester CSGBPReversal";
+   }
+
+   string GetShortName()
+   {
+      return "HARVCSGBPBaskets";
+   }
 
    void IdleCalculate() {}
 
@@ -3621,12 +3662,25 @@ public:
 
       lastminute=times.t1;
    }
+};
 
-#endif
 
-#ifdef Simple_45Min_CS_GBP_Basket
+class StrategyCSGBP45MinStrength : public StrategyCSBase
+{
+public:
 
-   void Calculate() {}
+   string GetName()
+   {
+      if(UseCurrencyStrengthDatabase)
+         return "Harvester CSGBP45MinStrength DB";
+      else
+         return "Harvester CSGBP45MinStrength";
+   }
+
+   string GetShortName()
+   {
+      return "HARVCSGBP45MinStrength";
+   }
 
    void IdleCalculate()
    {
@@ -3654,30 +3708,7 @@ public:
       lastminute=times.t1;
    }
 
-#endif
-   
-   void BuyGBP(double openlots)
-   {
-      OpenBuy("GBPUSD",openlots);
-      OpenSell("EURGBP",openlots);
-      OpenBuy("GBPJPY",openlots);
-      OpenBuy("GBPCHF",openlots);
-      OpenBuy("GBPCAD",openlots);
-      OpenBuy("GBPAUD",openlots);
-      OpenBuy("GBPNZD",openlots);
-   }
-
-   void SellGBP(double openlots)
-   {
-      OpenSell("GBPUSD",openlots);
-      OpenBuy("EURGBP",openlots);
-      OpenSell("GBPJPY",openlots);
-      OpenSell("GBPCHF",openlots);
-      OpenSell("GBPCAD",openlots);
-      OpenSell("GBPAUD",openlots);
-      OpenSell("GBPNZD",openlots);
-   }
-   
+   void Calculate() {}
 };
 
 
