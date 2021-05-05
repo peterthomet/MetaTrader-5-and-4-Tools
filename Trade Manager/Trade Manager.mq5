@@ -3331,6 +3331,56 @@ public:
    };
    TypeTimes times;
 
+   struct TypePairs
+   {
+      string Pair[28];
+      TypePairs()
+      {
+         Pair[0]="EURUSD";
+         Pair[1]="GBPUSD";
+         Pair[2]="USDCHF";
+         Pair[3]="USDJPY";
+         Pair[4]="USDCAD";
+         Pair[5]="AUDUSD";
+         Pair[6]="NZDUSD";
+         Pair[7]="EURNZD";
+         Pair[8]="EURCAD";
+         Pair[9]="EURAUD";
+         Pair[10]="EURJPY";
+         Pair[11]="EURCHF";
+         Pair[12]="EURGBP";
+         Pair[13]="GBPNZD";
+         Pair[14]="GBPAUD";
+         Pair[15]="GBPCAD";
+         Pair[16]="GBPJPY";
+         Pair[17]="GBPCHF";
+         Pair[18]="CADJPY";
+         Pair[19]="CADCHF";
+         Pair[20]="AUDCAD";
+         Pair[21]="NZDCAD";
+         Pair[22]="AUDCHF";
+         Pair[23]="AUDJPY";
+         Pair[24]="AUDNZD";
+         Pair[25]="NZDJPY";
+         Pair[26]="NZDCHF";
+         Pair[27]="CHFJPY";
+      }
+      string NormalizePairing(string pair)
+      {
+         string p=pair;
+         for(int i=0; i<28; i++)
+         {
+            if(StringSubstr(p,3,3)+StringSubstr(p,0,3)==Pair[i])
+            {
+               p=Pair[i];
+               break;
+            }
+         }
+         return p;
+      }
+   };
+   TypePairs Pairs;
+
    struct TypeRow
    {
       int TIME;
