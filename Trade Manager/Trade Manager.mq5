@@ -93,6 +93,7 @@ input int MinPoints1 = 0;
 input group "Harvesters";
 input bool Harvester_CSGBPReversal = false;
 input bool Harvester_CSGBP45MinStrength = false;
+input bool Harvester_CSFollow = false;
 input bool UseCurrencyStrengthDatabase = false;
 input group "Trading Hours";
 input bool Hour0 = true;
@@ -617,6 +618,12 @@ void InitStrategies()
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyCSGBP45MinStrength;
+      i++;
+   }
+   if(Harvester_CSFollow)
+   {
+      ArrayResize(strats,i+1);
+      strats[i]=new StrategyCSFollow;
       i++;
    }
 }
@@ -3635,6 +3642,83 @@ public:
 };
 
 
+class StrategyCSFollow : public StrategyCSBase
+{
+public:
+
+   StrategyCSFollow()
+   {
+      Name="Harvester CSFollow";
+      if(UseCurrencyStrengthDatabase)
+         Name+=" DB";
+      Namespace="HARVCSFollow";
+      Init();
+   }
+
+   void Calculate()
+   {
+      if(!GetM1Time())
+         return;
+
+      if(!IsM15NewBar())
+         return;
+
+      if(!IsTradingTime())
+         return;
+
+      if(times.t1==lastminute)
+         return;
+
+      GetIndexData();
+      
+      bool isnewday=lastday!=times.t2.day_of_year;
+      if(isnewday)
+         daytrend=-1;
+
+      double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
+      //openlots=_OpenLots;
+
+      //if((daytrend==OP_BUY && row.D3<0) || (daytrend==OP_SELL && row.D3>0))
+      //   CloseAllInternal();
+
+      //if(dtcurrent.hour==22)
+      //{
+      //   CloseAllInternal();
+      //   return;
+      //}
+
+      if(
+         r[0].D3>=MinPoints1 &&
+         r[1].O3>r[2].O3 &&
+         r[0].O3<r[1].O3 &&
+         r[1].O3>=105 &&
+         isnewday &&
+         true
+      )
+      {
+         SellGBP(openlots);
+         lastday=times.t2.day_of_year;
+         daytrend=OP_SELL;
+      }
+      if(
+         r[0].D3<=(MinPoints1*-1) &&
+         r[1].O3<r[2].O3 &&
+         r[0].O3>r[1].O3 &&
+         r[1].O3<=-105 &&
+         isnewday &&
+         true
+      )
+      {
+         BuyGBP(openlots);
+         lastday=times.t2.day_of_year;
+         daytrend=OP_BUY;
+      }
+
+      lastminute=times.t1;
+   }
+};
+
+
 class StrategyCSGBPReversal : public StrategyCSBase
 {
 public:
@@ -3680,12 +3764,20 @@ public:
       //   return;
       //}
 
+      //if(
+      //   r[1].O3>r[2].O3 &&
+      //   r[0].O3<r[1].O3 &&
+      //   r[1].O3>=100 &&
+      //   r[0].MA3>=75 &&
+      //   //isnewday &&
+      //   true
+      //)
       if(
+         r[0].D3>=MinPoints1 &&
          r[1].O3>r[2].O3 &&
          r[0].O3<r[1].O3 &&
-         r[1].O3>=100 &&
-         r[0].MA3>=75 &&
-         //isnewday &&
+         r[1].O3>=105 &&
+         isnewday &&
          true
       )
       {
@@ -3693,12 +3785,20 @@ public:
          lastday=times.t2.day_of_year;
          daytrend=OP_SELL;
       }
+      //if(
+      //   r[1].O3<r[2].O3 &&
+      //   r[0].O3>r[1].O3 &&
+      //   r[1].O3<=-100 &&
+      //   r[0].MA3<=-75 &&
+      //   //isnewday &&
+      //   true
+      //)
       if(
+         r[0].D3<=(MinPoints1*-1) &&
          r[1].O3<r[2].O3 &&
          r[0].O3>r[1].O3 &&
-         r[1].O3<=-100 &&
-         r[0].MA3<=-75 &&
-         //isnewday &&
+         r[1].O3<=-105 &&
+         isnewday &&
          true
       )
       {
