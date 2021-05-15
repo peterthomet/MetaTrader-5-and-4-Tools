@@ -3688,28 +3688,24 @@ public:
       //}
 
       if(
-         r[0].D3>=MinPoints1 &&
-         r[1].O3>r[2].O3 &&
-         r[0].O3<r[1].O3 &&
-         r[1].O3>=105 &&
+         r[0].D7<=(MinPoints1*-1) &&
+         r[0].D1>=MinPoints1 &&
          isnewday &&
          true
       )
       {
-         SellGBP(openlots);
+         OpenSell("AUDUSD",openlots);
          lastday=times.t2.day_of_year;
          daytrend=OP_SELL;
       }
       if(
-         r[0].D3<=(MinPoints1*-1) &&
-         r[1].O3<r[2].O3 &&
-         r[0].O3>r[1].O3 &&
-         r[1].O3<=-105 &&
+         r[0].D7>=MinPoints1 &&
+         r[0].D1<=(MinPoints1*-1) &&
          isnewday &&
          true
       )
       {
-         BuyGBP(openlots);
+         OpenBuy("AUDUSD",openlots);
          lastday=times.t2.day_of_year;
          daytrend=OP_BUY;
       }
