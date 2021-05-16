@@ -3476,7 +3476,7 @@ public:
       }
       else
       {
-         ArrayResize(CS,2);
+         ArrayResize(CS,3);
          M15DayInit();
       }
    }
@@ -3536,6 +3536,19 @@ public:
          true
          );
       CS[1].recalculate=true;
+
+      CS[2].Init(
+         100,
+         zeropoint,
+         StringSubstr(Symbol(),6),
+         PERIOD_M15,
+         false,
+         pr_close,
+         0,
+         0,
+         true
+         );
+      CS[2].recalculate=true;
    }
 
    bool GetM1Time()
@@ -3559,6 +3572,7 @@ public:
          {
             CS_CalculateIndex(CS[0]);
             CS_CalculateIndex(CS[1]);
+            CS_CalculateIndex(CS[2]);
          }
          return false;
       }
@@ -3600,14 +3614,15 @@ public:
             {
                int Ox=(int)MathRound(CS[0].Currencies.Currency[z].index[CS[0].bars-1-i].laging.value1*100000);
                int MAx=(int)MathRound(CS[1].Currencies.Currency[z].index[CS[1].bars-1-i].laging.value1*100000);
-               if(z==0) { r[i].O1=Ox; r[i].MA1=MAx; }
-               if(z==1) { r[i].O2=Ox; r[i].MA2=MAx; }
-               if(z==2) { r[i].O3=Ox; r[i].MA3=MAx; }
-               if(z==3) { r[i].O4=Ox; r[i].MA4=MAx; }
-               if(z==4) { r[i].O5=Ox; r[i].MA5=MAx; }
-               if(z==5) { r[i].O6=Ox; r[i].MA6=MAx; }
-               if(z==6) { r[i].O7=Ox; r[i].MA7=MAx; }
-               if(z==7) { r[i].O8=Ox; r[i].MA8=MAx; }
+               int Dx=(int)MathRound(CS[2].Currencies.Currency[z].index[CS[2].bars-1-i].laging.value1*100000);
+               if(z==0) { r[i].O1=Ox; r[i].MA1=MAx; r[i].D1=Dx; }
+               if(z==1) { r[i].O2=Ox; r[i].MA2=MAx; r[i].D2=Dx; }
+               if(z==2) { r[i].O3=Ox; r[i].MA3=MAx; r[i].D3=Dx; }
+               if(z==3) { r[i].O4=Ox; r[i].MA4=MAx; r[i].D4=Dx; }
+               if(z==4) { r[i].O5=Ox; r[i].MA5=MAx; r[i].D5=Dx; }
+               if(z==5) { r[i].O6=Ox; r[i].MA6=MAx; r[i].D6=Dx; }
+               if(z==6) { r[i].O7=Ox; r[i].MA7=MAx; r[i].D7=Dx; }
+               if(z==7) { r[i].O8=Ox; r[i].MA8=MAx; r[i].D8=Dx; }
             }
          }
       }
@@ -3688,24 +3703,24 @@ public:
       //}
 
       if(
-         r[0].D7<=(MinPoints1*-1) &&
-         r[0].D1>=MinPoints1 &&
+         r[0].MA7<=(MinPoints1*-1) &&
+         r[0].MA4>=MinPoints1 &&
          isnewday &&
          true
       )
       {
-         OpenSell("AUDUSD",openlots);
+         OpenSell("AUDJPY",openlots);
          lastday=times.t2.day_of_year;
          daytrend=OP_SELL;
       }
       if(
-         r[0].D7>=MinPoints1 &&
-         r[0].D1<=(MinPoints1*-1) &&
+         r[0].MA7>=MinPoints1 &&
+         r[0].MA4<=(MinPoints1*-1) &&
          isnewday &&
          true
       )
       {
-         OpenBuy("AUDUSD",openlots);
+         OpenBuy("AUDJPY",openlots);
          lastday=times.t2.day_of_year;
          daytrend=OP_BUY;
       }
