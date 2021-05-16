@@ -3703,8 +3703,8 @@ public:
       //}
 
       if(
-         r[0].MA7<=(MinPoints1*-1) &&
-         r[0].MA4>=MinPoints1 &&
+         r[0].MA7<(MinPoints1*-1) &&
+         (r[1].MA7>=(MinPoints1*-1) || r[2].MA7>=(MinPoints1*-1)) &&
          isnewday &&
          true
       )
@@ -3713,17 +3713,18 @@ public:
          lastday=times.t2.day_of_year;
          daytrend=OP_SELL;
       }
-      if(
-         r[0].MA7>=MinPoints1 &&
-         r[0].MA4<=(MinPoints1*-1) &&
-         isnewday &&
-         true
-      )
-      {
-         OpenBuy("AUDJPY",openlots);
-         lastday=times.t2.day_of_year;
-         daytrend=OP_BUY;
-      }
+      //if(
+      //   r[0].MA7>MinPoints1 &&
+      //   r[0].MA4<0 &&
+      //   r[0].MA4<r[1].MA4 &&
+      //   isnewday &&
+      //   true
+      //)
+      //{
+      //   OpenBuy("AUDJPY",openlots);
+      //   lastday=times.t2.day_of_year;
+      //   daytrend=OP_BUY;
+      //}
 
       lastminute=times.t1;
    }
