@@ -3677,7 +3677,60 @@ public:
    void IdleCalculate() {}
 
    void Calculate() {}
+
+   string IndexToCurrency(int index)
+   {
+      if(index==0) return "USD";
+      if(index==1) return "EUR";
+      if(index==2) return "GBP";
+      if(index==3) return "JPY";
+      if(index==4) return "CHF";
+      if(index==5) return "CAD";
+      if(index==6) return "AUD";
+      if(index==7) return "NZD";
+      return "";
+   }
+
+   void Trade(int buy, int sell, double openlots)
+   {
+      string pair=IndexToCurrency(buy)+IndexToCurrency(sell);
+      string pairN=Pairs.NormalizePairing(pair);
+      if(pair==pairN)
+         OpenBuy(pair,openlots);
+      else
+         OpenSell(pairN,openlots);
+   }
    
+   bool BOUp(int currency)
+   {
+      int level=MinPoints1;
+      return
+      r[0][5][currency]>level &&
+      r[1][5][currency]<=level &&
+      true;
+   }
+
+   bool BODown(int currency)
+   {
+      int level=(MinPoints1*-1);
+      return
+      r[0][5][currency]<level &&
+      r[1][5][currency]>=level &&
+      true;
+   }
+   
+   int StrengthAtPos(int pos) // 7=strongest, 0=weakest
+   {
+      int a[8][2];
+      for(int z=0; z<8; z++)
+      {
+         a[z][1]=z;
+         a[z][0]=r[0][5][z];
+      }
+      ArraySort(a);
+      return a[pos][1];
+   }
+
    void BuyGBP(double openlots)
    {
       OpenBuy("GBPUSD",openlots);
@@ -3748,29 +3801,23 @@ public:
       //   return;
       //}
 
-      if(
-         r[0][5][6]<(MinPoints1*-1) &&
-         r[1][5][6]>=(MinPoints1*-1) &&
-         isnewday &&
-         true
-      )
+      bool a[8][2];
+      for(int z=0; z<8; z++)
       {
-         OpenSell("AUDJPY",openlots);
-         lastday=times.t2.day_of_year;
-         daytrend=OP_SELL;
+         a[z][0]=BOUp(z);
+         a[z][1]=BODown(z);
       }
-      //if(
-      //   r[0].MA7>MinPoints1 &&
-      //   r[0].MA4<0 &&
-      //   r[0].MA4<r[1].MA4 &&
-      //   isnewday &&
-      //   true
-      //)
-      //{
-      //   OpenBuy("AUDJPY",openlots);
-      //   lastday=times.t2.day_of_year;
-      //   daytrend=OP_BUY;
-      //}
+      for(int z=0; z<8; z++)
+      {
+         if(a[z][0])
+         {
+            Trade(z,StrengthAtPos(0),openlots);
+         }
+         if(a[z][1])
+         {
+            Trade(StrengthAtPos(7),z,openlots);
+         }
+      }
 
       lastminute=times.t1;
    }
