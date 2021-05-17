@@ -3450,7 +3450,60 @@ public:
          TIME=0;
       }
    };
-   TypeRow r[100];
+   TypeRow u;
+   int r[100][6][8];
+
+   void UtoR(int i)
+   {
+      r[i][0][0]=u.C1;
+      r[i][0][1]=u.C2;
+      r[i][0][2]=u.C3;
+      r[i][0][3]=u.C4;
+      r[i][0][4]=u.C5;
+      r[i][0][5]=u.C6;
+      r[i][0][6]=u.C7;
+      r[i][0][7]=u.C8;
+      r[i][1][0]=u.D1;
+      r[i][1][1]=u.D2;
+      r[i][1][2]=u.D3;
+      r[i][1][3]=u.D4;
+      r[i][1][4]=u.D5;
+      r[i][1][5]=u.D6;
+      r[i][1][6]=u.D7;
+      r[i][1][7]=u.D8;
+      r[i][2][0]=u.DD1;
+      r[i][2][1]=u.DD2;
+      r[i][2][2]=u.DD3;
+      r[i][2][3]=u.DD4;
+      r[i][2][4]=u.DD5;
+      r[i][2][5]=u.DD6;
+      r[i][2][6]=u.DD7;
+      r[i][2][7]=u.DD8;
+      r[i][3][0]=u.DDD1;
+      r[i][3][1]=u.DDD2;
+      r[i][3][2]=u.DDD3;
+      r[i][3][3]=u.DDD4;
+      r[i][3][4]=u.DDD5;
+      r[i][3][5]=u.DDD6;
+      r[i][3][6]=u.DDD7;
+      r[i][3][7]=u.DDD8;
+      r[i][4][0]=u.O1;
+      r[i][4][1]=u.O2;
+      r[i][4][2]=u.O3;
+      r[i][4][3]=u.O4;
+      r[i][4][4]=u.O5;
+      r[i][4][5]=u.O6;
+      r[i][4][6]=u.O7;
+      r[i][4][7]=u.O8;
+      r[i][5][0]=u.MA1;
+      r[i][5][1]=u.MA2;
+      r[i][5][2]=u.MA3;
+      r[i][5][3]=u.MA4;
+      r[i][5][4]=u.MA5;
+      r[i][5][5]=u.MA6;
+      r[i][5][6]=u.MA7;
+      r[i][5][7]=u.MA8;
+   }
   
    void Init()
    {
@@ -3602,8 +3655,9 @@ public:
             int t=(int)times.t1-60-(PeriodSeconds(PERIOD_M15)*i);
             DatabaseReset(request);
             DatabaseBind(request,0,t);
-            if(!DatabaseReadBind(request,r[i]))
+            if(!DatabaseReadBind(request,u))
                break;
+            UtoR(i);
          }
       }
       else
@@ -3612,17 +3666,9 @@ public:
          {
             for(int z=0; z<8; z++)
             {
-               int Ox=(int)MathRound(CS[0].Currencies.Currency[z].index[CS[0].bars-1-i].laging.value1*100000);
-               int MAx=(int)MathRound(CS[1].Currencies.Currency[z].index[CS[1].bars-1-i].laging.value1*100000);
-               int Dx=(int)MathRound(CS[2].Currencies.Currency[z].index[CS[2].bars-1-i].laging.value1*100000);
-               if(z==0) { r[i].O1=Ox; r[i].MA1=MAx; r[i].D1=Dx; }
-               if(z==1) { r[i].O2=Ox; r[i].MA2=MAx; r[i].D2=Dx; }
-               if(z==2) { r[i].O3=Ox; r[i].MA3=MAx; r[i].D3=Dx; }
-               if(z==3) { r[i].O4=Ox; r[i].MA4=MAx; r[i].D4=Dx; }
-               if(z==4) { r[i].O5=Ox; r[i].MA5=MAx; r[i].D5=Dx; }
-               if(z==5) { r[i].O6=Ox; r[i].MA6=MAx; r[i].D6=Dx; }
-               if(z==6) { r[i].O7=Ox; r[i].MA7=MAx; r[i].D7=Dx; }
-               if(z==7) { r[i].O8=Ox; r[i].MA8=MAx; r[i].D8=Dx; }
+               r[i][4][z]=(int)MathRound(CS[0].Currencies.Currency[z].index[CS[0].bars-1-i].laging.value1*100000);
+               r[i][5][z]=(int)MathRound(CS[1].Currencies.Currency[z].index[CS[1].bars-1-i].laging.value1*100000);
+               r[i][1][z]=(int)MathRound(CS[2].Currencies.Currency[z].index[CS[2].bars-1-i].laging.value1*100000);
             }
          }
       }
@@ -3703,8 +3749,8 @@ public:
       //}
 
       if(
-         r[0].MA7<(MinPoints1*-1) &&
-         (r[1].MA7>=(MinPoints1*-1) || r[2].MA7>=(MinPoints1*-1)) &&
+         r[0][5][6]<(MinPoints1*-1) &&
+         r[1][5][6]>=(MinPoints1*-1) &&
          isnewday &&
          true
       )
@@ -3776,19 +3822,11 @@ public:
       //   return;
       //}
 
-      //if(
-      //   r[1].O3>r[2].O3 &&
-      //   r[0].O3<r[1].O3 &&
-      //   r[1].O3>=100 &&
-      //   r[0].MA3>=75 &&
-      //   //isnewday &&
-      //   true
-      //)
       if(
-         r[0].D3>=MinPoints1 &&
-         r[1].O3>r[2].O3 &&
-         r[0].O3<r[1].O3 &&
-         r[1].O3>=105 &&
+         r[0][1][2]>=MinPoints1 &&
+         r[1][4][2]>r[2][4][2] &&
+         r[0][4][2]<r[1][4][2] &&
+         r[1][4][2]>=105 &&
          isnewday &&
          true
       )
@@ -3797,19 +3835,11 @@ public:
          lastday=times.t2.day_of_year;
          daytrend=OP_SELL;
       }
-      //if(
-      //   r[1].O3<r[2].O3 &&
-      //   r[0].O3>r[1].O3 &&
-      //   r[1].O3<=-100 &&
-      //   r[0].MA3<=-75 &&
-      //   //isnewday &&
-      //   true
-      //)
       if(
-         r[0].D3<=(MinPoints1*-1) &&
-         r[1].O3<r[2].O3 &&
-         r[0].O3>r[1].O3 &&
-         r[1].O3<=-105 &&
+         r[0][1][2]<=(MinPoints1*-1) &&
+         r[1][4][2]<r[2][4][2] &&
+         r[0][4][2]>r[1][4][2] &&
+         r[1][4][2]<=-105 &&
          isnewday &&
          true
       )
@@ -3856,24 +3886,24 @@ public:
       double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
 
       if(
-         r[0].C3>r[0].C1 &&
-         r[0].C3>r[0].C2 &&
-         r[0].C3>r[0].C4 &&
-         r[0].C3>r[0].C5 &&
-         r[0].C3>r[0].C6 &&
-         r[0].C3>r[0].C7 &&
-         r[0].C3>r[0].C8 &&
+         r[0][0][2]>r[0][0][0] &&
+         r[0][0][2]>r[0][0][1] &&
+         r[0][0][2]>r[0][0][3] &&
+         r[0][0][2]>r[0][0][4] &&
+         r[0][0][2]>r[0][0][5] &&
+         r[0][0][2]>r[0][0][6] &&
+         r[0][0][2]>r[0][0][7] &&
          true
       )
          SellGBP(openlots);
       if(
-         r[0].C3<r[0].C1 &&
-         r[0].C3<r[0].C2 &&
-         r[0].C3<r[0].C4 &&
-         r[0].C3<r[0].C5 &&
-         r[0].C3<r[0].C6 &&
-         r[0].C3<r[0].C7 &&
-         r[0].C3<r[0].C8 &&
+         r[0][0][2]<r[0][0][0] &&
+         r[0][0][2]<r[0][0][1] &&
+         r[0][0][2]<r[0][0][3] &&
+         r[0][0][2]<r[0][0][4] &&
+         r[0][0][2]<r[0][0][5] &&
+         r[0][0][2]<r[0][0][6] &&
+         r[0][0][2]<r[0][0][7] &&
          true
       )
          BuyGBP(openlots);
