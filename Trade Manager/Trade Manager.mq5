@@ -3338,6 +3338,12 @@ public:
    };
    TypeTimes times;
 
+   struct TypeCrossInfo
+   {
+      int UpCurrency;
+      int DownCurrency;
+   };
+
    struct TypePairs
    {
       string Pair[28];
@@ -3701,21 +3707,27 @@ public:
          OpenSell(pairN,openlots);
    }
    
-   bool BOUp(int currency)
+   bool BreakOutUp(int currency, int level)
    {
-      int level=MinPoints1;
+      int daystartindex=MathAbs((times.t2.hour*4)+(times.t2.min/15));
+      int maxlevel=0;
+      for(int i=daystartindex; i>0; i--)
+         maxlevel=MathMax(maxlevel,r[i][5][currency]);
       return
       r[0][5][currency]>level &&
-      r[1][5][currency]<=level &&
+      maxlevel<=level &&
       true;
    }
 
-   bool BODown(int currency)
+   bool BreakOutDown(int currency, int level)
    {
-      int level=(MinPoints1*-1);
+      int daystartindex=MathAbs((times.t2.hour*4)+(times.t2.min/15));
+      int minlevel=0;
+      for(int i=daystartindex; i>0; i--)
+         minlevel=MathMin(minlevel,r[i][5][currency]);
       return
       r[0][5][currency]<level &&
-      r[1][5][currency]>=level &&
+      minlevel>=level &&
       true;
    }
    
@@ -3729,6 +3741,30 @@ public:
       }
       ArraySort(a);
       return a[pos][1];
+   }
+   
+   int MACrosses(TypeCrossInfo& CrossInfo[])
+   {
+      int count=0;
+      for(int z=0; z<8; z++)
+      {
+         for(int y=0; y<8; y++)
+         {
+            if(
+               r[0][5][z]>r[0][5][y] &&
+               r[1][5][z]<r[1][5][y] &&
+               r[0][5][z]>r[1][5][z] &&
+               r[0][5][y]<r[1][5][y] &&
+               true)
+            {
+               count++;
+               ArrayResize(CrossInfo,count);
+               CrossInfo[count-1].UpCurrency=z;
+               CrossInfo[count-1].DownCurrency=y;
+            }
+         }
+      }
+      return count;
    }
 
    void BuyGBP(double openlots)
@@ -3792,30 +3828,31 @@ public:
       double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
       //openlots=_OpenLots;
 
-      //if((daytrend==OP_BUY && row.D3<0) || (daytrend==OP_SELL && row.D3>0))
-      //   CloseAllInternal();
-
-      //if(dtcurrent.hour==22)
-      //{
-      //   CloseAllInternal();
+      //if(times.t2.hour!=7)
       //   return;
-      //}
+
+      TypeCrossInfo CrossInfo[];
+      int s=MACrosses(CrossInfo);
+      for(int z=0; z<s; z++)
+      {
+         Trade(CrossInfo[z].UpCurrency,CrossInfo[z].DownCurrency,openlots);
+      }
 
       bool a[8][2];
       for(int z=0; z<8; z++)
       {
-         a[z][0]=BOUp(z);
-         a[z][1]=BODown(z);
+         a[z][0]=BreakOutUp(z,MinPoints1);
+         a[z][1]=BreakOutDown(z,(MinPoints1*-1));
       }
       for(int z=0; z<8; z++)
       {
          if(a[z][0])
          {
-            Trade(z,StrengthAtPos(0),openlots);
+            //Trade(z,StrengthAtPos(0),openlots);
          }
          if(a[z][1])
          {
-            Trade(StrengthAtPos(7),z,openlots);
+            //Trade(StrengthAtPos(7),z,openlots);
          }
       }
 
