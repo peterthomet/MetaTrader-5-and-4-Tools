@@ -3767,28 +3767,22 @@ public:
       return count;
    }
 
-   void BuyGBP(double openlots)
+   void OpenBasket(int currency, double openlots, int direction)
    {
-      OpenBuy("GBPUSD",openlots);
-      OpenSell("EURGBP",openlots);
-      OpenBuy("GBPJPY",openlots);
-      OpenBuy("GBPCHF",openlots);
-      OpenBuy("GBPCAD",openlots);
-      OpenBuy("GBPAUD",openlots);
-      OpenBuy("GBPNZD",openlots);
+      for(int z=0; z<8; z++)
+      {
+         if(z!=currency)
+         {
+            string pair=IndexToCurrency(currency)+IndexToCurrency(z);
+            string pairN=Pairs.NormalizePairing(pair);
+            if((pair==pairN && direction==OP_BUY) || (pair!=pairN && direction==OP_SELL))
+               OpenBuy(pair,openlots);
+            else
+               OpenSell(pairN,openlots);
+         }
+      }
    }
 
-   void SellGBP(double openlots)
-   {
-      OpenSell("GBPUSD",openlots);
-      OpenBuy("EURGBP",openlots);
-      OpenSell("GBPJPY",openlots);
-      OpenSell("GBPCHF",openlots);
-      OpenSell("GBPCAD",openlots);
-      OpenSell("GBPAUD",openlots);
-      OpenSell("GBPNZD",openlots);
-   }
-   
 };
 
 
@@ -3915,7 +3909,7 @@ public:
          true
       )
       {
-         SellGBP(openlots);
+         OpenBasket(2,openlots,OP_SELL);
          lastday=times.t2.day_of_year;
          daytrend=OP_SELL;
       }
@@ -3928,7 +3922,7 @@ public:
          true
       )
       {
-         BuyGBP(openlots);
+         OpenBasket(2,openlots,OP_BUY);
          lastday=times.t2.day_of_year;
          daytrend=OP_BUY;
       }
@@ -3979,7 +3973,7 @@ public:
          r[0][0][2]>r[0][0][7] &&
          true
       )
-         SellGBP(openlots);
+         OpenBasket(2,openlots,OP_SELL);
       if(
          r[0][0][2]<r[0][0][0] &&
          r[0][0][2]<r[0][0][1] &&
@@ -3990,7 +3984,7 @@ public:
          r[0][0][2]<r[0][0][7] &&
          true
       )
-         BuyGBP(openlots);
+         OpenBasket(2,openlots,OP_BUY);
 
       lastminute=times.t1;
    }
