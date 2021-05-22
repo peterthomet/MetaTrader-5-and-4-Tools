@@ -3576,7 +3576,8 @@ public:
          StringSubstr(Symbol(),6),
          PERIOD_M15,
          false,
-         pr_close,
+         //pr_close,
+         pr_haaverage,
          19,
          5,
          true
@@ -3589,7 +3590,8 @@ public:
          StringSubstr(Symbol(),6),
          PERIOD_M15,
          false,
-         pr_close,
+         //pr_close,
+         pr_haaverage,
          6,
          0,
          true
