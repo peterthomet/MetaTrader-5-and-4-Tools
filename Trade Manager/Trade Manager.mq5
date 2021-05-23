@@ -3958,7 +3958,7 @@ public:
          if(
             OscillatorInfo[z].HighBar==1 &&
             OscillatorInfo[z].HighLevel>80 &&
-            //isnewday &&
+            isnewday &&
             true
          )
          {
