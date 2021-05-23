@@ -3338,6 +3338,19 @@ public:
    };
    TypeTimes times;
 
+   struct TypeOscillatorInfo
+   {
+      int Currency;
+      int Level;
+      int Change;
+      int HighLevel;
+      int HighBar;
+      int LastHighTurnBar;
+      int LowLevel;
+      int LowBar;
+      int LastLowTurnBar;
+   };
+
    struct TypeCrossInfo
    {
       int UpCurrency;
@@ -3658,9 +3671,12 @@ public:
    {
       if(UseCurrencyStrengthDatabase)
       {
+         datetime Arr[100];
+         CopyTime(Symbol(),PERIOD_M15,0,100,Arr);
          for(int i=0; i<100; i++)
          {
-            int t=(int)times.t1-60-(PeriodSeconds(PERIOD_M15)*i);
+            //int t=(int)times.t1-60-(PeriodSeconds(PERIOD_M15)*i);
+            int t=(int)Arr[99-i]-60;
             DatabaseReset(request);
             DatabaseBind(request,0,t);
             if(!DatabaseReadBind(request,u))
@@ -3743,6 +3759,38 @@ public:
       }
       ArraySort(a);
       return a[pos][1];
+   }
+   
+   int Oscillators(TypeOscillatorInfo& OscillatorInfo[])
+   {
+      int count=0;
+      for(int z=0; z<8; z++)
+      {
+         count++;
+         ArrayResize(OscillatorInfo,count);
+
+         OscillatorInfo[z].Currency=z;
+         OscillatorInfo[z].Change=r[0][4][z]-r[1][4][z];
+         OscillatorInfo[z].Level=r[0][4][z];
+         OscillatorInfo[z].HighLevel=-10000;
+         OscillatorInfo[z].HighBar=-1;
+         OscillatorInfo[z].LastHighTurnBar=-1;
+         OscillatorInfo[z].LowLevel=10000;
+         OscillatorInfo[z].LowBar=-1;
+         OscillatorInfo[z].LastLowTurnBar=-1;
+
+         for(int i=0; i<100; i++)
+         {
+            int c=r[i][4][z];
+            if(c>OscillatorInfo[z].HighLevel)
+               OscillatorInfo[z].HighBar=i;
+            if(c<OscillatorInfo[z].LowLevel)
+               OscillatorInfo[z].LowBar=i;
+            OscillatorInfo[z].HighLevel=MathMax(OscillatorInfo[z].HighLevel,c);
+            OscillatorInfo[z].LowLevel=MathMin(OscillatorInfo[z].LowLevel,c);
+         }
+      }
+      return count;
    }
    
    int MACrosses(TypeCrossInfo& CrossInfo[])
@@ -3902,13 +3950,32 @@ public:
       //   return;
       //}
 
+      TypeOscillatorInfo OscillatorInfo[];
+      int s=Oscillators(OscillatorInfo);
+
+      for(int z=0; z<8; z++)
+      {
+         if(
+            OscillatorInfo[z].HighBar==1 &&
+            OscillatorInfo[z].HighLevel>60 &&
+            isnewday &&
+            true
+         )
+         {
+            OpenBasket(z,openlots,OP_SELL);
+            lastday=times.t2.day_of_year;
+         }
+      }
+
       if(
-         r[0][1][2]>=MinPoints1 &&
+         //r[0][1][2]>=MinPoints1 &&
+         r[0][1][2]>=50 &&
+         //OscillatorInfo[2].HighBar==1 &&
          r[1][4][2]>r[2][4][2] &&
          r[0][4][2]<r[1][4][2] &&
          r[1][4][2]>=105 &&
          isnewday &&
-         true
+         false
       )
       {
          OpenBasket(2,openlots,OP_SELL);
@@ -3916,12 +3983,14 @@ public:
          daytrend=OP_SELL;
       }
       if(
-         r[0][1][2]<=(MinPoints1*-1) &&
+         //r[0][1][2]<=(MinPoints1*-1) &&
+         r[0][1][2]<=-50 &&
+         //OscillatorInfo[2].LowBar==1 &&
          r[1][4][2]<r[2][4][2] &&
          r[0][4][2]>r[1][4][2] &&
          r[1][4][2]<=-105 &&
          isnewday &&
-         true
+         false
       )
       {
          OpenBasket(2,openlots,OP_BUY);
