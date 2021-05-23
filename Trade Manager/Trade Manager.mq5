@@ -3826,7 +3826,7 @@ public:
             string pair=IndexToCurrency(currency)+IndexToCurrency(z);
             string pairN=Pairs.NormalizePairing(pair);
             if((pair==pairN && direction==OP_BUY) || (pair!=pairN && direction==OP_SELL))
-               OpenBuy(pair,openlots);
+               OpenBuy(pairN,openlots);
             else
                OpenSell(pairN,openlots);
          }
@@ -3957,8 +3957,8 @@ public:
       {
          if(
             OscillatorInfo[z].HighBar==1 &&
-            OscillatorInfo[z].HighLevel>60 &&
-            isnewday &&
+            OscillatorInfo[z].HighLevel>80 &&
+            //isnewday &&
             true
          )
          {
