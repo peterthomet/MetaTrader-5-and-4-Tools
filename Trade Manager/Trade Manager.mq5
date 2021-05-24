@@ -3345,9 +3345,11 @@ public:
       int Change;
       int HighLevel;
       int HighBar;
+      int LastHighTurnLevel;
       int LastHighTurnBar;
       int LowLevel;
       int LowBar;
+      int LastLowTurnLevel;
       int LastLowTurnBar;
    };
 
@@ -3761,33 +3763,39 @@ public:
       return a[pos][1];
    }
    
-   int Oscillators(TypeOscillatorInfo& OscillatorInfo[])
+   int Oscillators(TypeOscillatorInfo& oi[])
    {
       int count=0;
       for(int z=0; z<8; z++)
       {
          count++;
-         ArrayResize(OscillatorInfo,count);
+         ArrayResize(oi,count);
 
-         OscillatorInfo[z].Currency=z;
-         OscillatorInfo[z].Change=r[0][4][z]-r[1][4][z];
-         OscillatorInfo[z].Level=r[0][4][z];
-         OscillatorInfo[z].HighLevel=-10000;
-         OscillatorInfo[z].HighBar=-1;
-         OscillatorInfo[z].LastHighTurnBar=-1;
-         OscillatorInfo[z].LowLevel=10000;
-         OscillatorInfo[z].LowBar=-1;
-         OscillatorInfo[z].LastLowTurnBar=-1;
+         oi[z].Currency=z;
+         oi[z].Change=r[0][4][z]-r[1][4][z];
+         oi[z].Level=r[0][4][z];
+         oi[z].HighLevel=-10000;
+         oi[z].HighBar=-1;
+         oi[z].LastHighTurnLevel=-10000;
+         oi[z].LastHighTurnBar=-1;
+         oi[z].LowLevel=10000;
+         oi[z].LowBar=-1;
+         oi[z].LastLowTurnLevel=10000;
+         oi[z].LastLowTurnBar=-1;
 
          for(int i=0; i<100; i++)
          {
             int c=r[i][4][z];
-            if(c>OscillatorInfo[z].HighLevel)
-               OscillatorInfo[z].HighBar=i;
-            if(c<OscillatorInfo[z].LowLevel)
-               OscillatorInfo[z].LowBar=i;
-            OscillatorInfo[z].HighLevel=MathMax(OscillatorInfo[z].HighLevel,c);
-            OscillatorInfo[z].LowLevel=MathMin(OscillatorInfo[z].LowLevel,c);
+            if(c>oi[z].HighLevel)
+            {
+               oi[z].HighBar=i;
+               oi[z].HighLevel=c;
+            }
+            if(c<oi[z].LowLevel)
+            {
+               oi[z].LowBar=i;
+               oi[z].LowLevel=c;
+            }
          }
       }
       return count;
@@ -3950,14 +3958,14 @@ public:
       //   return;
       //}
 
-      TypeOscillatorInfo OscillatorInfo[];
-      int s=Oscillators(OscillatorInfo);
+      TypeOscillatorInfo oi[];
+      int s=Oscillators(oi);
 
       for(int z=0; z<8; z++)
       {
          if(
-            OscillatorInfo[z].HighBar==1 &&
-            OscillatorInfo[z].HighLevel>80 &&
+            oi[z].HighBar==1 &&
+            oi[z].HighLevel>80 &&
             isnewday &&
             true
          )
@@ -3970,7 +3978,7 @@ public:
       if(
          //r[0][1][2]>=MinPoints1 &&
          r[0][1][2]>=50 &&
-         //OscillatorInfo[2].HighBar==1 &&
+         //oi[2].HighBar==1 &&
          r[1][4][2]>r[2][4][2] &&
          r[0][4][2]<r[1][4][2] &&
          r[1][4][2]>=105 &&
@@ -3985,7 +3993,7 @@ public:
       if(
          //r[0][1][2]<=(MinPoints1*-1) &&
          r[0][1][2]<=-50 &&
-         //OscillatorInfo[2].LowBar==1 &&
+         //oi[2].LowBar==1 &&
          r[1][4][2]<r[2][4][2] &&
          r[0][4][2]>r[1][4][2] &&
          r[1][4][2]<=-105 &&
