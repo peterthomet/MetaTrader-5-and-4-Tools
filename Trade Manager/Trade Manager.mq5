@@ -3774,27 +3774,39 @@ public:
          oi[z].Currency=z;
          oi[z].Change=r[0][4][z]-r[1][4][z];
          oi[z].Level=r[0][4][z];
-         oi[z].HighLevel=-10000;
+         oi[z].HighLevel=INT_MIN;
          oi[z].HighBar=-1;
-         oi[z].LastHighTurnLevel=-10000;
+         oi[z].LastHighTurnLevel=INT_MIN;
          oi[z].LastHighTurnBar=-1;
-         oi[z].LowLevel=10000;
+         oi[z].LowLevel=INT_MAX;
          oi[z].LowBar=-1;
-         oi[z].LastLowTurnLevel=10000;
+         oi[z].LastLowTurnLevel=INT_MAX;
          oi[z].LastLowTurnBar=-1;
 
          for(int i=0; i<100; i++)
          {
             int c=r[i][4][z];
+
             if(c>oi[z].HighLevel)
             {
                oi[z].HighBar=i;
                oi[z].HighLevel=c;
             }
+            else if(oi[z].HighLevel>0 && oi[z].LastHighTurnBar==-1)
+            {
+               oi[z].LastHighTurnBar=oi[z].HighBar;
+               oi[z].LastHighTurnLevel=oi[z].HighLevel;
+            }
+
             if(c<oi[z].LowLevel)
             {
                oi[z].LowBar=i;
                oi[z].LowLevel=c;
+            }
+            else if(oi[z].LowLevel<0 && oi[z].LastLowTurnBar==-1)
+            {
+               oi[z].LastLowTurnBar=oi[z].LowBar;
+               oi[z].LastLowTurnLevel=oi[z].LowLevel;
             }
          }
       }
@@ -3963,27 +3975,39 @@ public:
 
       for(int z=0; z<8; z++)
       {
-         if(
-            oi[z].HighBar==1 &&
-            oi[z].HighLevel>80 &&
-            isnewday &&
-            true
-         )
+         //if(oi[z].LastHighTurnBar==1)
+         //   CloseAllInternal("Buys-"+IndexToCurrency(z));
+         //if(oi[z].LastLowTurnBar==1)
+         //   CloseAllInternal("Sells"+IndexToCurrency(z));
+         for(int y=0; y<8; y++)
          {
-            OpenBasket(z,openlots,OP_SELL);
-            lastday=times.t2.day_of_year;
+            if(y!=z)
+            {
+               if(
+                  oi[z].LastHighTurnBar==1 &&
+                  oi[z].LastHighTurnLevel>80 &&
+                  oi[y].Level<80 &&
+                  oi[y].Change>0 &&
+                  //oi[y].LastLowTurnBar==1 &&
+                  //oi[y].LastLowTurnLevel<-80 &&
+                  //isnewday &&
+                  false
+               )
+               {
+                  Trade(y,z,openlots);
+                  lastday=times.t2.day_of_year;
+               }
+            }
          }
       }
 
       if(
          //r[0][1][2]>=MinPoints1 &&
          r[0][1][2]>=50 &&
-         //oi[2].HighBar==1 &&
-         r[1][4][2]>r[2][4][2] &&
-         r[0][4][2]<r[1][4][2] &&
-         r[1][4][2]>=105 &&
+         oi[2].LastHighTurnBar==1 &&
+         oi[2].LastHighTurnLevel>=105 &&
          isnewday &&
-         false
+         true
       )
       {
          OpenBasket(2,openlots,OP_SELL);
@@ -3993,12 +4017,10 @@ public:
       if(
          //r[0][1][2]<=(MinPoints1*-1) &&
          r[0][1][2]<=-50 &&
-         //oi[2].LowBar==1 &&
-         r[1][4][2]<r[2][4][2] &&
-         r[0][4][2]>r[1][4][2] &&
-         r[1][4][2]<=-105 &&
+         oi[2].LastLowTurnBar==1 &&
+         oi[2].LastLowTurnLevel<=-105 &&
          isnewday &&
-         false
+         true
       )
       {
          OpenBasket(2,openlots,OP_BUY);
