@@ -161,6 +161,7 @@ int atrday;
 int InstrumentSelected;
 int TradesViewSelected;
 const double DISABLEDPOINTS=1000000;
+bool _ShowInfo;
 
 struct TypeTextObjects
 {
@@ -473,6 +474,10 @@ void OnInit()
    basemagicnumber=magicnumberfloor+1;
 
    istesting=MQLInfoInteger(MQL_TESTER);
+   
+   _ShowInfo=ShowInfo;
+   if(istesting&&MQLInfoInteger(MQL_VISUAL_MODE))
+      _ShowInfo=true;
 
    SymbolExtraChars = StringSubstr(Symbol(), 6);
 
@@ -532,7 +537,7 @@ void OnInit()
    if(!istesting)
       GetGlobalVariables();
 
-   if(DrawBackgroundPanel&&ShowInfo)
+   if(DrawBackgroundPanel&&_ShowInfo)
    {
       string objname=appnamespace+"Panel";
       ObjectCreate(0,objname,OBJ_RECTANGLE_LABEL,0,0,0,0,0);
@@ -1154,7 +1159,7 @@ double GetTrailingLimit()
 
 void DisplayText()
 {
-   if(!ShowInfo)
+   if(!_ShowInfo)
       return;
 
    DeleteText();
@@ -3591,8 +3596,8 @@ public:
          StringSubstr(Symbol(),6),
          PERIOD_M15,
          false,
-         //pr_close,
-         pr_haaverage,
+         pr_close,
+         //pr_haaverage,
          19,
          5,
          true
@@ -3605,8 +3610,8 @@ public:
          StringSubstr(Symbol(),6),
          PERIOD_M15,
          false,
-         //pr_close,
-         pr_haaverage,
+         pr_close,
+         //pr_haaverage,
          6,
          0,
          true
@@ -3899,7 +3904,7 @@ public:
       int s=MACrosses(CrossInfo);
       for(int z=0; z<s; z++)
       {
-         Trade(CrossInfo[z].UpCurrency,CrossInfo[z].DownCurrency,openlots);
+         //Trade(CrossInfo[z].UpCurrency,CrossInfo[z].DownCurrency,openlots);
       }
 
       bool a[8][2];
@@ -3912,11 +3917,11 @@ public:
       {
          if(a[z][0])
          {
-            //Trade(z,StrengthAtPos(0),openlots);
+            Trade(z,StrengthAtPos(0),openlots);
          }
          if(a[z][1])
          {
-            //Trade(StrengthAtPos(7),z,openlots);
+            Trade(StrengthAtPos(7),z,openlots);
          }
       }
 
