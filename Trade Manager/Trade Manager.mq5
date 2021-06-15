@@ -76,6 +76,7 @@ input color TextColorBold = Black;
 input color TextColorInfo = DodgerBlue;
 input color TextColorPlus = MediumSeaGreen;
 input color TextColorMinus = DeepPink;
+input string FontName = "Arial";
 input int FontSize = 9;
 input int TextGap = 16;
 input bool ManageOwnTradesOnly = true;
@@ -1564,7 +1565,7 @@ void CreateLabel(int RI, int fontsize, color c, string text, string group="", in
    ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,3+(TextGap*RI));
    ObjectSetInteger(0,objname,OBJPROP_COLOR,c);
    ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,fontsize);
-   ObjectSetString(0,objname,OBJPROP_FONT,"Arial");
+   ObjectSetString(0,objname,OBJPROP_FONT,FontName);
    ObjectSetString(0,objname,OBJPROP_TEXT,text);
    if(StringLen(tooltip)>0)
       ObjectSetString(0,objname,OBJPROP_TOOLTIP,tooltip);
@@ -1812,7 +1813,7 @@ void CreateLegend(string objname, int y, string text)
    ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,y);
    ObjectSetInteger(0,objname,OBJPROP_COLOR,TextColor);
    ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,(int)MathFloor(FontSize*0.8));
-   ObjectSetString(0,objname,OBJPROP_FONT,"Arial");
+   ObjectSetString(0,objname,OBJPROP_FONT,FontName);
    ObjectSetString(0,objname,OBJPROP_TEXT,text);
 }
 
