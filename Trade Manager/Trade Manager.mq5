@@ -65,6 +65,8 @@ input double TakeProfitPercentTradingCapital = 0;
 input double StopLossPercentTradingCapital = 0;
 input TypeStopLossPercentTradingCapitalAction StopLossPercentTradingCapitalAction = CloseAllTrades;
 input bool CloseTradesBeforeMidnight = false;
+input int CloseTradesBeforeMidnightHour = 23; 
+input int CloseTradesBeforeMidnightMinute = 00; 
 input bool ActivateTrailing = false;
 input double TrailingFactor = 0.6;
 input double OpenLots = 0.01;
@@ -1136,7 +1138,7 @@ void ManageBasket()
    {
       MqlDateTime tc;
       TimeCurrent(tc);
-      if(tc.hour==23)
+      if(tc.hour==CloseTradesBeforeMidnightHour&&tc.min==CloseTradesBeforeMidnightMinute)
          closeall=true;
    }
 
@@ -1210,7 +1212,7 @@ void DisplayText()
 
    if(CloseTradesBeforeMidnight)
    {
-      CreateLabel(rowindex,FontSize,TextColor,"Closing all Trades at 23:00");
+      CreateLabel(rowindex,FontSize,TextColor,"Closing all Trades at "+IntegerToString(CloseTradesBeforeMidnightHour)+":"+IntegerToString(CloseTradesBeforeMidnightMinute,2,'0'));
       rowindex++;
    }
 
