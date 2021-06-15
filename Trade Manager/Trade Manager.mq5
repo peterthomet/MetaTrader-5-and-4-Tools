@@ -547,7 +547,7 @@ void OnInit()
       ObjectSetInteger(0,objname,OBJPROP_BORDER_TYPE,BORDER_FLAT);
       ObjectSetInteger(0,objname,OBJPROP_WIDTH,1);
       ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,BackgroundPanelWidth);
-      ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,TextGap);
+      ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,0);
       ObjectSetInteger(0,objname,OBJPROP_XSIZE,BackgroundPanelWidth);
       ObjectSetInteger(0,objname,OBJPROP_YSIZE,10000);
       color c=(color)ChartGetInteger(0,CHART_COLOR_BACKGROUND);
@@ -1560,8 +1560,8 @@ void CreateLabel(int RI, int fontsize, color c, string text, string group="", in
    ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
    ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
    ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
-   ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,5+xshift);
-   ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,20+(TextGap*RI));
+   ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,7+xshift);
+   ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,3+(TextGap*RI));
    ObjectSetInteger(0,objname,OBJPROP_COLOR,c);
    ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,fontsize);
    ObjectSetString(0,objname,OBJPROP_FONT,"Arial");
