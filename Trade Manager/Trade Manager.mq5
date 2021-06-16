@@ -1448,6 +1448,9 @@ void DisplayText()
    
       int asize=ArraySize(BI.pairsintrades);
 
+      if(listshift>0)
+         CreateArrowUp(rowindex);
+
       if(TradesViewSelected==ByPairs)
       {
          if(asize>0)
@@ -1560,7 +1563,23 @@ void DisplayText()
 }
 
 
-void ActivateArrowDown()
+void CreateArrowUp(int RI)
+{
+   string objname=appnamespace+"TextArrowUp";
+   ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
+   ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,BackgroundPanelWidth-20);
+   ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,3+(TextGap*RI));
+   ObjectSetInteger(0,objname,OBJPROP_COLOR,TextColor);
+   ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,FontSize);
+   ObjectSetString(0,objname,OBJPROP_FONT,FontName);
+   ObjectSetString(0,objname,OBJPROP_TEXT,"\x25b2");
+   TextObjects.AddObject(objname);
+}
+
+
+void CreateArrowDown()
 {
    if(arrowdown)
       return;
@@ -1593,7 +1612,7 @@ void CreateLabel(int RI, int fontsize, color c, string text, string group="", in
    
    if(chartheight<3+(TextGap*(rowpos+1)))
    {
-      ActivateArrowDown();
+      CreateArrowDown();
       return;
    }
 
@@ -2286,6 +2305,9 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
       if(StringFind(sparam,"TextArrowDown")>-1)
          listshift++;
+
+      if(StringFind(sparam,"TextArrowUp")>-1)
+         listshift--;
 
       if(StringFind(sparam,"-TMSymbolButton")>-1)
          SwitchSymbol(ObjectGetString(0,sparam,OBJPROP_TEXT));
