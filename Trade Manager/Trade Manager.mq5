@@ -2575,6 +2575,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             TradesViewSelected+=1;
             if(TradesViewSelected>ByCurrencies)
                TradesViewSelected=ByPairs;
+            listshift=0;
          }
       }
 
