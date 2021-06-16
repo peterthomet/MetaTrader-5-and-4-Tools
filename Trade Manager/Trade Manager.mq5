@@ -1462,7 +1462,7 @@ void DisplayText()
             color paircolor=TextColor;
             if(BI.pairsintrades[i].pair+SymbolExtraChars==Symbol())
                paircolor=TextColorBold;
-            CreateLabel(rowindex,FontSize,paircolor,BI.pairsintrades[i].pair,"-TMSymbolButton",0,"");
+            CreateLabel(rowindex,FontSize,paircolor,BI.pairsintrades[i].pair,"-TMSymbolButton",0,"",i);
    
             int hshift=60;
             if(BI.pairsintrades[i].buyvolume>0)
@@ -1470,7 +1470,7 @@ void DisplayText()
                color pcolor=TextColorPlus;
                if(BI.pairsintrades[i].buygain<0)
                   pcolor=TextColorMinus;
-               CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].buyvolume,2)+" "+DoubleToString(BI.pairsintrades[i].buygain,2),"-TMCC-Buys-"+BI.pairsintrades[i].pair,140,"Click to Close");
+               CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].buyvolume,2)+" "+DoubleToString(BI.pairsintrades[i].buygain,2),"-TMCC-Buys-"+BI.pairsintrades[i].pair,140,"Click to Close",i);
                hshift+=90;
             }
             if(BI.pairsintrades[i].sellvolume>0)
@@ -1478,7 +1478,7 @@ void DisplayText()
                color pcolor=TextColorPlus;
                if(BI.pairsintrades[i].sellgain<0)
                   pcolor=TextColorMinus;
-               CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].sellvolume,2)+" "+DoubleToString(BI.pairsintrades[i].sellgain,2),"-TMCC-Sells"+BI.pairsintrades[i].pair,65,"Click to Close");
+               CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].sellvolume,2)+" "+DoubleToString(BI.pairsintrades[i].sellgain,2),"-TMCC-Sells"+BI.pairsintrades[i].pair,65,"Click to Close",i);
             }
             rowindex++;
          }
@@ -1530,20 +1530,20 @@ void DisplayText()
                   rowindex++;
                }
 
-               CreateLabel(rowindex,FontSize,TextColor,currencies[i],"-TMCurrency",0,"");
+               CreateLabel(rowindex,FontSize,TextColor,currencies[i],"-TMCurrency",0,"",i);
                if(ti[i].buyvolume>0)
                {
                   color pcolor=TextColorPlus;
                   if(ti[i].buygain<0)
                      pcolor=TextColorMinus;
-                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ti[i].buyvolume,2)+" "+DoubleToString(ti[i].buygain,2),"-TMCC-Buys-"+currencies[i],110,"Click to Close");
+                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ti[i].buyvolume,2)+" "+DoubleToString(ti[i].buygain,2),"-TMCC-Buys-"+currencies[i],110,"Click to Close",i);
                }
                if(ti[i].sellvolume>0)
                {
                   color pcolor=TextColorPlus;
                   if(ti[i].sellgain<0)
                      pcolor=TextColorMinus;
-                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ti[i].sellvolume,2)+" "+DoubleToString(ti[i].sellgain,2),"-TMCC-Sells"+currencies[i],35,"Click to Close");
+                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ti[i].sellvolume,2)+" "+DoubleToString(ti[i].sellgain,2),"-TMCC-Sells"+currencies[i],35,"Click to Close",i);
                }
                rowindex++;
             }
@@ -1581,20 +1581,28 @@ void ActivateArrowDown()
 }
 
 
-void CreateLabel(int RI, int fontsize, color c, string text, string group="", int xshift=0, string tooltip="")
+void CreateLabel(int RI, int fontsize, color c, string text, string group="", int xshift=0, string tooltip="", int listindex=-1)
 {
-   if(chartheight<3+(TextGap*(RI+1)))
+   int rowpos=RI;
+   if(listindex>-1)
+   {
+      rowpos-=listshift;
+      if(listindex-listshift<0)
+         return;
+   }
+   
+   if(chartheight<3+(TextGap*(rowpos+1)))
    {
       ActivateArrowDown();
       return;
    }
 
-   string objname=appnamespace+"Text"+IntegerToString(RI+1)+group;
+   string objname=appnamespace+"Text"+IntegerToString(rowpos+1)+group;
    ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
    ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
    ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
    ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,7+xshift);
-   ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,3+(TextGap*RI));
+   ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,3+(TextGap*rowpos));
    ObjectSetInteger(0,objname,OBJPROP_COLOR,c);
    ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,fontsize);
    ObjectSetString(0,objname,OBJPROP_FONT,FontName);
