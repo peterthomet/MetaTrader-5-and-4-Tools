@@ -165,6 +165,9 @@ int InstrumentSelected;
 int TradesViewSelected;
 const double DISABLEDPOINTS=1000000;
 bool _ShowInfo;
+int chartheight;
+bool arrowdown=false;
+int listshift=0;
 
 struct TypeTextObjects
 {
@@ -539,6 +542,8 @@ void OnInit()
    
    if(!istesting)
       GetGlobalVariables();
+
+   chartheight=(int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS);
 
    if(DrawBackgroundPanel&&_ShowInfo)
    {
@@ -1555,8 +1560,35 @@ void DisplayText()
 }
 
 
+void ActivateArrowDown()
+{
+   if(arrowdown)
+      return;
+
+   string objname=appnamespace+"TextArrowDown";
+   ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
+   ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
+   ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+   ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,BackgroundPanelWidth-20);
+   ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,chartheight-20);
+   ObjectSetInteger(0,objname,OBJPROP_COLOR,TextColor);
+   ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,FontSize);
+   ObjectSetString(0,objname,OBJPROP_FONT,FontName);
+   ObjectSetString(0,objname,OBJPROP_TEXT,"\x25bc");
+   TextObjects.AddObject(objname);
+
+   arrowdown=true;
+}
+
+
 void CreateLabel(int RI, int fontsize, color c, string text, string group="", int xshift=0, string tooltip="")
 {
+   if(chartheight<3+(TextGap*(RI+1)))
+   {
+      ActivateArrowDown();
+      return;
+   }
+
    string objname=appnamespace+"Text"+IntegerToString(RI+1)+group;
    ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
    ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_RIGHT_UPPER);
@@ -1850,6 +1882,7 @@ void DeleteText()
    //ObjectsDeleteAll(0,appnamespace+"Text");
    // Workaround: We move objects out of view, because if we delete it, click events can get lost
    TextObjects.HideAll();
+   arrowdown=false;
 }
 
 
@@ -2234,9 +2267,17 @@ int ExtendedRepeatingFactor()
 
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
+   if(id==CHARTEVENT_CHART_CHANGE)
+   {
+      chartheight=(int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS);
+   }
+
    if(id==CHARTEVENT_OBJECT_CLICK)
    {
       //Print("CHARTEVENT_OBJECT_CLICK "+sparam);
+
+      if(StringFind(sparam,"TextArrowDown")>-1)
+         listshift++;
 
       if(StringFind(sparam,"-TMSymbolButton")>-1)
          SwitchSymbol(ObjectGetString(0,sparam,OBJPROP_TEXT));
