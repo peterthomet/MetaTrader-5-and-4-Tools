@@ -2874,6 +2874,13 @@ double OrderTakeProfitX()
 #endif
 }
 
+
+datetime OrderOpenTimeX()
+{
+   return (int)PositionGetInteger(POSITION_TIME);
+}
+
+
 double AccountBalanceX()
 {
 #ifdef __MQL4__
