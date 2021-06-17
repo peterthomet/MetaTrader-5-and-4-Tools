@@ -231,6 +231,7 @@ struct TypeTradeInfo
    int type;
    double volume;
    double openprice;
+   datetime opentime;
    double points;
    double commissionpoints;
    double gain;
@@ -243,6 +244,7 @@ struct TypeTradeInfo
       type=NULL;
       volume=0;
       openprice=0;
+      opentime=0;
       points=0;
       commissionpoints=0;
       gain=0;
@@ -987,6 +989,7 @@ bool ManageOrders()
 
             ti.volume=OrderLotsX();
             ti.openprice=OrderOpenPriceX();
+            ti.opentime=(int)PositionGetInteger(POSITION_TIME);
             ti.points=gainpips;
             ti.commissionpoints=NormalizeDouble((OrderCommissionSwap()/ti.volume)/tickvalue,0);
             ti.gain=gain;
@@ -2150,6 +2153,7 @@ void AddTrade(TypePairsTradesInfo& piti, TypeTradeInfo& ti[], TypeTradeInfo& tii
    ti[asize].type=tiin.type;
    ti[asize].volume=tiin.volume;
    ti[asize].openprice=tiin.openprice;
+   ti[asize].opentime=tiin.opentime;
    ti[asize].points=tiin.points;
    ti[asize].gain=tiin.gain;
    ti[asize].tickvalue=tiin.tickvalue;
