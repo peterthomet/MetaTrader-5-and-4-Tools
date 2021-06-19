@@ -457,6 +457,7 @@ struct TypeBasketInfo
    double sellvolume;
    int managedorders;
    TypePairsTradesInfo pairsintrades[];
+   TypeCurrenciesTradesInfo currenciesintrades[];
    int largestlossindex;
    double largestloss;
    void Init()
@@ -474,6 +475,8 @@ struct TypeBasketInfo
       sellvolume=0;
       managedorders=0;
       ArrayResize(pairsintrades,0);
+      ArrayResize(currenciesintrades,0);
+      ArrayResize(currenciesintrades,8);
       largestlossindex=-1;
       largestloss=0;
    };
@@ -953,7 +956,7 @@ bool ManageOrders()
             ti.orderindex=cnt;
 
             BI.managedorders++;
-            int pidx=AddPairsInTrades(OrderSymbolX());
+            int pidx=GetPairsInTradesIndex(OrderSymbolX());
 
             BI.pairsintrades[pidx].gainpips+=gainpips/pipsfactor;
 
@@ -1474,6 +1477,10 @@ void DisplayText()
       if(listshift>0)
          CreateArrowUp(rowindex);
 
+      string tooltip="";
+      if(ctrlon)
+         tooltip="Click to Close";
+
       if(TradesViewSelected==ByPairs)
       {
          if(asize>0)
@@ -1496,7 +1503,7 @@ void DisplayText()
                color pcolor=TextColorPlus;
                if(BI.pairsintrades[i].buygain<0)
                   pcolor=TextColorMinus;
-               CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].buyvolume,2)+" "+DoubleToString(BI.pairsintrades[i].buygain,2),"-TMCC-Buys-"+BI.pairsintrades[i].pair,140,"Click to Close",i);
+               CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].buyvolume,2)+" "+DoubleToString(BI.pairsintrades[i].buygain,2),"-TMCC-Buys-"+BI.pairsintrades[i].pair,140,tooltip,i);
                hshift+=90;
             }
             if(BI.pairsintrades[i].sellvolume>0)
@@ -1504,7 +1511,7 @@ void DisplayText()
                color pcolor=TextColorPlus;
                if(BI.pairsintrades[i].sellgain<0)
                   pcolor=TextColorMinus;
-               CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].sellvolume,2)+" "+DoubleToString(BI.pairsintrades[i].sellgain,2),"-TMCC-Sells"+BI.pairsintrades[i].pair,65,"Click to Close",i);
+               CreateLabel(rowindex,FontSize,pcolor,DoubleToString(BI.pairsintrades[i].sellvolume,2)+" "+DoubleToString(BI.pairsintrades[i].sellgain,2),"-TMCC-Sells"+BI.pairsintrades[i].pair,65,tooltip,i);
             }
             rowindex++;
          }
@@ -1512,31 +1519,13 @@ void DisplayText()
 
       if(TradesViewSelected==ByCurrencies)
       {
-         TypeCurrenciesTradesInfo ti[8];
-         for(int i=0; i<asize; i++)
-         {
-            int baseindex=CurrenciesBaseIndex(BI.pairsintrades[i].pair);
-            int quoteindex=CurrenciesQuoteIndex(BI.pairsintrades[i].pair);
-            if(baseindex>-1)
-            {
-               ti[baseindex].buygain+=BI.pairsintrades[i].buygain;
-               ti[baseindex].buyvolume+=BI.pairsintrades[i].buyvolume;
-               ti[baseindex].sellgain+=BI.pairsintrades[i].sellgain;
-               ti[baseindex].sellvolume+=BI.pairsintrades[i].sellvolume;
-            }
-            if(quoteindex>-1)
-            {
-               ti[quoteindex].buygain+=BI.pairsintrades[i].sellgain;
-               ti[quoteindex].buyvolume+=BI.pairsintrades[i].sellvolume;
-               ti[quoteindex].sellgain+=BI.pairsintrades[i].buygain;
-               ti[quoteindex].sellvolume+=BI.pairsintrades[i].buyvolume;
-            }
-         }
-
          bool headercreated=false;
+
          for(int i=0; i<8; i++)
          {
-            if(ti[i].buyvolume>0||ti[i].sellvolume>0)
+            TypeCurrenciesTradesInfo ct=BI.currenciesintrades[i];
+            
+            if(ct.buyvolume>0||ct.sellvolume>0)
             {
                if(!headercreated)
                {
@@ -1547,19 +1536,19 @@ void DisplayText()
                }
 
                CreateLabel(rowindex,FontSize,TextColor,currencies[i],"-TMCurrency",0,"",i);
-               if(ti[i].buyvolume>0)
+               if(ct.buyvolume>0)
                {
                   color pcolor=TextColorPlus;
-                  if(ti[i].buygain<0)
+                  if(ct.buygain<0)
                      pcolor=TextColorMinus;
-                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ti[i].buyvolume,2)+" "+DoubleToString(ti[i].buygain,2),"-TMCC-Buys-"+currencies[i],110,"Click to Close",i);
+                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ct.buyvolume,2)+" "+DoubleToString(ct.buygain,2),"-TMCC-Buys-"+currencies[i],110,tooltip,i);
                }
-               if(ti[i].sellvolume>0)
+               if(ct.sellvolume>0)
                {
                   color pcolor=TextColorPlus;
-                  if(ti[i].sellgain<0)
+                  if(ct.sellgain<0)
                      pcolor=TextColorMinus;
-                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ti[i].sellvolume,2)+" "+DoubleToString(ti[i].sellgain,2),"-TMCC-Sells"+currencies[i],35,"Click to Close",i);
+                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ct.sellvolume,2)+" "+DoubleToString(ct.sellgain,2),"-TMCC-Sells"+currencies[i],35,tooltip,i);
                }
                rowindex++;
             }
@@ -2153,9 +2142,44 @@ int TradeReferenceIndex(long magicnumber)
 }
 
 
+void UpdateCurrencyInfo(TypePairsTradesInfo& piti, TypeTradeInfo& tiin)
+{
+   int baseindex=CurrenciesBaseIndex(piti.pair);
+   int quoteindex=CurrenciesQuoteIndex(piti.pair);
+   if(baseindex>-1)
+   {
+      if(tiin.type==OP_BUY)
+      {
+         BI.currenciesintrades[baseindex].buygain+=tiin.gain;
+         BI.currenciesintrades[baseindex].buyvolume+=tiin.volume;
+      }
+      if(tiin.type==OP_SELL)
+      {
+         BI.currenciesintrades[baseindex].sellgain+=tiin.gain;
+         BI.currenciesintrades[baseindex].sellvolume+=tiin.volume;
+      }
+   }
+   if(quoteindex>-1)
+   {
+      if(tiin.type==OP_BUY)
+      {
+         BI.currenciesintrades[quoteindex].sellgain+=tiin.gain;
+         BI.currenciesintrades[quoteindex].sellvolume+=tiin.volume;
+      }
+      if(tiin.type==OP_SELL)
+      {
+         BI.currenciesintrades[quoteindex].buygain+=tiin.gain;
+         BI.currenciesintrades[quoteindex].buyvolume+=tiin.volume;
+      }
+   }
+}
+
+
 void AddTrade(TypePairsTradesInfo& piti, TypeTradeInfo& ti[], TypeTradeInfo& tiin)
 {
    UpdateTradeReference(piti,tiin);
+
+   UpdateCurrencyInfo(piti,tiin);
 
    int asize=ArraySize(ti);
    ArrayResize(ti,asize+1);
@@ -2172,7 +2196,7 @@ void AddTrade(TypePairsTradesInfo& piti, TypeTradeInfo& ti[], TypeTradeInfo& tii
 }
 
 
-int AddPairsInTrades(string tradedsymbol)
+int GetPairsInTradesIndex(string tradedsymbol)
 {
    int asize=ArraySize(BI.pairsintrades), idx=-1;
    string symbol=StringSubstr(tradedsymbol,0,6);
