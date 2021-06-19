@@ -1199,7 +1199,7 @@ void DisplayText()
    DeleteText();
 
    if(tickchar=="")
-      tickchar="\x2022";
+      tickchar="\x2022 ";
    else
       tickchar="";
 
