@@ -384,18 +384,76 @@ struct TypeWorkingState
 };
 TypeWorkingState WS;
 
+struct TypeCurrenciesTradesGroupsInfo
+{
+   int type;
+   double volume;
+   double gain;
+   datetime openfrom;
+   datetime opento;
+   TypeCurrenciesTradesGroupsInfo()
+   {
+      type=0;
+      volume=0;
+      gain=0;
+      openfrom=0;
+      opento=0;
+   }
+};
+
 struct TypeCurrenciesTradesInfo
 {
    double buyvolume;
    double sellvolume;
    double buygain;
    double sellgain;
+   TypeCurrenciesTradesGroupsInfo tg[];
    TypeCurrenciesTradesInfo()
    {
       buyvolume=0;
       sellvolume=0;
       buygain=0;
       sellgain=0;
+      ArrayResize(tg,0);
+   }
+};
+
+struct TypeCurrenciesInfo
+{
+   string currencies[8];
+   TypeCurrenciesTradesInfo ti[];
+   TypeCurrenciesInfo()
+   {
+      currencies[0]="USD";
+      currencies[1]="EUR";
+      currencies[2]="GBP";
+      currencies[3]="JPY";
+      currencies[4]="CHF";
+      currencies[5]="CAD";
+      currencies[6]="AUD";
+      currencies[7]="NZD";
+      ArrayResize(ti,8);
+   }
+   int GetIndexAtPos(string pair, int pos)
+   {
+      int index=-1;
+      for(int i=0; i<8; i++)
+      {
+         if(StringFind(pair,currencies[i])==pos)
+         {
+            index=i;
+            break;
+         }
+      }
+      return index;
+   }
+   int BaseIndex(string pair)
+   {
+      return GetIndexAtPos(pair,0);
+   }
+   int QuoteIndex(string pair)
+   {
+      return GetIndexAtPos(pair,3);
    }
 };
 
@@ -1492,41 +1550,31 @@ void DisplayText()
 
       if(TradesViewSelected==ByCurrencies)
       {
-         TypeCurrenciesTradesInfo ti[8];
-         string currencies[8]={"USD","EUR","GBP","JPY","CHF","CAD","AUD","NZD"};
+         TypeCurrenciesInfo ci;
          for(int i=0; i<asize; i++)
          {
-            int basepos=-1, quotepos=-1;
-            for(int p=0; p<8; p++)
+            int baseindex=ci.BaseIndex(BI.pairsintrades[i].pair);
+            int quoteindex=ci.QuoteIndex(BI.pairsintrades[i].pair);
+            if(baseindex>-1)
             {
-               int pos=StringFind(BI.pairsintrades[i].pair,currencies[p]);
-               if(pos==0)
-                  basepos=p;
-               if(pos==3)
-                  quotepos=p;
-               if(basepos>-1&&quotepos>-1)
-                  break;
+               ci.ti[baseindex].buygain+=BI.pairsintrades[i].buygain;
+               ci.ti[baseindex].buyvolume+=BI.pairsintrades[i].buyvolume;
+               ci.ti[baseindex].sellgain+=BI.pairsintrades[i].sellgain;
+               ci.ti[baseindex].sellvolume+=BI.pairsintrades[i].sellvolume;
             }
-            if(basepos>-1)
+            if(quoteindex>-1)
             {
-               ti[basepos].buygain+=BI.pairsintrades[i].buygain;
-               ti[basepos].buyvolume+=BI.pairsintrades[i].buyvolume;
-               ti[basepos].sellgain+=BI.pairsintrades[i].sellgain;
-               ti[basepos].sellvolume+=BI.pairsintrades[i].sellvolume;
-            }
-            if(quotepos>-1)
-            {
-               ti[quotepos].buygain+=BI.pairsintrades[i].sellgain;
-               ti[quotepos].buyvolume+=BI.pairsintrades[i].sellvolume;
-               ti[quotepos].sellgain+=BI.pairsintrades[i].buygain;
-               ti[quotepos].sellvolume+=BI.pairsintrades[i].buyvolume;
+               ci.ti[quoteindex].buygain+=BI.pairsintrades[i].sellgain;
+               ci.ti[quoteindex].buyvolume+=BI.pairsintrades[i].sellvolume;
+               ci.ti[quoteindex].sellgain+=BI.pairsintrades[i].buygain;
+               ci.ti[quoteindex].sellvolume+=BI.pairsintrades[i].buyvolume;
             }
          }
 
          bool headercreated=false;
          for(int i=0; i<8; i++)
          {
-            if(ti[i].buyvolume>0||ti[i].sellvolume>0)
+            if(ci.ti[i].buyvolume>0||ci.ti[i].sellvolume>0)
             {
                if(!headercreated)
                {
@@ -1536,20 +1584,20 @@ void DisplayText()
                   rowindex++;
                }
 
-               CreateLabel(rowindex,FontSize,TextColor,currencies[i],"-TMCurrency",0,"",i);
-               if(ti[i].buyvolume>0)
+               CreateLabel(rowindex,FontSize,TextColor,ci.currencies[i],"-TMCurrency",0,"",i);
+               if(ci.ti[i].buyvolume>0)
                {
                   color pcolor=TextColorPlus;
-                  if(ti[i].buygain<0)
+                  if(ci.ti[i].buygain<0)
                      pcolor=TextColorMinus;
-                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ti[i].buyvolume,2)+" "+DoubleToString(ti[i].buygain,2),"-TMCC-Buys-"+currencies[i],110,"Click to Close",i);
+                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ci.ti[i].buyvolume,2)+" "+DoubleToString(ci.ti[i].buygain,2),"-TMCC-Buys-"+ci.currencies[i],110,"Click to Close",i);
                }
-               if(ti[i].sellvolume>0)
+               if(ci.ti[i].sellvolume>0)
                {
                   color pcolor=TextColorPlus;
-                  if(ti[i].sellgain<0)
+                  if(ci.ti[i].sellgain<0)
                      pcolor=TextColorMinus;
-                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ti[i].sellvolume,2)+" "+DoubleToString(ti[i].sellgain,2),"-TMCC-Sells"+currencies[i],35,"Click to Close",i);
+                  CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ci.ti[i].sellvolume,2)+" "+DoubleToString(ci.ti[i].sellgain,2),"-TMCC-Sells"+ci.currencies[i],35,"Click to Close",i);
                }
                rowindex++;
             }
