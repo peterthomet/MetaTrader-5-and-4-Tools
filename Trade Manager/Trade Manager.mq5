@@ -1597,11 +1597,11 @@ void DisplayText()
                   liststartrowindex=rowindex;
                }
 
+               CreateLabel(rowindex,FontSize,currencycolor[i],currencies[i],"-TMCurrency",0,"",rowindex-liststartrowindex);
+
                int ysize=ArraySize(ct.tg);
                for(int y=0; y<ysize; y++)
                {
-                  CreateLabel(rowindex,FontSize,currencycolor[i],currencies[i],"-TMCurrency",0,"",rowindex-liststartrowindex);
-
                   color pcolor=TextColorPlus;
                   if(ct.tg[y].gain<0)
                      pcolor=TextColorMinus;
@@ -1616,6 +1616,7 @@ void DisplayText()
                   }
                   rowindex++;
                }
+               rowindex++;
             }
          }
       }
