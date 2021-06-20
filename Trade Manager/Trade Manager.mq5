@@ -76,6 +76,14 @@ input color TextColorBold = Black;
 input color TextColorInfo = DodgerBlue;
 input color TextColorPlus = MediumSeaGreen;
 input color TextColorMinus = DeepPink;
+input color Color_USD = MediumSeaGreen; // USD color
+input color Color_EUR = DodgerBlue; // EUR color
+input color Color_GBP = DeepPink; // GBP color
+input color Color_CHF = Black; // CHF color
+input color Color_JPY = Chocolate; // JPY color
+input color Color_AUD = DarkOrange; // AUD color
+input color Color_CAD = MediumVioletRed; // CAD color
+input color Color_NZD = Silver; // NZD color
 input string FontName = "Arial";
 input int FontSize = 9;
 input int TextGap = 16;
@@ -169,6 +177,7 @@ int chartheight;
 bool arrowdown=false;
 int listshift=0;
 string currencies[8]={"USD","EUR","GBP","JPY","CHF","CAD","AUD","NZD"};
+color currencycolor[8];
 
 struct TypeTextObjects
 {
@@ -563,6 +572,15 @@ void OnInit()
    _TradingWeekdays[4]=Thursday;
    _TradingWeekdays[5]=Friday;
    _TradingWeekdays[6]=Saturday;
+
+   currencycolor[0]=Color_USD;
+   currencycolor[1]=Color_EUR;
+   currencycolor[2]=Color_GBP;
+   currencycolor[3]=Color_JPY;
+   currencycolor[4]=Color_CHF;
+   currencycolor[5]=Color_CAD;
+   currencycolor[6]=Color_AUD;
+   currencycolor[7]=Color_NZD;
 
    WS.Init();
    
@@ -1539,7 +1557,7 @@ void DisplayText()
                   liststartrowindex=rowindex;
                }
 
-               CreateLabel(rowindex,FontSize,TextColor,currencies[i],"-TMCurrency",0,"",rowindex-liststartrowindex);
+               CreateLabel(rowindex,FontSize,currencycolor[i],currencies[i],"-TMCurrency",0,"",rowindex-liststartrowindex);
                
                if(ct.buyvolume>0)
                {
@@ -1582,7 +1600,7 @@ void DisplayText()
                int ysize=ArraySize(ct.tg);
                for(int y=0; y<ysize; y++)
                {
-                  CreateLabel(rowindex,FontSize,TextColor,currencies[i],"-TMCurrency",0,"",rowindex-liststartrowindex);
+                  CreateLabel(rowindex,FontSize,currencycolor[i],currencies[i],"-TMCurrency",0,"",rowindex-liststartrowindex);
 
                   color pcolor=TextColorPlus;
                   if(ct.tg[y].gain<0)
