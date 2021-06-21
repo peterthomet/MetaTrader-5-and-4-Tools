@@ -61,3 +61,11 @@ Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute 
 
 
 [![](http://img.youtube.com/vi/IGt1eQA1peg/maxresdefault.jpg)](http://www.youtube.com/watch?v=IGt1eQA1peg "Trade Manager | Setup Basket with balanced Risk")
+
+<br/>
+<br/>
+
+## Trade Manager Aggregated View of Trades
+
+
+[![](http://img.youtube.com/vi/XUngix22JGs/maxresdefault.jpg)](http://www.youtube.com/watch?v=XUngix22JGs "Trade Manager | Trade Manager Aggregated View of Trades")
