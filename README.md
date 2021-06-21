@@ -65,7 +65,7 @@ Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute 
 <br/>
 <br/>
 
-## Trade Manager Aggregated View of Trades
+## Trade Manager Aggregated View and Close of Trades
 
 
 [![](http://img.youtube.com/vi/XUngix22JGs/maxresdefault.jpg)](http://www.youtube.com/watch?v=XUngix22JGs "Trade Manager | Trade Manager Aggregated View of Trades")
