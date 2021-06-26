@@ -71,10 +71,12 @@ Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute 
 [![](http://img.youtube.com/vi/XUngix22JGs/maxresdefault.jpg)](http://www.youtube.com/watch?v=XUngix22JGs "Trade Manager | Trade Manager Aggregated View of Trades")
 
 <details>
-  <summary>Click to expand</summary>
+  <summary>
 
-[![](http://img.youtube.com/vi/XUngix22JGs/maxresdefault.jpg)](http://www.youtube.com/watch?v=XUngix22JGs "Trade Manager | Trade Manager Aggregated View of Trades")
-  
+Click to expand
+
+</summary>
+
   ## Heading
   1. A numbered
   2. list
