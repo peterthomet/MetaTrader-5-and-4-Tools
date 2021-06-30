@@ -583,6 +583,11 @@ void OnTimer()
       lastoffset=offset;
 
       NewBarBase=false;
+      
+      //double sum=0;
+      //for(int z=0; z<8; z++)
+      //   sum+=CS.Currencies.Currency[z].index[BarsCalculate-3].laging.high;
+      //Print(sum);
 
       ChartRedraw();
    }
