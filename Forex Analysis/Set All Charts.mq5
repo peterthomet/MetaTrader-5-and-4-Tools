@@ -4,6 +4,15 @@
 //
 
 #property copyright "Copyright 2019, getYourNet.ch"
+
+enum TypeChartsApplyTemplate
+{
+   AllChartsWithoutSubwindow, // All Charts without Subwindow
+   AllCharts // All Charts
+};
+
+input TypeChartsApplyTemplate ChartsApplyTemplate = AllChartsWithoutSubwindow; // Charts Apply Template
+
 string appnamespace="SetAllCharts";
 
 enum Command
@@ -153,64 +162,53 @@ void ExecuteCommand(int command)
       if(chartid!=ChartID())
       {
          bool hassubwindows=(ChartGetInteger(chartid,CHART_WINDOWS_TOTAL)>1);
-         if(command==Clean)
-            if(!hassubwindows)
+         bool apply=!hassubwindows||ChartsApplyTemplate==AllCharts;
+         
+         if(apply)
+         {
+            if(command==Clean)
                ChartApplyTemplate(chartid,"Empty Small.tpl");
-         if(command==PivotsY1)
-            if(!hassubwindows)
+            if(command==PivotsY1)
                ChartApplyTemplate(chartid,"Forex PivotsY1.tpl");
-         if(command==PivotsMN)
-            if(!hassubwindows)
+            if(command==PivotsMN)
                ChartApplyTemplate(chartid,"Forex PivotsMN.tpl");
-         if(command==PivotsW1)
-            if(!hassubwindows)
+            if(command==PivotsW1)
                ChartApplyTemplate(chartid,"Forex PivotsW1.tpl");
-         if(command==PivotsD1)
-            if(!hassubwindows)
+            if(command==PivotsD1)
                ChartApplyTemplate(chartid,"Forex PivotsD1.tpl");
-         if(command==PivotsH4)
-            if(!hassubwindows)
+            if(command==PivotsH4)
                ChartApplyTemplate(chartid,"Forex PivotsH4.tpl");
-         if(command==PivotsH1)
-            if(!hassubwindows)
+            if(command==PivotsH1)
                ChartApplyTemplate(chartid,"Forex PivotsH1.tpl");
-         if(command==ChandelierExit)
-            if(!hassubwindows)
+            if(command==ChandelierExit)
                ChartApplyTemplate(chartid,"Forex Chandelier Exit.tpl");
-         if(command==PivotChart)
-            if(!hassubwindows)
+            if(command==PivotChart)
                ChartApplyTemplate(chartid,"Forex Pivot Chart.tpl");
-         if(command==Murrey)
-            if(!hassubwindows)
+            if(command==Murrey)
                ChartApplyTemplate(chartid,"Forex Murrey Math Small.tpl");
-         if(command==ZigZag)
-            if(!hassubwindows)
+            if(command==ZigZag)
                ChartApplyTemplate(chartid,"Forex ZigZag Small.tpl");
-         if(command==Engulfing)
-            if(!hassubwindows)
+            if(command==Engulfing)
                ChartApplyTemplate(chartid,"Engulfing.tpl");
-         if(command==HeikenAshi)
-            if(!hassubwindows)
+            if(command==HeikenAshi)
                ChartApplyTemplate(chartid,"HeikenAshi.tpl");
-         if(command==Line)
-            ChartSetInteger(chartid,CHART_MODE,CHART_LINE);
-         if(command==Candles)
-            ChartSetInteger(chartid,CHART_MODE,CHART_CANDLES);
-         if(command==ZoomIn)
-            if(!hassubwindows)
+            if(command==Line)
+               ChartSetInteger(chartid,CHART_MODE,CHART_LINE);
+            if(command==Candles)
+               ChartSetInteger(chartid,CHART_MODE,CHART_CANDLES);
+            if(command==ZoomIn)
                Zoom(chartid,1);
-         if(command==ZoomOut)
-            if(!hassubwindows)
+            if(command==ZoomOut)
                Zoom(chartid,-1);
-         if(command==ChartShift)
-            if(!hassubwindows)
+            if(command==ChartShift)
             {
                ChartSetDouble(chartid,CHART_SHIFT_SIZE,20);
                ChartSetInteger(chartid,CHART_SHIFT,true);
             }
-         if(command==NoChartShift)
-            if(!hassubwindows)
+            if(command==NoChartShift)
                ChartSetInteger(chartid,CHART_SHIFT,false);
+         }
+
          if(command>NoChartShift)
             ChartSetSymbolPeriod(chartid,ChartSymbol(chartid),(ENUM_TIMEFRAMES)CommandPeriod[command]);
 
