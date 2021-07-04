@@ -3719,13 +3719,21 @@ public:
       int MA6;
       int MA7;
       int MA8;
+      int MAL1;
+      int MAL2;
+      int MAL3;
+      int MAL4;
+      int MAL5;
+      int MAL6;
+      int MAL7;
+      int MAL8;
       TypeRow()
       {
          TIME=0;
       }
    };
    TypeRow u;
-   int r[100][6][8];
+   int r[100][7][8];
 
    void UtoR(int i)
    {
@@ -3777,6 +3785,14 @@ public:
       r[i][5][5]=u.MA6;
       r[i][5][6]=u.MA7;
       r[i][5][7]=u.MA8;
+      r[i][6][0]=u.MAL1;
+      r[i][6][1]=u.MAL2;
+      r[i][6][2]=u.MAL3;
+      r[i][6][3]=u.MAL4;
+      r[i][6][4]=u.MAL5;
+      r[i][6][5]=u.MAL6;
+      r[i][6][6]=u.MAL7;
+      r[i][6][7]=u.MAL8;
    }
   
    void Init()
@@ -3803,7 +3819,7 @@ public:
       }
       else
       {
-         ArrayResize(CS,3);
+         ArrayResize(CS,4);
          M15DayInit();
       }
    }
@@ -3878,6 +3894,20 @@ public:
          true
          );
       CS[2].recalculate=true;
+
+      CS[3].Init(
+         100,
+         zeropoint,
+         StringSubstr(Symbol(),6),
+         PERIOD_M15,
+         false,
+         pr_close,
+         //pr_haaverage,
+         72,
+         0,
+         true
+         );
+      CS[3].recalculate=true;
    }
 
    bool GetM1Time()
@@ -3902,6 +3932,7 @@ public:
             CS_CalculateIndex(CS[0]);
             CS_CalculateIndex(CS[1]);
             CS_CalculateIndex(CS[2]);
+            CS_CalculateIndex(CS[3]);
          }
          return false;
       }
@@ -3948,6 +3979,7 @@ public:
                r[i][4][z]=(int)MathRound(CS[0].Currencies.Currency[z].index[CS[0].bars-1-i].laging.value1*100000);
                r[i][5][z]=(int)MathRound(CS[1].Currencies.Currency[z].index[CS[1].bars-1-i].laging.value1*100000);
                r[i][1][z]=(int)MathRound(CS[2].Currencies.Currency[z].index[CS[2].bars-1-i].laging.value1*100000);
+               r[i][6][z]=(int)MathRound(CS[3].Currencies.Currency[z].index[CS[3].bars-1-i].laging.value1*100000);
             }
          }
       }
