@@ -13,7 +13,7 @@ int lastDay=-1;
 int barshift=1;
 datetime lastmaxtime=-1;
 
-TypeCurrencyStrength CS[6];
+TypeCurrencyStrength CS[7];
 int bars=45;
 int db;
 string table;
@@ -44,8 +44,8 @@ void M15DayInit()
       StringSubstr(Symbol(),6),
       PERIOD_M15,
       false,
-      //pr_close,
-      pr_haaverage,
+      pr_close,
+      //pr_haaverage,
       19,
       5,
       true
@@ -58,13 +58,27 @@ void M15DayInit()
       StringSubstr(Symbol(),6),
       PERIOD_M15,
       false,
-      //pr_close,
-      pr_haaverage,
+      pr_close,
+      //pr_haaverage,
       6,
       0,
       true
       );
    CS[5].recalculate=true;
+
+   CS[6].Init(
+      100,
+      zeropoint,
+      StringSubstr(Symbol(),6),
+      PERIOD_M15,
+      false,
+      pr_close,
+      //pr_haaverage,
+      72,
+      0,
+      true
+      );
+   CS[6].recalculate=true;
 }
 
 
@@ -183,7 +197,15 @@ void OnInit()
                        +"MA5 INT NOT NULL,"
                        +"MA6 INT NOT NULL,"
                        +"MA7 INT NOT NULL,"
-                       +"MA8 INT NOT NULL );");
+                       +"MA8 INT NOT NULL,"
+                       +"MAL1 INT NOT NULL,"
+                       +"MAL2 INT NOT NULL,"
+                       +"MAL3 INT NOT NULL,"
+                       +"MAL4 INT NOT NULL,"
+                       +"MAL5 INT NOT NULL,"
+                       +"MAL6 INT NOT NULL,"
+                       +"MAL7 INT NOT NULL,"
+                       +"MAL8 INT NOT NULL );");
    }
 }
 
@@ -273,8 +295,15 @@ void OnTick()
                valstring+=",";
                valstring+=DoubleToString(value*100000,0);
             }
+            for(int i=0; i<8; i++)
+            {
+               int idx=CS[6].Currencies.GetValueIndex(i+1);
+               double value=CS[6].Currencies.LastValues[idx][0];
+               valstring+=",";
+               valstring+=DoubleToString(value*100000,0);
+            }
    
-            string command="INSERT INTO "+table+"(TIME,YEAR,MONTH,DAY,DAYOFWEEK,HOUR,MINUTE,C1,C2,C3,C4,C5,C6,C7,C8,D1,D2,D3,D4,D5,D6,D7,D8,DD1,DD2,DD3,DD4,DD5,DD6,DD7,DD8,DDD1,DDD2,DDD3,DDD4,DDD5,DDD6,DDD7,DDD8,O1,O2,O3,O4,O5,O6,O7,O8,MA1,MA2,MA3,MA4,MA5,MA6,MA7,MA8) VALUES("
+            string command="INSERT INTO "+table+"(TIME,YEAR,MONTH,DAY,DAYOFWEEK,HOUR,MINUTE,C1,C2,C3,C4,C5,C6,C7,C8,D1,D2,D3,D4,D5,D6,D7,D8,DD1,DD2,DD3,DD4,DD5,DD6,DD7,DD8,DDD1,DDD2,DDD3,DDD4,DDD5,DDD6,DDD7,DDD8,O1,O2,O3,O4,O5,O6,O7,O8,MA1,MA2,MA3,MA4,MA5,MA6,MA7,MA8,MAL1,MAL2,MAL3,MAL4,MAL5,MAL6,MAL7,MAL8) VALUES("
                +IntegerToString(bar[0].time)
                +","+IntegerToString(dtlast.year)
                +","+IntegerToString(dtlast.mon)
@@ -298,6 +327,7 @@ void OnTick()
       CS_CalculateIndex(CS[3]);
       CS_CalculateIndex(CS[4]);
       CS_CalculateIndex(CS[5]);
+      CS_CalculateIndex(CS[6]);
    }
 }
 
