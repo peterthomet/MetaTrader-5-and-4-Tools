@@ -232,7 +232,7 @@ struct TypeCurrencyStrength
 };
 
 
-bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0, int baseindex=-1)
+bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0, int baseindex=-1, bool showbasketperformance=true)
 {
    int limit=cs.bars;
 
@@ -360,17 +360,36 @@ bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0, int baseindex=-1)
       if(y>=cs.smalength)
       {
          int ti=((cs.bars-1)-y)+cs.offset;
+         double value[8];
          double base=0;
+         double sum=0;
+
          if(baseindex>-1)
             base=cs.Currencies.Currency[baseindex].index[y].laging.value1;
-         USDplot[ti]=cs.Currencies.Currency[0].index[y].laging.value1-base+1000;
-         EURplot[ti]=cs.Currencies.Currency[1].index[y].laging.value1-base+1000;
-         GBPplot[ti]=cs.Currencies.Currency[2].index[y].laging.value1-base+1000;
-         JPYplot[ti]=cs.Currencies.Currency[3].index[y].laging.value1-base+1000;
-         CHFplot[ti]=cs.Currencies.Currency[4].index[y].laging.value1-base+1000;
-         CADplot[ti]=cs.Currencies.Currency[5].index[y].laging.value1-base+1000;
-         AUDplot[ti]=cs.Currencies.Currency[6].index[y].laging.value1-base+1000;
-         NZDplot[ti]=cs.Currencies.Currency[7].index[y].laging.value1-base+1000;
+
+         for(int s=0; s<8; s++)
+         {
+            value[s]=cs.Currencies.Currency[s].index[y].laging.value1-base;
+            sum+=value[s];
+         }
+
+         if(baseindex>-1&&showbasketperformance)
+         {
+            for(int s=0; s<8; s++)
+            {
+               if(s!=baseindex)
+                  value[s]=sum/7;
+            }
+         }
+         
+         USDplot[ti]=value[0]+1000;
+         EURplot[ti]=value[1]+1000;
+         GBPplot[ti]=value[2]+1000;
+         JPYplot[ti]=value[3]+1000;
+         CHFplot[ti]=value[4]+1000;
+         CADplot[ti]=value[5]+1000;
+         AUDplot[ti]=value[6]+1000;
+         NZDplot[ti]=value[7]+1000;
       }
 #endif
      
