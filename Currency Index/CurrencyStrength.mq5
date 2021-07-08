@@ -240,6 +240,7 @@ void OnInit()
    if(moderead<0||moderead>OSCILLATOR)
       moderead=0;
    modecurrent=(CalculationMode)moderead;
+
    InitCS();
 
    istesting=MQLInfoInteger(MQL_TESTER);
@@ -271,10 +272,13 @@ void OnInit()
       offset=1;
       offsettime=offsetread;
    }
-// Debug
-//   offset=1;
-//   offsettime=1615775175;
-// ---
+
+   int basecurrencyread=(int)GlobalVariableGet(appnamespace+IntegerToString(ChartID())+"_basecurrency");
+   if(basecurrencyread>0)
+      basecurrency=basecurrencyread-1;
+
+   if(GlobalVariableCheck(appnamespace+IntegerToString(ChartID())+"_showbasket"))
+      showbasket=true;
    
    AddFunctionButton(6,16,"RAW |");
    AddFunctionButton(39,16,"SMA |");
@@ -332,6 +336,14 @@ void OnDeinit(const int reason)
    GlobalVariableSet(appnamespace+IntegerToString(ChartID())+"_offset",offsetwrite);
 
    GlobalVariableSet(appnamespace+IntegerToString(ChartID())+"_mode",modecurrent);
+
+   GlobalVariableSet(appnamespace+IntegerToString(ChartID())+"_basecurrency",basecurrency+1);
+
+   string varname=appnamespace+IntegerToString(ChartID())+"_showbasket";
+   if(showbasket)
+      GlobalVariableSet(varname,0);
+   else
+      GlobalVariableDel(varname);
 }
 
 
