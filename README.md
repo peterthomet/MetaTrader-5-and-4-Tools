@@ -70,3 +70,11 @@ Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute 
 
 [![](http://img.youtube.com/vi/XUngix22JGs/maxresdefault.jpg)](http://www.youtube.com/watch?v=XUngix22JGs "Trade Manager | Trade Manager Aggregated View of Trades")
 
+<br/>
+<br/>
+
+## Forex Currency Strength Analysis Tool
+
+
+[![](http://img.youtube.com/vi/g5eWgzQYdiU/maxresdefault.jpg)](http://www.youtube.com/watch?v=g5eWgzQYdiU "Forex Currency Strength Analysis Tool")
+
