@@ -113,6 +113,7 @@ CalculationMode modelast;
 bool NewBarBase=false;
 ulong LastMicrosecondCount=0;
 int basecurrency=-1;
+bool showbasket=false;
 #ifdef __MQL5__
 //CXMA xmaUSD,xmaEUR,xmaGBP,xmaCHF,xmaJPY,xmaCAD,xmaAUD,xmaNZD;
 //CJJMA jjmaUSD;
@@ -560,7 +561,7 @@ void OnTimer()
    if(modecurrent!=modelast||(NewBarBase&&ZeroPointType!=ByBar))
       InitCS();
    
-   if(CS_CalculateIndex(CS,offset,basecurrency))
+   if(CS_CalculateIndex(CS,offset,basecurrency,showbasket))
    {
       WriteComment(" ");
       
@@ -935,6 +936,8 @@ void SwitchBaseCurrency(int base)
       basecurrency=base;
    else
       basecurrency=-1;
+   
+   showbasket=ctrl_pressed;
 }
 
 
