@@ -232,7 +232,7 @@ struct TypeCurrencyStrength
 };
 
 
-bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0, int baseindex=-1, bool showbasketperformance=true)
+bool CS_CalculateIndex(TypeCurrencyStrength& cs, int Offset=0, int baseindex=-1, bool showbasketperformance=false)
 {
    int limit=cs.bars;
 
