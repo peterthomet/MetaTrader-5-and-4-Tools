@@ -8,6 +8,7 @@
 #property version   "1.00"
 
 input int TotalBars = 200000; // Total Bars
+input bool FillGaps = false; // Fill Gaps
 
 #include <CurrencyStrength.mqh>
 
@@ -30,7 +31,22 @@ struct TypeCurrenciesRates
    void Init(int size)
    {
       for(int i=0; i<8; i++)
+         ArrayResize(c[i].r,size,size/2);
+   }
+   void Resize(int size, int gap, int index)
+   {
+      for(int i=0; i<8; i++)
+      {
          ArrayResize(c[i].r,size);
+         for(int y=0; y<gap; y++)
+         {
+            c[i].r[index+y].time=c[i].r[index-1].time+(60*(y+1));
+            c[i].r[index+y].open=c[i].r[index-1].close;
+            c[i].r[index+y].high=c[i].r[index-1].close;
+            c[i].r[index+y].low=c[i].r[index-1].close;
+            c[i].r[index+y].close=c[i].r[index-1].close;
+         }
+      }
    }
 };
 
@@ -165,18 +181,33 @@ bool LoadCS(int updatebars, bool deleteall)
 {
    if(CS_CalculateIndex(CS,0))
    {
-      TypeCurrenciesRates cr;
+      TypeCurrenciesRates cr,cr2;
       cr.Init(updatebars);
+      cr2.Init(updatebars);
+      int gapshift=0;
 
       for(int i=(CS.bars-updatebars); i<CS.bars; i++)
       {
          int n=i-(CS.bars-updatebars);
+
          for(int z=0; z<8; z++)
             GetValues(cr.c[z].r[n],CS.Currencies.Currency[z],i);
+
+         if(FillGaps && n>0)
+         {
+            int minutesgap=(int)((cr.c[0].r[n].time-cr.c[0].r[n-1].time)/60)-1;
+            gapshift+=minutesgap;
+
+            if(minutesgap>0)
+               cr2.Resize(updatebars+gapshift,minutesgap,n+gapshift-minutesgap);
+         }
+
+         for(int z=0; z<8; z++)
+            cr2.c[z].r[n+gapshift]=cr.c[z].r[n];
       }
       
       for(int z=0; z<8; z++)
-         UpdateRates(cr.c[z].r,SymbolById(z),deleteall);
+         UpdateRates(cr2.c[z].r,SymbolById(z),deleteall);
 
       return true;
    }
