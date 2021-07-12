@@ -19,11 +19,54 @@ enum States
    DayCSReady
 };
 
+struct TypeCurrencyRates
+{
+   MqlRates r[];
+};
+
+struct TypeCurrenciesRates
+{
+   TypeCurrencyRates c[8];
+   void Init(int size)
+   {
+      for(int i=0; i<8; i++)
+         ArrayResize(c[i].r,size);
+   }
+};
+
 TypeCurrencyStrength CS;
 States InitState=Initial;
 datetime lastm1bar=0;
 double lasttick[8];
 bool secondinit=false;
+
+
+int IdBySymbol(string symbol)
+{
+   if(symbol=="USD") return 0;
+   if(symbol=="EUR") return 1;
+   if(symbol=="GBP") return 2;
+   if(symbol=="JPY") return 3;
+   if(symbol=="CHF") return 4;
+   if(symbol=="CAD") return 5;
+   if(symbol=="AUD") return 6;
+   if(symbol=="NZD") return 7;
+   return -1;
+}
+
+
+string SymbolById(int id)
+{
+   if(id==0) return "USD";
+   if(id==1) return "EUR";
+   if(id==2) return "GBP";
+   if(id==3) return "JPY";
+   if(id==4) return "CHF";
+   if(id==5) return "CAD";
+   if(id==6) return "AUD";
+   if(id==7) return "NZD";
+   return "";
+}
 
 
 void OnStart()
@@ -118,55 +161,22 @@ void AddTick(double price, datetime time, string symbol)
 }
 
 
-int IdBySymbol(string symbol)
-{
-   if(symbol=="USD") return 0;
-   if(symbol=="EUR") return 1;
-   if(symbol=="GBP") return 2;
-   if(symbol=="JPY") return 3;
-   if(symbol=="CHF") return 4;
-   if(symbol=="CAD") return 5;
-   if(symbol=="AUD") return 6;
-   if(symbol=="NZD") return 7;
-   return -1;
-}
-
-
 bool LoadCS(int updatebars, bool deleteall)
 {
    if(CS_CalculateIndex(CS,0))
    {
-      MqlRates ratesUSD[], ratesEUR[], ratesGBP[], ratesJPY[], ratesCHF[], ratesCAD[], ratesAUD[], ratesNZD[];
-      ArrayResize(ratesUSD,updatebars);
-      ArrayResize(ratesEUR,updatebars);
-      ArrayResize(ratesGBP,updatebars);
-      ArrayResize(ratesJPY,updatebars);
-      ArrayResize(ratesCHF,updatebars);
-      ArrayResize(ratesCAD,updatebars);
-      ArrayResize(ratesAUD,updatebars);
-      ArrayResize(ratesNZD,updatebars);
+      TypeCurrenciesRates cr;
+      cr.Init(updatebars);
 
       for(int i=(CS.bars-updatebars); i<CS.bars; i++)
       {
          int n=i-(CS.bars-updatebars);
-         GetValues(ratesUSD[n],CS.Currencies.Currency[0],i);
-         GetValues(ratesEUR[n],CS.Currencies.Currency[1],i);
-         GetValues(ratesGBP[n],CS.Currencies.Currency[2],i);
-         GetValues(ratesJPY[n],CS.Currencies.Currency[3],i);
-         GetValues(ratesCHF[n],CS.Currencies.Currency[4],i);
-         GetValues(ratesCAD[n],CS.Currencies.Currency[5],i);
-         GetValues(ratesAUD[n],CS.Currencies.Currency[6],i);
-         GetValues(ratesNZD[n],CS.Currencies.Currency[7],i);
+         for(int z=0; z<8; z++)
+            GetValues(cr.c[z].r[n],CS.Currencies.Currency[z],i);
       }
       
-      UpdateRates(ratesUSD,"USD",deleteall);
-      UpdateRates(ratesEUR,"EUR",deleteall);
-      UpdateRates(ratesGBP,"GBP",deleteall);
-      UpdateRates(ratesJPY,"JPY",deleteall);
-      UpdateRates(ratesCHF,"CHF",deleteall);
-      UpdateRates(ratesCAD,"CAD",deleteall);
-      UpdateRates(ratesAUD,"AUD",deleteall);
-      UpdateRates(ratesNZD,"NZD",deleteall);
+      for(int z=0; z<8; z++)
+         UpdateRates(cr.c[z].r,SymbolById(z),deleteall);
 
       return true;
    }
@@ -177,14 +187,8 @@ bool LoadCS(int updatebars, bool deleteall)
 
 void ClearAllSymbolRates()
 {
-   ClearSymbolRates("USD");
-   ClearSymbolRates("EUR");
-   ClearSymbolRates("GBP");
-   ClearSymbolRates("JPY");
-   ClearSymbolRates("CHF");
-   ClearSymbolRates("CAD");
-   ClearSymbolRates("AUD");
-   ClearSymbolRates("NZD");
+   for(int z=0; z<8; z++)
+      ClearSymbolRates(SymbolById(z));
 }
 
 
@@ -219,43 +223,21 @@ void GetValues(MqlRates& rates, TypeCurrency& currency, int i)
 
 void DeleteSymbols()
 {
-   SymbolSelect("USD",false);
-   CustomSymbolDelete("USD");
-   SymbolSelect("EUR",false);
-   CustomSymbolDelete("EUR");
-   SymbolSelect("GBP",false);
-   CustomSymbolDelete("GBP");
-   SymbolSelect("JPY",false);
-   CustomSymbolDelete("JPY");
-   SymbolSelect("CHF",false);
-   CustomSymbolDelete("CHF");
-   SymbolSelect("CAD",false);
-   CustomSymbolDelete("CAD");
-   SymbolSelect("AUD",false);
-   CustomSymbolDelete("AUD");
-   SymbolSelect("NZD",false);
-   CustomSymbolDelete("NZD");
+   for(int z=0; z<8; z++)
+   {
+      SymbolSelect(SymbolById(z),false);
+      CustomSymbolDelete(SymbolById(z));
+   }
 }
 
 
 void CreateAndSelectSymbols()
 {
-   CustomSymbolCreate("USD");
-   SymbolSelect("USD",true);
-   CustomSymbolCreate("EUR");
-   SymbolSelect("EUR",true);
-   CustomSymbolCreate("GBP");
-   SymbolSelect("GBP",true);
-   CustomSymbolCreate("JPY");
-   SymbolSelect("JPY",true);
-   CustomSymbolCreate("CHF");
-   SymbolSelect("CHF",true);
-   CustomSymbolCreate("CAD");
-   SymbolSelect("CAD",true);
-   CustomSymbolCreate("AUD");
-   SymbolSelect("AUD",true);
-   CustomSymbolCreate("NZD");
-   SymbolSelect("NZD",true);
+   for(int z=0; z<8; z++)
+   {
+      CustomSymbolCreate(SymbolById(z));
+      SymbolSelect(SymbolById(z),true);
+   }
 }
 
 
