@@ -74,7 +74,7 @@ void M15DayInit()
       false,
       pr_close,
       //pr_haaverage,
-      72,
+      24,
       0,
       true
       );
