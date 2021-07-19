@@ -50,6 +50,8 @@ input ENUM_LINE_STYLE LineStyleWeek=STYLE_SOLID;    // Line Style Week
 input ENUM_LINE_STYLE LineStyleMonth=STYLE_SOLID;    // Line Style Month
 input ENUM_LINE_STYLE LineStyleYear=STYLE_SOLID;    // Line Style Year
 
+input bool weekstartuseservertime=false;    // Week Start use Monday 0:00 Servertime
+
 bool newbar=false;
 long firstbar=0;
 long lastfirstbar=-1;
@@ -93,6 +95,7 @@ void OnInit()
    pivotsdata.Settings.LineStyleYear=LineStyleYear;
    pivotsdata.Settings.pivotrangecolor=colorPivotRange;
    pivotsdata.Settings.pivottrendlinescolor=colorPivotTrendLine;
+   pivotsdata.Settings.weekstartuseservertime=weekstartuseservertime;
    
    istesting=MQLInfoInteger(MQL_TESTER);
    EventSetTimer(1);
