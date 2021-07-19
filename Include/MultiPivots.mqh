@@ -64,6 +64,7 @@ struct TypePivotsSettings
    datetime lastmonthtime;
    datetime currentyeartime;
    datetime lastyeartime;
+   bool weekstartuseservertime;
    int weekdaystart;
    int dayhourstart;
    datetime weekstarttime;
@@ -109,6 +110,7 @@ struct TypePivotsSettings
       LineStyleWeek=STYLE_SOLID;
       LineStyleMonth=STYLE_SOLID;
       LineStyleYear=STYLE_SOLID;
+      weekstartuseservertime=false;
    }
    void Init() { lasth1time=0; lasth4time=0; lastdaytime=0; lastweektime=0; lastmonthtime=0; lastyeartime=0; } 
 };
@@ -554,7 +556,7 @@ bool PivotsFindWeekDayStart(TypePivotsData& PD, datetime timeref)
          MqlDateTime wdstart;
          TimeToStruct(ref,wdstart);
 
-         if(ref-dtarr[i]>86400 && wdstart.day_of_week<=1)
+         if((ref-dtarr[i]>86400 && wdstart.day_of_week<=1) || (PD.Settings.weekstartuseservertime && wdstart.day_of_week==1 && wdstart.hour==0))
          {
             PD.Settings.weekdaystart=wdstart.day_of_week;
             PD.Settings.dayhourstart=wdstart.hour;
