@@ -105,6 +105,7 @@ input group "Harvesters";
 input bool Harvester_CSGBPReversal = false;
 input bool Harvester_CSGBP45MinStrength = false;
 input bool Harvester_CSFollow = false;
+input bool Harvester_GBPWeek = false;
 input bool UseCurrencyStrengthDatabase = false;
 input group "Trading Hours";
 input bool Hour0 = true;
@@ -681,6 +682,12 @@ void InitStrategies()
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyCSFollow;
+      i++;
+   }
+   if(Harvester_GBPWeek)
+   {
+      ArrayResize(strats,i+1);
+      strats[i]=new StrategyGBPWeek;
       i++;
    }
 }
@@ -4311,6 +4318,97 @@ public:
          OpenBasket(2,openlots,OP_BUY);
          lastday=times.t2.day_of_year;
          daytrend=OP_BUY;
+      }
+
+      lastminute=times.t1;
+   }
+};
+
+
+class StrategyGBPWeek : public StrategyCSBase
+{
+public:
+
+   StrategyGBPWeek()
+   {
+      Name="Harvester GBPWeek";
+      if(UseCurrencyStrengthDatabase)
+         Name+=" DB";
+      Namespace="HARVGBPWeek";
+      Init();
+   }
+
+   void Calculate()
+   {
+      if(!GetM1Time())
+         return;
+
+      //if(!IsM15NewBar())
+      //   return;
+
+      //if(!IsTradingTime())
+      //   return;
+
+      if(times.t1==lastminute)
+         return;
+
+      GetIndexData();
+      
+      bool isnewday=lastday!=times.t2.day_of_year;
+      if(isnewday)
+         daytrend=-1;
+
+      double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
+      //openlots=_OpenLots;
+
+      if(
+         times.t2.day_of_week==3 &&
+         times.t2.hour>=22 &&
+         //isnewday &&
+         true
+      )
+      {
+         CloseAllInternal();
+         lastday=times.t2.day_of_year;
+      }
+
+      if(
+         BI.managedorders>0 &&
+         times.t2.day_of_week==2 &&
+         times.t2.hour>2 &&
+         (r[0][2][2]>=250 || r[0][2][2]<=-250) &&
+         isnewday &&
+         true
+      )
+      {
+         if(r[0][2][2]>=250)
+         {
+            CloseAllInternal("Buys-"+IndexToCurrency(2));
+            OpenBasket(2,openlots,OP_SELL);
+         }
+         else
+         {
+            CloseAllInternal("Sells"+IndexToCurrency(2));
+            OpenBasket(2,openlots,OP_BUY);
+         }
+         
+         //OpenBasket(2,openlots,OP_BUY);
+         //OpenBasket(2,openlots,OP_SELL);
+         lastday=times.t2.day_of_year;
+      }
+
+      if(
+         times.t2.day_of_week==1 &&
+         times.t2.hour>2 &&
+         r[0][1][2]<10 &&
+         r[0][1][2]>-10 &&
+         isnewday &&
+         true
+      )
+      {
+         OpenBasket(2,openlots,OP_BUY);
+         OpenBasket(2,openlots,OP_SELL);
+         lastday=times.t2.day_of_year;
       }
 
       lastminute=times.t1;
