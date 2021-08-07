@@ -3734,13 +3734,29 @@ public:
       int MAL6;
       int MAL7;
       int MAL8;
+      int OL1;
+      int OL2;
+      int OL3;
+      int OL4;
+      int OL5;
+      int OL6;
+      int OL7;
+      int OL8;
+      int L1;
+      int L2;
+      int L3;
+      int L4;
+      int L5;
+      int L6;
+      int L7;
+      int L8;
       TypeRow()
       {
          TIME=0;
       }
    };
    TypeRow u;
-   int r[100][7][8];
+   int r[100][9][8];
 
    void UtoR(int i)
    {
@@ -3792,6 +3808,10 @@ public:
       r[i][5][5]=u.MA6;
       r[i][5][6]=u.MA7;
       r[i][5][7]=u.MA8;
+   }
+
+   void UtoR2(int i)
+   {
       r[i][6][0]=u.MAL1;
       r[i][6][1]=u.MAL2;
       r[i][6][2]=u.MAL3;
@@ -3800,6 +3820,22 @@ public:
       r[i][6][5]=u.MAL6;
       r[i][6][6]=u.MAL7;
       r[i][6][7]=u.MAL8;
+      r[i][7][0]=u.OL1;
+      r[i][7][1]=u.OL2;
+      r[i][7][2]=u.OL3;
+      r[i][7][3]=u.OL4;
+      r[i][7][4]=u.OL5;
+      r[i][7][5]=u.OL6;
+      r[i][7][6]=u.OL7;
+      r[i][7][7]=u.OL8;
+      r[i][8][0]=u.L1;
+      r[i][8][1]=u.L2;
+      r[i][8][2]=u.L3;
+      r[i][8][3]=u.L4;
+      r[i][8][4]=u.L5;
+      r[i][8][5]=u.L6;
+      r[i][8][6]=u.L7;
+      r[i][8][7]=u.L8;
    }
   
    void Init()
@@ -3826,7 +3862,7 @@ public:
       }
       else
       {
-         ArrayResize(CS,4);
+         ArrayResize(CS,6);
          M15DayInit();
       }
    }
@@ -3903,18 +3939,43 @@ public:
       CS[2].recalculate=true;
 
       CS[3].Init(
-         100,
-         zeropoint,
+         70,
+         70,
          StringSubstr(Symbol(),6),
-         PERIOD_M15,
+         PERIOD_H3,
          false,
          pr_close,
-         //pr_haaverage,
-         72,
+         6,
          0,
          true
          );
       CS[3].recalculate=true;
+
+      CS[4].Init(
+         70,
+         70,
+         StringSubstr(Symbol(),6),
+         PERIOD_H3,
+         false,
+         pr_close,
+         19,
+         5,
+         true
+         );
+      CS[4].recalculate=true;
+
+      CS[5].Init(
+         70,
+         70,
+         StringSubstr(Symbol(),6),
+         PERIOD_H3,
+         false,
+         pr_close,
+         0,
+         0,
+         true
+         );
+      CS[5].recalculate=true;
    }
 
    bool GetM1Time()
@@ -3940,6 +4001,8 @@ public:
             CS_CalculateIndex(CS[1]);
             CS_CalculateIndex(CS[2]);
             CS_CalculateIndex(CS[3]);
+            CS_CalculateIndex(CS[4]);
+            CS_CalculateIndex(CS[5]);
          }
          return false;
       }
@@ -3968,13 +4031,23 @@ public:
          CopyTime(Symbol(),PERIOD_M15,0,100,Arr);
          for(int i=0; i<100; i++)
          {
-            //int t=(int)times.t1-60-(PeriodSeconds(PERIOD_M15)*i);
             int t=(int)Arr[99-i]-60;
             DatabaseReset(request);
             DatabaseBind(request,0,t);
             if(!DatabaseReadBind(request,u))
                break;
             UtoR(i);
+         }
+         datetime Arr2[70];
+         CopyTime(Symbol(),PERIOD_H3,0,70,Arr2);
+         for(int i=0; i<70; i++)
+         {
+            int t=(int)Arr2[69-i]-60;
+            DatabaseReset(request);
+            DatabaseBind(request,0,t);
+            if(!DatabaseReadBind(request,u))
+               break;
+            UtoR2(i);
          }
       }
       else
@@ -3986,7 +4059,12 @@ public:
                r[i][4][z]=(int)MathRound(CS[0].Currencies.Currency[z].index[CS[0].bars-1-i].laging.value1*100000);
                r[i][5][z]=(int)MathRound(CS[1].Currencies.Currency[z].index[CS[1].bars-1-i].laging.value1*100000);
                r[i][1][z]=(int)MathRound(CS[2].Currencies.Currency[z].index[CS[2].bars-1-i].laging.value1*100000);
-               r[i][6][z]=(int)MathRound(CS[3].Currencies.Currency[z].index[CS[3].bars-1-i].laging.value1*100000);
+               if(i<70)
+               {
+                  r[i][6][z]=(int)MathRound(CS[3].Currencies.Currency[z].index[CS[3].bars-1-i].laging.value1*100000);
+                  r[i][7][z]=(int)MathRound(CS[3].Currencies.Currency[z].index[CS[4].bars-1-i].laging.value1*100000);
+                  r[i][8][z]=(int)MathRound(CS[3].Currencies.Currency[z].index[CS[5].bars-1-i].laging.value1*100000);
+               }
             }
          }
       }
