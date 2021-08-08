@@ -4133,17 +4133,23 @@ public:
       return a[pos][1];
    }
    
-   int Oscillators(TypeOscillatorInfo& oi[])
+   void Oscillators(TypeOscillatorInfo& oi[], bool olong=false)
    {
-      int count=0;
+      int typeindex=4;
+      int itemcount=100;
+      if(olong)
+      {
+         typeindex=7;
+         itemcount=70;
+      }
+   
       for(int z=0; z<8; z++)
       {
-         count++;
-         ArrayResize(oi,count);
+         ArrayResize(oi,z+1);
 
          oi[z].Currency=z;
-         oi[z].Change=r[0][4][z]-r[1][4][z];
-         oi[z].Level=r[0][4][z];
+         oi[z].Change=r[0][typeindex][z]-r[1][typeindex][z];
+         oi[z].Level=r[0][typeindex][z];
          oi[z].HighLevel=INT_MIN;
          oi[z].HighBar=-1;
          oi[z].LastHighTurnLevel=INT_MIN;
@@ -4153,9 +4159,9 @@ public:
          oi[z].LastLowTurnLevel=INT_MAX;
          oi[z].LastLowTurnBar=-1;
 
-         for(int i=0; i<100; i++)
+         for(int i=0; i<itemcount; i++)
          {
-            int c=r[i][4][z];
+            int c=r[i][typeindex][z];
 
             if(c>oi[z].HighLevel)
             {
@@ -4180,7 +4186,6 @@ public:
             }
          }
       }
-      return count;
    }
    
    int MACrosses(TypeCrossInfo& CrossInfo[])
@@ -4341,7 +4346,7 @@ public:
       //}
 
       TypeOscillatorInfo oi[];
-      int s=Oscillators(oi);
+      Oscillators(oi);
 
       for(int z=0; z<8; z++)
       {
