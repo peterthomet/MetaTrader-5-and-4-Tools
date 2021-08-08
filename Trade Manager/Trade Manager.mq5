@@ -4346,7 +4346,7 @@ public:
       //}
 
       TypeOscillatorInfo oi[];
-      Oscillators(oi);
+      Oscillators(oi,true);
 
       for(int z=0; z<8; z++)
       {
@@ -4360,13 +4360,11 @@ public:
             {
                if(
                   oi[z].LastHighTurnBar==1 &&
-                  oi[z].LastHighTurnLevel>80 &&
-                  oi[y].Level<80 &&
-                  oi[y].Change>0 &&
-                  //oi[y].LastLowTurnBar==1 &&
-                  //oi[y].LastLowTurnLevel<-80 &&
-                  //isnewday &&
-                  false
+                  oi[z].LastHighTurnLevel>125 &&
+                  oi[y].LastLowTurnBar==1 &&
+                  oi[y].LastLowTurnLevel<-125 &&
+                  isnewday &&
+                  true
                )
                {
                   Trade(y,z,openlots);
@@ -4382,7 +4380,7 @@ public:
          oi[2].LastHighTurnBar==1 &&
          oi[2].LastHighTurnLevel>=105 &&
          isnewday &&
-         true
+         false
       )
       {
          OpenBasket(2,openlots,OP_SELL);
@@ -4395,7 +4393,7 @@ public:
          oi[2].LastLowTurnBar==1 &&
          oi[2].LastLowTurnLevel<=-105 &&
          isnewday &&
-         true
+         false
       )
       {
          OpenBasket(2,openlots,OP_BUY);
