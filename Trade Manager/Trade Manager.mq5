@@ -106,6 +106,7 @@ input bool Harvester_CSGBPReversal = false;
 input bool Harvester_CSGBP45MinStrength = false;
 input bool Harvester_CSFollow = false;
 input bool Harvester_GBPWeek = false;
+input bool Harvester_CSEmergingTrends = false;
 input bool UseCurrencyStrengthDatabase = false;
 input group "Trading Hours";
 input bool Hour0 = true;
@@ -688,6 +689,12 @@ void InitStrategies()
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyGBPWeek;
+      i++;
+   }
+   if(Harvester_CSEmergingTrends)
+   {
+      ArrayResize(strats,i+1);
+      strats[i]=new StrategyCSEmergingTrends;
       i++;
    }
 }
@@ -4346,6 +4353,86 @@ public:
       //}
 
       TypeOscillatorInfo oi[];
+      Oscillators(oi);
+
+      if(
+         //r[0][1][2]>=MinPoints1 &&
+         r[0][1][2]>=50 &&
+         oi[2].LastHighTurnBar==1 &&
+         oi[2].LastHighTurnLevel>=105 &&
+         isnewday &&
+         true
+      )
+      {
+         OpenBasket(2,openlots,OP_SELL);
+         lastday=times.t2.day_of_year;
+         daytrend=OP_SELL;
+      }
+      if(
+         //r[0][1][2]<=(MinPoints1*-1) &&
+         r[0][1][2]<=-50 &&
+         oi[2].LastLowTurnBar==1 &&
+         oi[2].LastLowTurnLevel<=-105 &&
+         isnewday &&
+         true
+      )
+      {
+         OpenBasket(2,openlots,OP_BUY);
+         lastday=times.t2.day_of_year;
+         daytrend=OP_BUY;
+      }
+
+      lastminute=times.t1;
+   }
+};
+
+
+class StrategyCSEmergingTrends : public StrategyCSBase
+{
+public:
+
+   StrategyCSEmergingTrends()
+   {
+      Name="Harvester CSEmergingTrends";
+      if(UseCurrencyStrengthDatabase)
+         Name+=" DB";
+      Namespace="HARVCSEmergingTrends";
+      Init();
+   }
+
+   void Calculate()
+   {
+      if(!GetM1Time())
+         return;
+
+      if(!IsM15NewBar())
+         return;
+
+      if(!IsTradingTime())
+         return;
+
+      if(times.t1==lastminute)
+         return;
+
+      GetIndexData();
+      
+      bool isnewday=lastday!=times.t2.day_of_year;
+      if(isnewday)
+         daytrend=-1;
+
+      double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
+      //openlots=_OpenLots;
+
+      //if((daytrend==OP_BUY && row.D3<0) || (daytrend==OP_SELL && row.D3>0))
+      //   CloseAllInternal();
+
+      //if(dtcurrent.hour==22)
+      //{
+      //   CloseAllInternal();
+      //   return;
+      //}
+
+      TypeOscillatorInfo oi[];
       Oscillators(oi,true);
 
       for(int z=0; z<8; z++)
@@ -4379,33 +4466,6 @@ public:
                }
             }
          }
-      }
-
-      if(
-         //r[0][1][2]>=MinPoints1 &&
-         r[0][1][2]>=50 &&
-         oi[2].LastHighTurnBar==1 &&
-         oi[2].LastHighTurnLevel>=105 &&
-         isnewday &&
-         false
-      )
-      {
-         OpenBasket(2,openlots,OP_SELL);
-         lastday=times.t2.day_of_year;
-         daytrend=OP_SELL;
-      }
-      if(
-         //r[0][1][2]<=(MinPoints1*-1) &&
-         r[0][1][2]<=-50 &&
-         oi[2].LastLowTurnBar==1 &&
-         oi[2].LastLowTurnLevel<=-105 &&
-         isnewday &&
-         false
-      )
-      {
-         OpenBasket(2,openlots,OP_BUY);
-         lastday=times.t2.day_of_year;
-         daytrend=OP_BUY;
       }
 
       lastminute=times.t1;
