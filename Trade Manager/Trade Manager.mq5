@@ -4350,10 +4350,16 @@ public:
 
       for(int z=0; z<8; z++)
       {
-         //if(oi[z].LastHighTurnBar==1)
-         //   CloseAllInternal("Buys-"+IndexToCurrency(z));
-         //if(oi[z].LastLowTurnBar==1)
-         //   CloseAllInternal("Sells"+IndexToCurrency(z));
+         if(oi[z].LastHighTurnBar==1 &&
+            oi[z].LastHighTurnLevel>125 &&
+            true
+         )
+            CloseAllInternal("Buys-"+IndexToCurrency(z));
+         if(oi[z].LastLowTurnBar==1 &&
+            oi[z].LastLowTurnLevel<-125 &&
+            true
+         )
+            CloseAllInternal("Sells"+IndexToCurrency(z));
          for(int y=0; y<8; y++)
          {
             if(y!=z)
