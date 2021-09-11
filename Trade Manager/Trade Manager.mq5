@@ -3767,14 +3767,6 @@ public:
 
    void UtoR(int i)
    {
-      r[i][0][0]=u.C1;
-      r[i][0][1]=u.C2;
-      r[i][0][2]=u.C3;
-      r[i][0][3]=u.C4;
-      r[i][0][4]=u.C5;
-      r[i][0][5]=u.C6;
-      r[i][0][6]=u.C7;
-      r[i][0][7]=u.C8;
       r[i][1][0]=u.D1;
       r[i][1][1]=u.D2;
       r[i][1][2]=u.D3;
@@ -3843,6 +3835,18 @@ public:
       r[i][8][5]=u.L6;
       r[i][8][6]=u.L7;
       r[i][8][7]=u.L8;
+   }
+
+   void UtoR3(int i)
+   {
+      r[i][0][0]=u.C1;
+      r[i][0][1]=u.C2;
+      r[i][0][2]=u.C3;
+      r[i][0][3]=u.C4;
+      r[i][0][4]=u.C5;
+      r[i][0][5]=u.C6;
+      r[i][0][6]=u.C7;
+      r[i][0][7]=u.C8;
    }
   
    void Init()
@@ -4030,7 +4034,7 @@ public:
       return true;
    }
 
-   void GetIndexData()
+   void GetIndexDataM15()
    {
       if(UseCurrencyStrengthDatabase)
       {
@@ -4056,9 +4060,22 @@ public:
                break;
             UtoR2(i);
          }
+         datetime Arr3[60];
+         CopyTime(Symbol(),PERIOD_M1,0,60,Arr3);
+         for(int i=0; i<60; i++)
+         {
+            int t=(int)Arr3[59-i]-60;
+            DatabaseReset(request);
+            DatabaseBind(request,0,t);
+            if(!DatabaseReadBind(request,u))
+               break;
+            UtoR3(i);
+         }
       }
       else
       {
+         // TODO Add CS M1 without Database
+      
          for(int i=0; i<100; i++)
          {
             for(int z=0; z<8; z++)
@@ -4265,7 +4282,7 @@ public:
       if(times.t1==lastminute)
          return;
 
-      GetIndexData();
+      GetIndexDataM15();
       
       bool isnewday=lastday!=times.t2.day_of_year;
       if(isnewday)
@@ -4334,7 +4351,7 @@ public:
       if(times.t1==lastminute)
          return;
 
-      GetIndexData();
+      GetIndexDataM15();
       
       bool isnewday=lastday!=times.t2.day_of_year;
       if(isnewday)
@@ -4414,7 +4431,7 @@ public:
       if(times.t1==lastminute)
          return;
 
-      GetIndexData();
+      GetIndexDataM15();
       
       bool isnewday=lastday!=times.t2.day_of_year;
       if(isnewday)
@@ -4432,37 +4449,40 @@ public:
       //   return;
       //}
 
-      TypeOscillatorInfo oi[];
-      Oscillators(oi,true);
-
-      for(int z=0; z<8; z++)
+      if(false)
       {
-         //if(oi[z].LastHighTurnBar==1 &&
-         //   oi[z].LastHighTurnLevel>125 &&
-         //   false
-         //)
-         //   CloseAllInternal("Buys-"+IndexToCurrency(z));
-         //if(oi[z].LastLowTurnBar==1 &&
-         //   oi[z].LastLowTurnLevel<-125 &&
-         //   false
-         //)
-         //   CloseAllInternal("Sells"+IndexToCurrency(z));
-
-         for(int y=0; y<8; y++)
+         TypeOscillatorInfo oi[];
+         Oscillators(oi,true);
+   
+         for(int z=0; z<8; z++)
          {
-            if(y!=z)
+            //if(oi[z].LastHighTurnBar==1 &&
+            //   oi[z].LastHighTurnLevel>125 &&
+            //   false
+            //)
+            //   CloseAllInternal("Buys-"+IndexToCurrency(z));
+            //if(oi[z].LastLowTurnBar==1 &&
+            //   oi[z].LastLowTurnLevel<-125 &&
+            //   false
+            //)
+            //   CloseAllInternal("Sells"+IndexToCurrency(z));
+   
+            for(int y=0; y<8; y++)
             {
-               if(
-                  oi[z].LastHighTurnBar==1 &&
-                  oi[z].LastHighTurnLevel>125 &&
-                  oi[y].LastLowTurnBar==1 &&
-                  oi[y].LastLowTurnLevel<-125 &&
-                  isnewday &&
-                  true
-               )
+               if(y!=z)
                {
-                  Trade(y,z,openlots);
-                  lastday=times.t2.day_of_year;
+                  if(
+                     oi[z].LastHighTurnBar==1 &&
+                     oi[z].LastHighTurnLevel>125 &&
+                     oi[y].LastLowTurnBar==1 &&
+                     oi[y].LastLowTurnLevel<-125 &&
+                     isnewday &&
+                     true
+                  )
+                  {
+                     Trade(y,z,openlots);
+                     lastday=times.t2.day_of_year;
+                  }
                }
             }
          }
@@ -4500,7 +4520,7 @@ public:
       if(times.t1==lastminute)
          return;
 
-      GetIndexData();
+      GetIndexDataM15();
       
       bool isnewday=lastday!=times.t2.day_of_year;
       if(isnewday)
@@ -4591,7 +4611,7 @@ public:
       if(times.t1==lastminute)
          return;
 
-      GetIndexData();
+      GetIndexDataM15();
 
       double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
 
