@@ -109,17 +109,17 @@ void M15DayInit()
 
 void OnInit()
 {
-   CS[0].Init(
-      bars,
-      bars,
-      StringSubstr(Symbol(),6),
-      PERIOD_M1,
-      false,
-      pr_close,
-      0,
-      0,
-      true
-      );
+   //CS[0].Init(
+   //   bars,
+   //   bars,
+   //   StringSubstr(Symbol(),6),
+   //   PERIOD_M1,
+   //   false,
+   //   pr_close,
+   //   0,
+   //   0,
+   //   true
+   //   );
 
    CS[1].Init(
       3,
@@ -290,18 +290,19 @@ void OnTick()
 
    if(dtlast.min!=lastMinute)
    {
-      CS[0].recalculate=true;
-      if(CS_CalculateIndex(CS[0],1))
-      {
+      //CS[0].recalculate=true;
+      //if(CS_CalculateIndex(CS[0],1))
+      //{
          if(lastMinute!=-1)
          {
             string valstring;
             for(int i=0; i<8; i++)
             {
-               int idx=CS[0].Currencies.GetValueIndex(i+1);
-               double value=CS[0].Currencies.LastValues[idx][0];
+               //int idx=CS[0].Currencies.GetValueIndex(i+1);
+               //double value=CS[0].Currencies.LastValues[idx][0];
                valstring+=",";
-               valstring+=DoubleToString(value*100000,0);
+               //valstring+=DoubleToString(value*100000,0);
+               valstring+="0";
             }
             for(int i=0; i<8; i++)
             {
@@ -375,7 +376,7 @@ void OnTick()
          }
       
          lastMinute=dtlast.min;
-      }
+      //}
    }
    else
    {
