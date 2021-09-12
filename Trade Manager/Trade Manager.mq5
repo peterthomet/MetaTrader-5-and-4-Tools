@@ -3873,8 +3873,21 @@ public:
       }
       else
       {
-         ArrayResize(CS,6);
+         ArrayResize(CS,7);
+
          M15DayInit();
+
+         CS[6].Init(
+            60,
+            60,
+            StringSubstr(Symbol(),6),
+            PERIOD_M1,
+            false,
+            pr_close,
+            0,
+            0,
+            true
+            );
       }
    }
 
@@ -4077,7 +4090,8 @@ public:
       }
       else
       {
-         // TODO Add CS M1 without Database
+         CS[6].recalculate=true;
+         CS_CalculateIndex(CS[6],1);
       
          for(int i=0; i<100; i++)
          {
@@ -4089,9 +4103,11 @@ public:
                if(i<70)
                {
                   r[i][6][z]=(int)MathRound(CS[3].Currencies.Currency[z].index[CS[3].bars-1-i].laging.value1*100000);
-                  r[i][7][z]=(int)MathRound(CS[3].Currencies.Currency[z].index[CS[4].bars-1-i].laging.value1*100000);
-                  r[i][8][z]=(int)MathRound(CS[3].Currencies.Currency[z].index[CS[5].bars-1-i].laging.value1*100000);
+                  r[i][7][z]=(int)MathRound(CS[4].Currencies.Currency[z].index[CS[4].bars-1-i].laging.value1*100000);
+                  r[i][8][z]=(int)MathRound(CS[5].Currencies.Currency[z].index[CS[5].bars-1-i].laging.value1*100000);
                }
+               if(i<60)
+                  r[i][0][z]=(int)MathRound(CS[6].Currencies.Currency[z].index[CS[6].bars-1-i].laging.value1*100000);
             }
          }
       }
@@ -4603,9 +4619,6 @@ public:
 
    void IdleCalculate()
    {
-      if(!UseCurrencyStrengthDatabase) // TODO Add support without Database
-         return;
-
       if(!GetM1Time())
          return;
          
@@ -4621,16 +4634,25 @@ public:
 
       double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
 
+      //TypeOscillatorInfo oi[];
+      //Oscillators(oi,false);
+
+      int currency=2;
+
       if(
-         StrengthAtPos(7,0)==2 &&
+         StrengthAtPos(7,0)==currency &&
+         //times.t2.min==StartMinute &&
+         //oi[2].LastHighTurnBar<=5 &&
          true
       )
-         OpenBasket(2,openlots,OP_SELL);
+         OpenBasket(currency,openlots,OP_SELL);
       if(
-         StrengthAtPos(0,0)==2 &&
+         StrengthAtPos(0,0)==currency &&
+         //times.t2.min==StartMinute &&
+         //oi[2].LastLowTurnBar<=5 &&
          true
       )
-         OpenBasket(2,openlots,OP_BUY);
+         OpenBasket(currency,openlots,OP_BUY);
 
       lastminute=times.t1;
    }
