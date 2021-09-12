@@ -3839,14 +3839,14 @@ public:
 
    void UtoR3(int i)
    {
-      r[i][0][0]=u.C1;
-      r[i][0][1]=u.C2;
-      r[i][0][2]=u.C3;
-      r[i][0][3]=u.C4;
-      r[i][0][4]=u.C5;
-      r[i][0][5]=u.C6;
-      r[i][0][6]=u.C7;
-      r[i][0][7]=u.C8;
+      r[i][0][0]=u.D1;
+      r[i][0][1]=u.D2;
+      r[i][0][2]=u.D3;
+      r[i][0][3]=u.D4;
+      r[i][0][4]=u.D5;
+      r[i][0][5]=u.D6;
+      r[i][0][6]=u.D7;
+      r[i][0][7]=u.D8;
    }
   
    void Init()
@@ -4071,6 +4071,9 @@ public:
                break;
             UtoR3(i);
          }
+         for(int i=0; i<60; i++)
+            for(int ii=0; ii<8; ii++)
+               r[i][0][ii]=r[i][0][ii]-r[59][0][ii];
       }
       else
       {
