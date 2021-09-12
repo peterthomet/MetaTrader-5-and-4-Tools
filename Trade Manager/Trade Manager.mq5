@@ -4148,13 +4148,13 @@ public:
       true;
    }
    
-   int StrengthAtPos(int pos) // 7=strongest, 0=weakest
+   int StrengthAtPos(int pos, int mode) // pos=7=strongest, pos=0=weakest, mode=0=60Min, mode=5=DayMA, ...
    {
       int a[8][2];
       for(int z=0; z<8; z++)
       {
          a[z][1]=z;
-         a[z][0]=r[0][5][z];
+         a[z][0]=r[0][mode][z];
       }
       ArraySort(a);
       return a[pos][1];
@@ -4314,11 +4314,11 @@ public:
       {
          if(a[z][0])
          {
-            Trade(z,StrengthAtPos(0),openlots);
+            Trade(z,StrengthAtPos(0,5),openlots);
          }
          if(a[z][1])
          {
-            Trade(StrengthAtPos(7),z,openlots);
+            Trade(StrengthAtPos(7,5),z,openlots);
          }
       }
 
@@ -4514,6 +4514,7 @@ public:
       if(!GetM1Time())
          return;
 
+      IsM15NewBar();
       //if(!IsM15NewBar())
       //   return;
 
@@ -4602,11 +4603,13 @@ public:
 
    void IdleCalculate()
    {
-      if(!UseCurrencyStrengthDatabase)
+      if(!UseCurrencyStrengthDatabase) // TODO Add support without Database
          return;
 
       if(!GetM1Time())
          return;
+         
+      IsM15NewBar();
 
       if(!IsTradingTime())
          return;
@@ -4619,24 +4622,12 @@ public:
       double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
 
       if(
-         r[0][0][2]>r[0][0][0] &&
-         r[0][0][2]>r[0][0][1] &&
-         r[0][0][2]>r[0][0][3] &&
-         r[0][0][2]>r[0][0][4] &&
-         r[0][0][2]>r[0][0][5] &&
-         r[0][0][2]>r[0][0][6] &&
-         r[0][0][2]>r[0][0][7] &&
+         StrengthAtPos(7,0)==2 &&
          true
       )
          OpenBasket(2,openlots,OP_SELL);
       if(
-         r[0][0][2]<r[0][0][0] &&
-         r[0][0][2]<r[0][0][1] &&
-         r[0][0][2]<r[0][0][3] &&
-         r[0][0][2]<r[0][0][4] &&
-         r[0][0][2]<r[0][0][5] &&
-         r[0][0][2]<r[0][0][6] &&
-         r[0][0][2]<r[0][0][7] &&
+         StrengthAtPos(0,0)==2 &&
          true
       )
          OpenBasket(2,openlots,OP_BUY);
