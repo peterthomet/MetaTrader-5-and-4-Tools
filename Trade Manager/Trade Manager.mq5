@@ -1160,7 +1160,7 @@ void ManageBasket()
 
    if(StopLossPercentTradingCapital>0)
    {
-      if((WS.globalgain)+((MathMax(AccountBalanceX(),AvailableTradingCapital)/100)*StopLossPercentTradingCapital)<=0)
+      if((WS.globalgain)+((AccountBalanceNet()/100)*StopLossPercentTradingCapital)<=0)
       {
          if(StopLossPercentTradingCapitalAction==CloseWorstTrade)
          {
@@ -1181,7 +1181,7 @@ void ManageBasket()
    if(ActivateTrailing&&_StartTrailingPips>0&&BI.gainpipsglobal>=_StartTrailingPips)
       WS.TrailingActivated=true;
 
-   if(TakeProfitPercentTradingCapital>0&&WS.globalgain/(MathMax(AccountBalanceX(),AvailableTradingCapital)/100)>=TakeProfitPercentTradingCapital)
+   if(TakeProfitPercentTradingCapital>0&&WS.globalgain/(AccountBalanceNet()/100)>=TakeProfitPercentTradingCapital)
       closeall=true;
 
    if(WS.TrailingActivated&&WS.globalgain<=GetTrailingLimit())
@@ -1282,7 +1282,7 @@ void DisplayText()
    }
 
    string moretradingcapital="";
-   if(AvailableTradingCapital>AccountBalanceX())
+   if(AvailableTradingCapital>0)
       moretradingcapital=" | "+IntegerToString(AvailableTradingCapital);
    CreateLabel(rowindex,FontSize,TextColor,"Balance: "+DoubleToString(AccountBalanceX(),0)+moretradingcapital);
    rowindex++;
@@ -1358,7 +1358,7 @@ void DisplayText()
       if(risk!=0)
       {
          string riskpercenttradingcapital="";
-         if(AvailableTradingCapital>AccountBalanceX())
+         if(AvailableTradingCapital>0)
             riskpercenttradingcapital=" | "+DoubleToString(risk/(AvailableTradingCapital/100),2)+"%";
          CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,2)+" | "+DoubleToString(riskpercent,2)+"%"+riskpercenttradingcapital+" | "+DoubleToString(atrfactor*100,0)+"%ATR");
          rowindex++;
@@ -1382,7 +1382,7 @@ void DisplayText()
       if(reward!=0)
       {
          string rewardpercenttradingcapital="";
-         if(AvailableTradingCapital>AccountBalanceX())
+         if(AvailableTradingCapital>0)
             rewardpercenttradingcapital=" | "+DoubleToString(reward/(AvailableTradingCapital/100),2)+"%";
          CreateLabel(rowindex,FontSize,c,"Reward: "+DoubleToString(reward,2)+" | "+DoubleToString(rewardpercent,2)+"%"+rewardpercenttradingcapital);
          rowindex++;
@@ -1407,7 +1407,7 @@ void DisplayText()
       rowindex++;
    
       string performancepercenttradingcapital="";
-      if(AvailableTradingCapital>AccountBalanceX())
+      if(AvailableTradingCapital>0)
          performancepercenttradingcapital=" | "+DoubleToString(WS.globalgain/(AvailableTradingCapital/100),2)+"%";
       CreateLabel(rowindex,FontSize,TextColor,"Performance: "+DoubleToString(WS.globalgain/(AccountBalanceX()/100),2)+"%"+performancepercenttradingcapital);
       rowindex++;
@@ -1434,7 +1434,7 @@ void DisplayText()
 
          if(StopLossPercentTradingCapital>0)
          {
-            double ptcrisk=(MathMax(AccountBalanceX(),AvailableTradingCapital)/100)*StopLossPercentTradingCapital;
+            double ptcrisk=(AccountBalanceNet()/100)*StopLossPercentTradingCapital;
             totalrisk=MathMin(ptcrisk,totalrisk);
          }
 
@@ -1450,7 +1450,7 @@ void DisplayText()
                risktext="Locked: ";
             }
             string riskpercenttradingcapital="";
-            if(AvailableTradingCapital>AccountBalanceX())
+            if(AvailableTradingCapital>0)
                riskpercenttradingcapital=" | "+DoubleToString(totalrisk/(AvailableTradingCapital/100),2)+"%";
             risktext+=DoubleToString(totalrisk,2)+" | "+DoubleToString(totalrisk/(AccountBalanceX()/100),2)+"%"+riskpercenttradingcapital;
          }
@@ -3061,6 +3061,14 @@ double OrderTakeProfitX()
 }
 
 
+double AccountBalanceNet()
+{
+   if(AvailableTradingCapital>0)
+      return AvailableTradingCapital;
+   return AccountBalanceX();
+}
+
+
 double AccountBalanceX()
 {
 #ifdef __MQL4__
@@ -4632,7 +4640,7 @@ public:
 
       GetIndexDataM15();
 
-      double openlots=NormalizeDouble((AccountBalanceX()/10000)*_OpenLots,2);
+      double openlots=NormalizeDouble((AccountBalanceNet()/10000)*_OpenLots,2);
 
       //TypeOscillatorInfo oi[];
       //Oscillators(oi,false);
