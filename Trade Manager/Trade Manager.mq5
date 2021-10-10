@@ -4625,6 +4625,27 @@ public:
       Init();
    }
 
+   void Calculate()
+   {
+      if(BI.managedorders==0)
+         return;
+
+      if(!GetM1Time())
+         return;
+
+      if((WS.globalgain)+((AccountBalanceNet()/100)*2)<=0)
+      {
+         //CloseAllInternal();
+
+         int currency=2;
+         double openlots=NormalizeDouble((AccountBalanceNet()/10000)*_OpenLots,2);
+         //OpenBasket(currency,openlots,OP_BUY);
+         //OpenBasket(currency,openlots,OP_SELL);
+         
+      }
+
+   }
+
    void IdleCalculate()
    {
       if(!GetM1Time())
