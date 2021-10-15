@@ -4627,63 +4627,60 @@ public:
 
    void Calculate()
    {
-      if(BI.managedorders==0)
-         return;
-
-      if(!GetM1Time())
-         return;
-
-      if((WS.globalgain)+((AccountBalanceNet()/100)*2)<=0)
-      {
-         //CloseAllInternal();
-
-         int currency=2;
-         double openlots=NormalizeDouble((AccountBalanceNet()/10000)*_OpenLots,2);
-         //OpenBasket(currency,openlots,OP_BUY);
-         //OpenBasket(currency,openlots,OP_SELL);
-         
-      }
-
-   }
-
-   void IdleCalculate()
-   {
       if(!GetM1Time())
          return;
          
       IsM15NewBar();
 
-      if(!IsTradingTime())
-         return;
-
-      if(times.t1==lastminute)
-         return;
-
-      GetIndexDataM15();
-
-      double openlots=NormalizeDouble((AccountBalanceNet()/10000)*_OpenLots,2);
-
-      //TypeOscillatorInfo oi[];
-      //Oscillators(oi,false);
-
-      int currency=2;
-
-      if(
-         StrengthAtPos(7,0)==currency &&
-         //times.t2.min==StartMinute &&
-         //oi[2].LastHighTurnBar<=5 &&
-         true
-      )
-         OpenBasket(currency,openlots,OP_SELL);
-      if(
-         StrengthAtPos(0,0)==currency &&
-         //times.t2.min==StartMinute &&
-         //oi[2].LastLowTurnBar<=5 &&
-         true
-      )
-         OpenBasket(currency,openlots,OP_BUY);
-
-      lastminute=times.t1;
+      if(BI.managedorders!=0)
+      {
+      
+         if((WS.globalgain)+((AccountBalanceNet()/100)*2)<=0)
+         {
+            //CloseAllInternal();
+   
+            int currency=2;
+            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*_OpenLots,2);
+            //OpenBasket(currency,openlots,OP_BUY);
+            //OpenBasket(currency,openlots,OP_SELL);
+            
+         }
+      
+      }
+      else
+      {
+         if(!IsTradingTime())
+            return;
+   
+         if(times.t1==lastminute)
+            return;
+   
+         GetIndexDataM15();
+   
+         double openlots=NormalizeDouble((AccountBalanceNet()/10000)*_OpenLots,2);
+   
+         //TypeOscillatorInfo oi[];
+         //Oscillators(oi,false);
+   
+         int currency=2;
+   
+         if(
+            StrengthAtPos(7,0)==currency &&
+            //times.t2.min==StartMinute &&
+            //oi[2].LastHighTurnBar<=5 &&
+            true
+         )
+            OpenBasket(currency,openlots,OP_SELL);
+         if(
+            StrengthAtPos(0,0)==currency &&
+            //times.t2.min==StartMinute &&
+            //oi[2].LastLowTurnBar<=5 &&
+            true
+         )
+            OpenBasket(currency,openlots,OP_BUY);
+   
+         lastminute=times.t1;
+      }
    }
 };
 
