@@ -4615,6 +4615,8 @@ public:
 class StrategyCSGBP45MinStrength : public StrategyCSBase
 {
 public:
+   bool hedged1;
+   int mode;
 
    StrategyCSGBP45MinStrength()
    {
@@ -4635,20 +4637,25 @@ public:
       if(BI.managedorders!=0)
       {
       
-         if((WS.globalgain)+((AccountBalanceNet()/100)*2)<=0)
+         if((WS.globalgain)+((AccountBalanceNet()/100)*2)<=0 && !hedged1 && false)
          {
             //CloseAllInternal();
    
             int currency=2;
-            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*_OpenLots,2);
-            //OpenBasket(currency,openlots,OP_BUY);
-            //OpenBasket(currency,openlots,OP_SELL);
+            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*2),2);
+            if(mode==OP_SELL)
+               OpenBasket(currency,openlots,OP_SELL);
+            if(mode==OP_BUY)
+               OpenBasket(currency,openlots,OP_BUY);
             
+            hedged1=true;
          }
       
       }
       else
       {
+         hedged1=false;
+
          if(!IsTradingTime())
             return;
    
@@ -4670,14 +4677,20 @@ public:
             //oi[2].LastHighTurnBar<=5 &&
             true
          )
+         {
             OpenBasket(currency,openlots,OP_SELL);
+            mode=OP_SELL;
+         }
          if(
             StrengthAtPos(0,0)==currency &&
             //times.t2.min==StartMinute &&
             //oi[2].LastLowTurnBar<=5 &&
             true
          )
+         {
             OpenBasket(currency,openlots,OP_BUY);
+            mode=OP_BUY;
+         }
    
          lastminute=times.t1;
       }
