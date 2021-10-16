@@ -4640,13 +4640,13 @@ public:
       {
          double gainpercent=WS.globalgain/AccountBalanceNet()*100;
  
-         if(gainpercent<=-1 && !hedged1 && false)
+         if(gainpercent<=-2 && !hedged1 && false)
          {
             double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*1),2);
             if(mode==OP_SELL)
-               OpenBasket(currency,openlots,OP_BUY);
-            if(mode==OP_BUY)
                OpenBasket(currency,openlots,OP_SELL);
+            if(mode==OP_BUY)
+               OpenBasket(currency,openlots,OP_BUY);
             hedged1=true;
          }
       }
