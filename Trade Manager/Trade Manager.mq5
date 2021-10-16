@@ -4629,6 +4629,8 @@ public:
 
    void Calculate()
    {
+      int currency=2;
+
       if(!GetM1Time())
          return;
          
@@ -4636,21 +4638,17 @@ public:
 
       if(BI.managedorders!=0)
       {
-      
-         if((WS.globalgain)+((AccountBalanceNet()/100)*2)<=0 && !hedged1 && false)
+         double gainpercent=WS.globalgain/AccountBalanceNet()*100;
+ 
+         if(gainpercent<=-1 && !hedged1 && false)
          {
-            //CloseAllInternal();
-   
-            int currency=2;
-            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*2),2);
+            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*1),2);
             if(mode==OP_SELL)
-               OpenBasket(currency,openlots,OP_SELL);
-            if(mode==OP_BUY)
                OpenBasket(currency,openlots,OP_BUY);
-            
+            if(mode==OP_BUY)
+               OpenBasket(currency,openlots,OP_SELL);
             hedged1=true;
          }
-      
       }
       else
       {
@@ -4668,8 +4666,6 @@ public:
    
          //TypeOscillatorInfo oi[];
          //Oscillators(oi,false);
-   
-         int currency=2;
    
          if(
             StrengthAtPos(7,0)==currency &&
