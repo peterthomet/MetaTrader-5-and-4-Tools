@@ -4635,21 +4635,24 @@ public:
          
       IsM15NewBar();
 
+      if(times.t1==lastminute)
+         return;
+
       if(BI.managedorders!=0)
       {
          double gainpercent=WS.globalgain/AccountBalanceNet()*100;
  
-         if(gainpercent<=-2 && !hedged1 && true)
+         if(gainpercent<=-0.5 && !hedged1 && true)
          {
             TypeCurrenciesTradesInfo ct=BI.currenciesintrades[currency];
-            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*1),2);
+            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*0.5),2);
             if(ct.sellvolume>0)
             {
-               OpenBasket(currency,openlots,OP_SELL);
+               OpenBasket(currency,openlots,OP_BUY);
             }
             else
             {
-               OpenBasket(currency,openlots,OP_BUY);
+               OpenBasket(currency,openlots,OP_SELL);
             }
             hedged1=true;
          }
@@ -4659,9 +4662,6 @@ public:
          hedged1=false;
 
          if(!IsTradingTime())
-            return;
-   
-         if(times.t1==lastminute)
             return;
    
          GetIndexDataM15();
@@ -4689,9 +4689,9 @@ public:
          {
             OpenBasket(currency,openlots,OP_BUY);
          }
-   
-         lastminute=times.t1;
       }
+
+      lastminute=times.t1;
    }
 };
 
