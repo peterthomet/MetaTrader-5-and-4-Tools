@@ -4645,7 +4645,9 @@ public:
          if(gainpercent<=-0.5 && !hedged1 && true)
          {
             TypeCurrenciesTradesInfo ct=BI.currenciesintrades[currency];
+            
             double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*0.5),2);
+            
             if(ct.sellvolume>0)
             {
                OpenBasket(currency,openlots,OP_BUY);
