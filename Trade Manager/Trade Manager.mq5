@@ -4616,6 +4616,7 @@ class StrategyCSGBP45MinStrength : public StrategyCSBase
 {
 public:
    bool hedged1;
+   bool hedged2;
 
    StrategyCSGBP45MinStrength()
    {
@@ -4624,6 +4625,9 @@ public:
          Name+=" DB";
       Namespace="HARVCSGBP45MinStrength";
       Init();
+      
+      if(istesting)
+         TradesViewSelected=ByCurrenciesGrouped;
    }
 
    void Calculate()
@@ -4641,11 +4645,11 @@ public:
       if(BI.managedorders!=0)
       {
          double gainpercent=WS.globalgain/AccountBalanceNet()*100;
+
+         TypeCurrenciesTradesInfo ct=BI.currenciesintrades[currency];
  
          if(gainpercent<=-0.5 && !hedged1 && true)
          {
-            TypeCurrenciesTradesInfo ct=BI.currenciesintrades[currency];
-            
             double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*0.5),2);
             
             if(ct.sellvolume>0)
@@ -4658,10 +4662,26 @@ public:
             }
             hedged1=true;
          }
+
+         if(gainpercent<=-1 && hedged1 && !hedged2 && true)
+         {
+            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*0.5),2);
+            
+            if(ct.sellvolume>ct.buyvolume)
+            {
+               OpenBasket(currency,openlots,OP_BUY);
+            }
+            else
+            {
+               OpenBasket(currency,openlots,OP_SELL);
+            }
+            hedged2=true;
+         }
       }
       else
       {
          hedged1=false;
+         hedged2=false;
 
          if(!IsTradingTime())
             return;
