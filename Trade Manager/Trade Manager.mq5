@@ -141,6 +141,27 @@ input bool Wednesday = true;
 input bool Thursday = true;
 input bool Friday = true;
 input bool Saturday = true;
+input group "General Parameters";
+input double P1 = 0;
+input double P2 = 0;
+input double P3 = 0;
+input double P4 = 0;
+input double P5 = 0;
+input double P6 = 0;
+input double P7 = 0;
+input double P8 = 0;
+input double P9 = 0;
+input double P10 = 0;
+input double P11 = 0;
+input double P12 = 0;
+input double P13 = 0;
+input double P14 = 0;
+input double P15 = 0;
+input double P16 = 0;
+input double P17 = 0;
+input double P18 = 0;
+input double P19 = 0;
+input double P20 = 0;
 
 string appname="Trade Manager";
 string appnamespace="";
@@ -4648,9 +4669,9 @@ public:
 
          TypeCurrenciesTradesInfo ct=BI.currenciesintrades[currency];
  
-         if(gainpercent<=-0.5 && !hedged1 && true)
+         if(gainpercent<=P1 && !hedged1 && false)
          {
-            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*0.5),2);
+            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*P2),2);
             
             if(ct.sellvolume>0)
             {
@@ -4663,17 +4684,17 @@ public:
             hedged1=true;
          }
 
-         if(gainpercent<=-1 && hedged1 && !hedged2 && true)
+         if(gainpercent<=-2 && hedged1 && !hedged2 && false)
          {
-            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*0.5),2);
+            double openlots=NormalizeDouble((AccountBalanceNet()/10000)*(_OpenLots*1),2);
             
             if(ct.sellvolume>ct.buyvolume)
             {
-               OpenBasket(currency,openlots,OP_BUY);
+               OpenBasket(currency,openlots,OP_SELL);
             }
             else
             {
-               OpenBasket(currency,openlots,OP_SELL);
+               OpenBasket(currency,openlots,OP_BUY);
             }
             hedged2=true;
          }
