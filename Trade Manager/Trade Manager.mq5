@@ -4663,6 +4663,9 @@ public:
       if(times.t1==lastminute)
          return;
 
+      if(!UseCurrencyStrengthDatabase)
+         GetIndexDataM15();
+
       if(BI.managedorders!=0)
       {
          double gainpercent=WS.globalgain/AccountBalanceNet()*100;
@@ -4707,7 +4710,8 @@ public:
          if(!IsTradingTime())
             return;
    
-         GetIndexDataM15();
+         if(UseCurrencyStrengthDatabase)
+            GetIndexDataM15();
    
          double openlots=NormalizeDouble((AccountBalanceNet()/10000)*_OpenLots,2);
    
