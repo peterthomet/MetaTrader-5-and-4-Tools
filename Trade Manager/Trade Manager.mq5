@@ -423,15 +423,17 @@ struct TypeCurrenciesTradesGroupsInfo
    int type;
    double volume;
    double gain;
-   datetime openfrom;
-   datetime opento;
+   long magicfrom;
+   long magicto;
+   string containspairs;
    TypeCurrenciesTradesGroupsInfo()
    {
       type=0;
       volume=0;
       gain=0;
-      openfrom=INT_MAX;
-      opento=INT_MIN;
+      magicfrom=LONG_MAX;
+      magicto=LONG_MIN;
+      containspairs="";
    }
 };
 
@@ -1571,7 +1573,7 @@ void DisplayText()
          }
       }
       
-      int liststartrowindex;
+      int liststartrowindex=0;
 
       if(TradesViewSelected==ByCurrencies)
       {
@@ -1643,11 +1645,11 @@ void DisplayText()
                   
                   if(ct.tg[y].type==OP_BUY)
                   {
-                     CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ct.tg[y].volume,2)+" "+DoubleToString(ct.tg[y].gain,2),"-TMCC-Buys-"+currencies[i]+IntegerToString(ct.tg[y].openfrom,12,'0')+IntegerToString(ct.tg[y].opento,12,'0'),110,tooltip,rowindex-liststartrowindex);
+                     CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ct.tg[y].volume,2)+" "+DoubleToString(ct.tg[y].gain,2),"-TMCC-Buys-"+currencies[i]+IntegerToString(ct.tg[y].magicfrom,12,'0')+IntegerToString(ct.tg[y].magicto,12,'0'),110,tooltip,rowindex-liststartrowindex);
                   }
                   if(ct.tg[y].type==OP_SELL)
                   {
-                     CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ct.tg[y].volume,2)+" "+DoubleToString(ct.tg[y].gain,2),"-TMCC-Sells"+currencies[i]+IntegerToString(ct.tg[y].openfrom,12,'0')+IntegerToString(ct.tg[y].opento,12,'0'),35,tooltip,rowindex-liststartrowindex);
+                     CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ct.tg[y].volume,2)+" "+DoubleToString(ct.tg[y].gain,2),"-TMCC-Sells"+currencies[i]+IntegerToString(ct.tg[y].magicfrom,12,'0')+IntegerToString(ct.tg[y].magicto,12,'0'),35,tooltip,rowindex-liststartrowindex);
                   }
                   rowindex++;
                }
@@ -2243,31 +2245,22 @@ int TradeReferenceIndex(long magicnumber)
 }
 
 
-void UpdateCurrencyGroupInfo(TypeCurrenciesTradesGroupsInfo& tg[], TypeTradeInfo& tiin, int type)
+void UpdateCurrencyGroupInfo(TypeCurrenciesTradesGroupsInfo& tg[], TypeTradeInfo& tiin, TypePairsTradesInfo& piti, int type)
 {
-   int asize=ArraySize(tg), idx=-1;
-   bool found=false;
-   for(int i=0; i<asize; i++)
+   int a=ArraySize(tg), i=a-1;
+   
+   if(a==0 || tg[i].type!=type || StringFind(tg[i].containspairs,piti.pair)>-1)
    {
-      if(tg[i].type==type && tiin.opentime>=tg[i].openfrom-30 && tiin.opentime<=tg[i].opento+30)
-      {
-         found=true;
-         idx=i;
-         break;
-      }
+      ArrayResize(tg,a+1);
+      i+=1;
    }
 
-   if(!found)
-   {
-      ArrayResize(tg,asize+1);
-      idx=asize;
-   }
-   
-   tg[idx].type=type;
-   tg[idx].openfrom=(int)MathMin(tg[idx].openfrom,tiin.opentime);
-   tg[idx].opento=(int)MathMax(tg[idx].opento,tiin.opentime);
-   tg[idx].gain+=tiin.gain;
-   tg[idx].volume+=tiin.volume;
+   tg[i].containspairs+=piti.pair;
+   tg[i].type=type;
+   tg[i].magicfrom=(long)MathMin(tg[i].magicfrom,tiin.magicnumber);
+   tg[i].magicto=(long)MathMax(tg[i].magicto,tiin.magicnumber);
+   tg[i].gain+=tiin.gain;
+   tg[i].volume+=tiin.volume;
 }
 
 
@@ -2281,13 +2274,13 @@ void UpdateCurrencyInfo(TypePairsTradesInfo& piti, TypeTradeInfo& tiin)
       {
          BI.currenciesintrades[baseindex].buygain+=tiin.gain;
          BI.currenciesintrades[baseindex].buyvolume+=tiin.volume;
-         UpdateCurrencyGroupInfo(BI.currenciesintrades[baseindex].tg,tiin,OP_BUY);
+         UpdateCurrencyGroupInfo(BI.currenciesintrades[baseindex].tg,tiin,piti,OP_BUY);
       }
       if(tiin.type==OP_SELL)
       {
          BI.currenciesintrades[baseindex].sellgain+=tiin.gain;
          BI.currenciesintrades[baseindex].sellvolume+=tiin.volume;
-         UpdateCurrencyGroupInfo(BI.currenciesintrades[baseindex].tg,tiin,OP_SELL);
+         UpdateCurrencyGroupInfo(BI.currenciesintrades[baseindex].tg,tiin,piti,OP_SELL);
       }
    }
    if(quoteindex>-1)
@@ -2296,13 +2289,13 @@ void UpdateCurrencyInfo(TypePairsTradesInfo& piti, TypeTradeInfo& tiin)
       {
          BI.currenciesintrades[quoteindex].sellgain+=tiin.gain;
          BI.currenciesintrades[quoteindex].sellvolume+=tiin.volume;
-         UpdateCurrencyGroupInfo(BI.currenciesintrades[quoteindex].tg,tiin,OP_SELL);
+         UpdateCurrencyGroupInfo(BI.currenciesintrades[quoteindex].tg,tiin,piti,OP_SELL);
       }
       if(tiin.type==OP_SELL)
       {
          BI.currenciesintrades[quoteindex].buygain+=tiin.gain;
          BI.currenciesintrades[quoteindex].buyvolume+=tiin.volume;
-         UpdateCurrencyGroupInfo(BI.currenciesintrades[quoteindex].tg,tiin,OP_BUY);
+         UpdateCurrencyGroupInfo(BI.currenciesintrades[quoteindex].tg,tiin,piti,OP_BUY);
       }
    }
 }
@@ -2424,12 +2417,12 @@ void CloseAllInternal(string filter="")
    string asset="";
    if(!closeall)
       asset=StringSubstr(filter,5);
-   datetime openstart=0;
-   datetime openend=0;
+   long magicstart=0;
+   long magicend=0;
    if(StringLen(asset)==27)
    {
-      openstart=(datetime)StringToInteger(StringSubstr(asset,3,12));
-      openend=(datetime)StringToInteger(StringSubstr(asset,15));
+      magicstart=(datetime)StringToInteger(StringSubstr(asset,3,12));
+      magicend=(datetime)StringToInteger(StringSubstr(asset,15));
       asset=StringSubstr(asset,0,3);
    }
 
@@ -2446,7 +2439,7 @@ void CloseAllInternal(string filter="")
                   || (((((OrderTypeBuy()&&buys) || (!OrderTypeBuy()&&!buys)) && OrderSymbolX()==asset) 
                         || (((OrderTypeBuy()&&buys) || (!OrderTypeBuy()&&!buys)) && StringFind(OrderSymbolX(),asset)==0 ) 
                         || (((OrderTypeBuy()&&!buys) || (!OrderTypeBuy()&&buys)) && StringFind(OrderSymbolX(),asset)==3 )) 
-                     && (openstart==0 || ((int)PositionGetInteger(POSITION_TIME)>=openstart && (int)PositionGetInteger(POSITION_TIME)<=openend)   ))
+                     && (magicstart==0 || ((int)PositionGetInteger(POSITION_MAGIC)>=magicstart && (int)PositionGetInteger(POSITION_MAGIC)<=magicend)   ))
                )
                if(CloseSelectedOrder())
                   delcnt++;
@@ -4662,7 +4655,7 @@ public:
 
       if(times.t1==lastminute)
          return;
-
+      
       if(!UseCurrencyStrengthDatabase)
          GetIndexDataM15();
 
@@ -4725,7 +4718,10 @@ public:
             true
          )
          {
+            TradesViewSelected=ByCurrenciesGrouped;
             OpenBasket(currency,openlots,OP_SELL);
+            OpenBasket(currency,openlots,OP_SELL);
+            OpenBasket(currency,openlots,OP_BUY);
          }
          if(
             StrengthAtPos(0,0)==currency &&
