@@ -4276,6 +4276,28 @@ public:
       }
       return count;
    }
+   
+   bool PictureOfPower(int currency)
+   {
+      bool power=false;
+      bool isstrongest=StrengthAtPos(7,0)==currency;
+      double maxnoise=0;
+      
+      if(isstrongest)
+      {
+         for(int i=1; i<=58; i++)
+         {
+            double ref=((double)r[0][0][currency]/59)*(59-i);
+            double dev=MathAbs(r[i][0][currency]-ref);
+            maxnoise=MathMax(maxnoise,dev);
+         }
+         maxnoise=maxnoise/r[0][0][currency]*100;
+         if(maxnoise<=20)
+            power=true;
+      }
+      
+      return power;
+   }
 
    void OpenBasket(int currency, double openlots, int direction)
    {
@@ -4718,15 +4740,13 @@ public:
             true
          )
          {
-            TradesViewSelected=ByCurrenciesGrouped;
             OpenBasket(currency,openlots,OP_SELL);
-            OpenBasket(currency,openlots,OP_SELL);
-            OpenBasket(currency,openlots,OP_BUY);
          }
          if(
             StrengthAtPos(0,0)==currency &&
             //times.t2.min==StartMinute &&
             //oi[2].LastLowTurnBar<=5 &&
+            //PictureOfPower(currency) &&
             true
          )
          {
