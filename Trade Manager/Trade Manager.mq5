@@ -1645,11 +1645,11 @@ void DisplayText()
                   
                   if(ct.tg[y].type==OP_BUY)
                   {
-                     CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ct.tg[y].volume,2)+" "+DoubleToString(ct.tg[y].gain,2),"-TMCC-Buys-"+currencies[i]+IntegerToString(ct.tg[y].magicfrom,12,'0')+IntegerToString(ct.tg[y].magicto,12,'0'),110,tooltip,rowindex-liststartrowindex);
+                     CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ct.tg[y].volume,2)+" "+DoubleToString(ct.tg[y].gain,2),"-TMCC-"+IntegerToString(ct.tg[y].magicfrom,12,'0')+IntegerToString(ct.tg[y].magicto,12,'0'),110,tooltip,rowindex-liststartrowindex);
                   }
                   if(ct.tg[y].type==OP_SELL)
                   {
-                     CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ct.tg[y].volume,2)+" "+DoubleToString(ct.tg[y].gain,2),"-TMCC-Sells"+currencies[i]+IntegerToString(ct.tg[y].magicfrom,12,'0')+IntegerToString(ct.tg[y].magicto,12,'0'),35,tooltip,rowindex-liststartrowindex);
+                     CreateLabel(rowindex,FontSize,pcolor,DoubleToString(ct.tg[y].volume,2)+" "+DoubleToString(ct.tg[y].gain,2),"-TMCC-"+IntegerToString(ct.tg[y].magicfrom,12,'0')+IntegerToString(ct.tg[y].magicto,12,'0'),35,tooltip,rowindex-liststartrowindex);
                   }
                   rowindex++;
                }
@@ -2419,11 +2419,10 @@ void CloseAllInternal(string filter="")
       asset=StringSubstr(filter,5);
    long magicstart=0;
    long magicend=0;
-   if(StringLen(asset)==27)
+   if(StringLen(filter)==24)
    {
-      magicstart=(datetime)StringToInteger(StringSubstr(asset,3,12));
-      magicend=(datetime)StringToInteger(StringSubstr(asset,15));
-      asset=StringSubstr(asset,0,3);
+      magicstart=StringToInteger(StringSubstr(filter,0,12));
+      magicend=StringToInteger(StringSubstr(filter,12));
    }
 
    int total=OrdersTotalX();
@@ -2439,7 +2438,8 @@ void CloseAllInternal(string filter="")
                   || (((((OrderTypeBuy()&&buys) || (!OrderTypeBuy()&&!buys)) && OrderSymbolX()==asset) 
                         || (((OrderTypeBuy()&&buys) || (!OrderTypeBuy()&&!buys)) && StringFind(OrderSymbolX(),asset)==0 ) 
                         || (((OrderTypeBuy()&&!buys) || (!OrderTypeBuy()&&buys)) && StringFind(OrderSymbolX(),asset)==3 )) 
-                     && (magicstart==0 || ((int)PositionGetInteger(POSITION_MAGIC)>=magicstart && (int)PositionGetInteger(POSITION_MAGIC)<=magicend)   ))
+                     && magicstart==0 )
+                  || (magicstart>0 && ((int)PositionGetInteger(POSITION_MAGIC)>=magicstart && (int)PositionGetInteger(POSITION_MAGIC)<=magicend))
                )
                if(CloseSelectedOrder())
                   delcnt++;
