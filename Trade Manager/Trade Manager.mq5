@@ -2439,7 +2439,7 @@ void CloseAllInternal(string filter="")
                         || (((OrderTypeBuy()&&buys) || (!OrderTypeBuy()&&!buys)) && StringFind(OrderSymbolX(),asset)==0 ) 
                         || (((OrderTypeBuy()&&!buys) || (!OrderTypeBuy()&&buys)) && StringFind(OrderSymbolX(),asset)==3 )) 
                      && magicstart==0 )
-                  || (magicstart>0 && ((int)PositionGetInteger(POSITION_MAGIC)>=magicstart && (int)PositionGetInteger(POSITION_MAGIC)<=magicend))
+                  || (magicstart>0 && (PositionGetInteger(POSITION_MAGIC)>=magicstart && PositionGetInteger(POSITION_MAGIC)<=magicend))
                )
                if(CloseSelectedOrder())
                   delcnt++;
