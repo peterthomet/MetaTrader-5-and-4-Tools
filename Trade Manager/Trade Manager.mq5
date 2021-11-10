@@ -200,6 +200,16 @@ int chartheight;
 bool arrowdown=false;
 int listshift=0;
 string currencies[8]={"USD","EUR","GBP","JPY","CHF","CAD","AUD","NZD"};
+string pairs[8][7]={
+   {"EURUSD","GBPUSD","USDJPY","USDCHF","USDCAD","AUDUSD","NZDUSD"},
+   {"EURUSD","EURGBP","EURJPY","EURCHF","EURCAD","EURAUD","EURNZD"},
+   {"GBPUSD","EURGBP","GBPJPY","GBPCHF","GBPCAD","GBPAUD","GBPNZD"},
+   {"USDJPY","EURJPY","GBPJPY","CHFJPY","CADJPY","AUDJPY","NZDJPY"},
+   {"USDCHF","EURCHF","GBPCHF","CHFJPY","CADCHF","AUDCHF","NZDCHF"},
+   {"USDCAD","EURCAD","GBPCAD","CADJPY","CADCHF","AUDCAD","NZDCAD"},
+   {"AUDUSD","EURAUD","GBPAUD","AUDJPY","AUDCHF","AUDCAD","AUDNZD"},
+   {"NZDUSD","EURNZD","GBPNZD","NZDJPY","NZDCHF","NZDCAD","AUDNZD"}
+   };
 color currencycolor[8];
 
 struct TypeTextObjects
