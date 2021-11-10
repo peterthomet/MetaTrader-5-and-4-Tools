@@ -230,7 +230,6 @@ struct TypeTextObjects
          ObjectSetInteger(0,objects[i],OBJPROP_XDISTANCE,-1000);
    }
 };
-TypeTextObjects TextObjects;
 
 enum BEStopModes
 {
@@ -416,7 +415,6 @@ struct TypeWorkingState
       return (lastordertimediff<=5);
    };
 };
-TypeWorkingState WS;
 
 struct TypeCurrenciesTradesGroupsInfo
 {
@@ -516,6 +514,9 @@ struct TypeBasketInfo
       largestloss=0;
    };
 };
+
+TypeTextObjects TextObjects;
+TypeWorkingState WS;
 TypeBasketInfo BI;
 
 
