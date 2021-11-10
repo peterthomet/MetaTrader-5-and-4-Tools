@@ -250,15 +250,15 @@ enum BEStopModes
 
 enum Instruments
 {
-   CurrentPair,
-   USD,
-   EUR,
-   GBP,
-   JPY,
-   CHF,
-   CAD,
-   AUD,
-   NZD,
+   CurrentPair=-1,
+   USD=0,
+   EUR=1,
+   GBP=2,
+   JPY=3,
+   CHF=4,
+   CAD=5,
+   AUD=6,
+   NZD=7,
 };
 
 enum TradesView
@@ -1344,28 +1344,9 @@ void DisplayText()
       CreateLabel(rowindex,FontSize,TextColorInfo,"Open Volume: "+DoubleToString(_OpenLots,2));
       rowindex++;
       
-      string instrumenttext="Open all ";
-      if(InstrumentSelected==USD)
-         instrumenttext+="USD";
-      if(InstrumentSelected==EUR)
-         instrumenttext+="EUR";
-      if(InstrumentSelected==GBP)
-         instrumenttext+="GBP";
-      if(InstrumentSelected==JPY)
-         instrumenttext+="JPY";
-      if(InstrumentSelected==CHF)
-         instrumenttext+="CHF";
-      if(InstrumentSelected==CAD)
-         instrumenttext+="CAD";
-      if(InstrumentSelected==AUD)
-         instrumenttext+="AUD";
-      if(InstrumentSelected==NZD)
-         instrumenttext+="NZD";
-      instrumenttext+=" Pairs";
-
       if(InstrumentSelected!=CurrentPair)
       {
-         CreateLabel(rowindex,FontSize,TextColorInfo,instrumenttext);
+         CreateLabel(rowindex,FontSize,TextColorInfo,"Open all "+currencies[InstrumentSelected]+" Pairs");
          rowindex++;
       }
    }
@@ -2256,17 +2237,17 @@ int TradeReferenceIndex(long magicnumber)
 }
 
 
-void UpdateCurrencyGroupInfo(TypeCurrenciesTradesGroupsInfo& tg[], TypeTradeInfo& tiin, TypePairsTradesInfo& piti, int type)
+void UpdateCurrencyGroupInfo(TypeCurrenciesTradesGroupsInfo& tg[], TypeTradeInfo& tiin, TypePairsTradesInfo& piti, int type, int currency)
 {
    int a=ArraySize(tg), i=a-1;
-   
-   if(a==0 || tg[i].type!=type || StringFind(tg[i].containspairs,piti.pair)>-1)
+
+   if(a==0 || tg[i].type!=type || GetPairIndexOfCurrency(piti.pair,currency)<=GetPairIndexOfCurrency(tg[i].containspairs,currency))
    {
       ArrayResize(tg,a+1);
       i+=1;
    }
 
-   tg[i].containspairs+=piti.pair;
+   tg[i].containspairs=piti.pair;
    tg[i].type=type;
    tg[i].magicfrom=(long)MathMin(tg[i].magicfrom,tiin.magicnumber);
    tg[i].magicto=(long)MathMax(tg[i].magicto,tiin.magicnumber);
@@ -2285,13 +2266,13 @@ void UpdateCurrencyInfo(TypePairsTradesInfo& piti, TypeTradeInfo& tiin)
       {
          BI.currenciesintrades[baseindex].buygain+=tiin.gain;
          BI.currenciesintrades[baseindex].buyvolume+=tiin.volume;
-         UpdateCurrencyGroupInfo(BI.currenciesintrades[baseindex].tg,tiin,piti,OP_BUY);
+         UpdateCurrencyGroupInfo(BI.currenciesintrades[baseindex].tg,tiin,piti,OP_BUY,baseindex);
       }
       if(tiin.type==OP_SELL)
       {
          BI.currenciesintrades[baseindex].sellgain+=tiin.gain;
          BI.currenciesintrades[baseindex].sellvolume+=tiin.volume;
-         UpdateCurrencyGroupInfo(BI.currenciesintrades[baseindex].tg,tiin,piti,OP_SELL);
+         UpdateCurrencyGroupInfo(BI.currenciesintrades[baseindex].tg,tiin,piti,OP_SELL,baseindex);
       }
    }
    if(quoteindex>-1)
@@ -2300,13 +2281,13 @@ void UpdateCurrencyInfo(TypePairsTradesInfo& piti, TypeTradeInfo& tiin)
       {
          BI.currenciesintrades[quoteindex].sellgain+=tiin.gain;
          BI.currenciesintrades[quoteindex].sellvolume+=tiin.volume;
-         UpdateCurrencyGroupInfo(BI.currenciesintrades[quoteindex].tg,tiin,piti,OP_SELL);
+         UpdateCurrencyGroupInfo(BI.currenciesintrades[quoteindex].tg,tiin,piti,OP_SELL,quoteindex);
       }
       if(tiin.type==OP_SELL)
       {
          BI.currenciesintrades[quoteindex].buygain+=tiin.gain;
          BI.currenciesintrades[quoteindex].buyvolume+=tiin.volume;
-         UpdateCurrencyGroupInfo(BI.currenciesintrades[quoteindex].tg,tiin,piti,OP_BUY);
+         UpdateCurrencyGroupInfo(BI.currenciesintrades[quoteindex].tg,tiin,piti,OP_BUY,quoteindex);
       }
    }
 }
@@ -2381,6 +2362,21 @@ int CurrenciesBaseIndex(string pair)
 int CurrenciesQuoteIndex(string pair)
 {
    return CurrenciesGetIndexAtPos(pair,3);
+}
+
+
+int GetPairIndexOfCurrency(string pair, int currency)
+{
+   int index=-1;
+   for(int i=0; i<7; i++)
+   {
+      if(StringFind(pairs[currency][i],pair)==0)
+      {
+         index=i;
+         break;
+      }
+   }
+   return index;
 }
 
 
@@ -2545,176 +2541,28 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
          //lastctrl=TimeLocal();
 
-         if (lparam == 49)
+         if(lparam==49||lparam==51)
          {
             if(InstrumentSelected==CurrentPair)
-               OpenBuy();
-            if(InstrumentSelected==USD)
             {
-               OpenSell("EURUSD");
-               OpenSell("GBPUSD");
-               OpenBuy("USDJPY");
-               OpenBuy("USDCHF");
-               OpenBuy("USDCAD");
-               OpenSell("AUDUSD");
-               OpenSell("NZDUSD");
+               if(lparam==49)
+                  OpenBuy();
+               else
+                  OpenSell();
             }
-            if(InstrumentSelected==EUR)
+            else
             {
-               OpenBuy("EURUSD");
-               OpenBuy("EURGBP");
-               OpenBuy("EURJPY");
-               OpenBuy("EURCHF");
-               OpenBuy("EURCAD");
-               OpenBuy("EURAUD");
-               OpenBuy("EURNZD");
-            }
-            if(InstrumentSelected==GBP)
-            {
-               OpenBuy("GBPUSD");
-               OpenSell("EURGBP");
-               OpenBuy("GBPJPY");
-               OpenBuy("GBPCHF");
-               OpenBuy("GBPCAD");
-               OpenBuy("GBPAUD");
-               OpenBuy("GBPNZD");
-            }
-            if(InstrumentSelected==JPY)
-            {
-               OpenSell("USDJPY");
-               OpenSell("EURJPY");
-               OpenSell("GBPJPY");
-               OpenSell("CHFJPY");
-               OpenSell("CADJPY");
-               OpenSell("AUDJPY");
-               OpenSell("NZDJPY");
-            }
-            if(InstrumentSelected==CHF)
-            {
-               OpenSell("USDCHF");
-               OpenSell("EURCHF");
-               OpenSell("GBPCHF");
-               OpenBuy("CHFJPY");
-               OpenSell("CADCHF");
-               OpenSell("AUDCHF");
-               OpenSell("NZDCHF");
-            }
-            if(InstrumentSelected==CAD)
-            {
-               OpenSell("USDCAD");
-               OpenSell("EURCAD");
-               OpenSell("GBPCAD");
-               OpenBuy("CADJPY");
-               OpenBuy("CADCHF");
-               OpenSell("AUDCAD");
-               OpenSell("NZDCAD");
-            }
-            if(InstrumentSelected==AUD)
-            {
-               OpenBuy("AUDUSD");
-               OpenSell("EURAUD");
-               OpenSell("GBPAUD");
-               OpenBuy("AUDJPY");
-               OpenBuy("AUDCHF");
-               OpenBuy("AUDCAD");
-               OpenBuy("AUDNZD");
-            }
-            if(InstrumentSelected==NZD)
-            {
-               OpenBuy("NZDUSD");
-               OpenSell("EURNZD");
-               OpenSell("GBPNZD");
-               OpenBuy("NZDJPY");
-               OpenBuy("NZDCHF");
-               OpenBuy("NZDCAD");
-               OpenSell("AUDNZD");
+               for(int i=0; i<7; i++)
+               {
+                  bool isbase=(StringFind(pairs[InstrumentSelected][i],currencies[InstrumentSelected])==0);
+                  if((isbase&&lparam==49) || (!isbase&&lparam==51))
+                     OpenBuy(pairs[InstrumentSelected][i]);
+                  else
+                     OpenSell(pairs[InstrumentSelected][i]);
+               }
             }
          }
-         if (lparam == 51)
-         {
-            if(InstrumentSelected==CurrentPair)
-               OpenSell();
-            if(InstrumentSelected==USD)
-            {
-               OpenBuy("EURUSD");
-               OpenBuy("GBPUSD");
-               OpenSell("USDJPY");
-               OpenSell("USDCHF");
-               OpenSell("USDCAD");
-               OpenBuy("AUDUSD");
-               OpenBuy("NZDUSD");
-            }
-            if(InstrumentSelected==EUR)
-            {
-               OpenSell("EURUSD");
-               OpenSell("EURGBP");
-               OpenSell("EURJPY");
-               OpenSell("EURCHF");
-               OpenSell("EURCAD");
-               OpenSell("EURAUD");
-               OpenSell("EURNZD");
-            }
-            if(InstrumentSelected==GBP)
-            {
-               OpenSell("GBPUSD");
-               OpenBuy("EURGBP");
-               OpenSell("GBPJPY");
-               OpenSell("GBPCHF");
-               OpenSell("GBPCAD");
-               OpenSell("GBPAUD");
-               OpenSell("GBPNZD");
-            }
-            if(InstrumentSelected==JPY)
-            {
-               OpenBuy("USDJPY");
-               OpenBuy("EURJPY");
-               OpenBuy("GBPJPY");
-               OpenBuy("CHFJPY");
-               OpenBuy("CADJPY");
-               OpenBuy("AUDJPY");
-               OpenBuy("NZDJPY");
-            }
-            if(InstrumentSelected==CHF)
-            {
-               OpenBuy("USDCHF");
-               OpenBuy("EURCHF");
-               OpenBuy("GBPCHF");
-               OpenSell("CHFJPY");
-               OpenBuy("CADCHF");
-               OpenBuy("AUDCHF");
-               OpenBuy("NZDCHF");
-            }
-            if(InstrumentSelected==CAD)
-            {
-               OpenBuy("USDCAD");
-               OpenBuy("EURCAD");
-               OpenBuy("GBPCAD");
-               OpenSell("CADJPY");
-               OpenSell("CADCHF");
-               OpenBuy("AUDCAD");
-               OpenBuy("NZDCAD");
-            }
-            if(InstrumentSelected==AUD)
-            {
-               OpenSell("AUDUSD");
-               OpenBuy("EURAUD");
-               OpenBuy("GBPAUD");
-               OpenSell("AUDJPY");
-               OpenSell("AUDCHF");
-               OpenSell("AUDCAD");
-               OpenSell("AUDNZD");
-            }
-            if(InstrumentSelected==NZD)
-            {
-               OpenSell("NZDUSD");
-               OpenBuy("EURNZD");
-               OpenBuy("GBPNZD");
-               OpenSell("NZDJPY");
-               OpenSell("NZDCHF");
-               OpenSell("NZDCAD");
-               OpenBuy("AUDNZD");
-            }
-         }
+
          if (lparam == 48)
              WS.closecommands.Add();
          if (lparam == 56)
@@ -2778,7 +2626,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 89)
          {
-            InstrumentSelected=0;
+            InstrumentSelected=-1;
          }
 
          if (lparam == 86)
