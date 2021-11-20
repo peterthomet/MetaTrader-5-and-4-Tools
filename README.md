@@ -1,4 +1,4 @@
-# Indicators and EA Snippets for MetaTrader 5 and 4
+# Indicators and EA Snippets for MetaTrader 5
 
 <br/>
 
