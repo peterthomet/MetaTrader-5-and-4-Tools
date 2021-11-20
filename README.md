@@ -6,7 +6,7 @@
 
 <br/>
 
-Some MT5/MT4 indicators and tools I use for my trading. Feel free to contribute improvements and let me know your ideas.
+Some MT5 indicators and tools I use for my trading. Feel free to contribute improvements and let me know your ideas.
 
 For those who want to install everything in one shot, I have added a zip file of my [entire MQL5 content](/MQL5%20Entire%20Content). Just install a new MT5 terminal and replace the folder MQL5 with the content of the zip file.
 
