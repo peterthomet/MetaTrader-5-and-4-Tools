@@ -8,7 +8,7 @@
 
 Some MT5 indicators and tools I use for my trading. Feel free to contribute improvements and let me know your ideas.
 
-My major developments are the **[Trade Manager](/Trade%20Manager/Trade%20Manager.mq5)**, a **[Currency Strength indicator](/Currency%20Index/CurrencyStrength.mq5)** and a Pivot Points indicator.
+My major developments are the **[Trade Manager](/Trade%20Manager/Trade%20Manager.mq5)**, a **[Currency Strength indicator](/Currency%20Index/CurrencyStrength.mq5)** and a **[Pivot Points indicator](/Pivots/MultiPivots.mq5)**.
 
 For those who want to install everything in one shot, I have added a zip file of my **[entire MQL5 content](/MQL5%20Entire%20Content)**. Just install a new MT5 terminal and replace the folder MQL5 with the content of the zip file. In options, charts, set max bars to 1000000, some tools need this.
 
