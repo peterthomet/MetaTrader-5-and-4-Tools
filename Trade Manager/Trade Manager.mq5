@@ -557,11 +557,10 @@ void OnInit()
       _ShowInfo=true;
 
    SymbolExtraChars = StringSubstr(Symbol(), 6);
-
-   pipsfactor=1;
    
    lasttick=TimeLocal();
 
+   pipsfactor=1;
    if(Digits()==5||Digits()==3)
       pipsfactor=10;
 
@@ -2534,11 +2533,16 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       if(lparam==17)
          ToggleCtrl();
 
+      double step=ATR()/1000/Point();
+      step=MathFloor(step);
+      step=MathMax(step,1);
+      step*=ExtendedRepeatingFactor();
+
+      double margin=(20*step)+(int)MathRound((AskX()-BidX())/Point());
+
       //if(TimeLocal()-lastctrl<2)
       if(ctrlon)
       {
-         double margin=(2*pipsfactor)+(int)MathRound((AskX()-BidX())/Point());
-
          //lastctrl=TimeLocal();
 
          if(lparam==49||lparam==51)
@@ -2580,7 +2584,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             double breach=0+(SymbolCommissionPoints()+margin);
             if(_StopLossPips==DISABLEDPOINTS)
                return;
-            _StopLossPips=MathMax(_StopLossPips-((0.1*ExtendedRepeatingFactor())*pipsfactor),breach);
+            _StopLossPips=MathMax(_StopLossPips-step,breach);
             if(_StopLossPips==breach)
             {
                _StopLossPips=DISABLEDPOINTS;
@@ -2593,7 +2597,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             double breach=0+(SymbolCommissionPoints()+margin);
             if(_StopLossPips==DISABLEDPOINTS)
                _StopLossPips=breach;
-            _StopLossPips+=((0.1*ExtendedRepeatingFactor())*pipsfactor);
+            _StopLossPips+=step;
             DrawLevels();
          }
          if (lparam == 68)
@@ -2601,7 +2605,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             double breach=0-(SymbolCommissionPoints()-margin);
             if(_TakeProfitPips==DISABLEDPOINTS)
                return;
-            _TakeProfitPips=MathMax(_TakeProfitPips-((0.1*ExtendedRepeatingFactor())*pipsfactor),breach);
+            _TakeProfitPips=MathMax(_TakeProfitPips-step,breach);
             if(_TakeProfitPips==breach)
             {
                _TakeProfitPips=DISABLEDPOINTS;
@@ -2614,7 +2618,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             double breach=0-(SymbolCommissionPoints()-margin);
             if(_TakeProfitPips==DISABLEDPOINTS)
                _TakeProfitPips=breach;
-            _TakeProfitPips+=((0.1*ExtendedRepeatingFactor())*pipsfactor);
+            _TakeProfitPips+=step;
             DrawLevels();
          }
 
@@ -2643,14 +2647,12 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
       if(tradelevelsvisible)
       {
-         double margin=(5*pipsfactor)+(int)MathRound((AskX()-BidX())/Point());
-
          if (lparam == 65)
          {
             double breach=0-(WS.tradereference[selectedtradeindex].points-(margin));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
                return;
-            WS.tradereference[selectedtradeindex].stoplosspips=MathMax(WS.tradereference[selectedtradeindex].stoplosspips-((0.1*ExtendedRepeatingFactor())*pipsfactor),breach);
+            WS.tradereference[selectedtradeindex].stoplosspips=MathMax(WS.tradereference[selectedtradeindex].stoplosspips-step,breach);
             if(WS.tradereference[selectedtradeindex].stoplosspips==breach)
             {
                WS.tradereference[selectedtradeindex].stoplosspips=DISABLEDPOINTS;
@@ -2663,7 +2665,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             double breach=0-(WS.tradereference[selectedtradeindex].points-(margin));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
                WS.tradereference[selectedtradeindex].stoplosspips=breach;
-            WS.tradereference[selectedtradeindex].stoplosspips+=((0.1*ExtendedRepeatingFactor())*pipsfactor);
+            WS.tradereference[selectedtradeindex].stoplosspips+=step;
             DrawSelectedTradeLevels();
          }
          if (lparam == 68)
@@ -2671,7 +2673,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             double breach=WS.tradereference[selectedtradeindex].points+(margin);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
                return;
-            WS.tradereference[selectedtradeindex].takeprofitpips=MathMax(WS.tradereference[selectedtradeindex].takeprofitpips-((0.1*ExtendedRepeatingFactor())*pipsfactor),breach);
+            WS.tradereference[selectedtradeindex].takeprofitpips=MathMax(WS.tradereference[selectedtradeindex].takeprofitpips-step,breach);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==breach)
             {
                WS.tradereference[selectedtradeindex].takeprofitpips=DISABLEDPOINTS;
@@ -2684,7 +2686,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             double breach=WS.tradereference[selectedtradeindex].points+(margin);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
                WS.tradereference[selectedtradeindex].takeprofitpips=breach;
-            WS.tradereference[selectedtradeindex].takeprofitpips+=((0.1*ExtendedRepeatingFactor())*pipsfactor);
+            WS.tradereference[selectedtradeindex].takeprofitpips+=step;
             DrawSelectedTradeLevels();
          }
          if (lparam == 71)
