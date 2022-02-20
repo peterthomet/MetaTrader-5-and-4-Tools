@@ -2544,6 +2544,8 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       if(ctrlon)
       {
          //lastctrl=TimeLocal();
+         
+         double vstep=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_STEP);
 
          if(lparam==49||lparam==51)
          {
@@ -2576,9 +2578,9 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          if (lparam == 53)
             SetHardStopMode();
          if (lparam == 188)
-            _OpenLots=MathMax(_OpenLots-(0.01*ExtendedRepeatingFactor()),0.01);
+            _OpenLots=MathRound(MathMax(_OpenLots-(vstep*ExtendedRepeatingFactor()),SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MIN))/vstep)*vstep;
          if (lparam == 190)
-            _OpenLots+=(0.01*ExtendedRepeatingFactor());
+            _OpenLots=MathRound(MathMin(_OpenLots+(vstep*ExtendedRepeatingFactor()),SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MAX))/vstep)*vstep;
          if (lparam == 65)
          {
             double breach=0+(SymbolCommissionPoints()+margin);
