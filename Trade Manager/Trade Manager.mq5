@@ -1374,7 +1374,7 @@ void DisplayText()
          string riskpercenttradingcapital="";
          if(AvailableTradingCapital>0)
             riskpercenttradingcapital=" | "+DoubleToString(risk/(AvailableTradingCapital/100),2)+"%";
-         CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,2)+" | "+DoubleToString(riskpercent,2)+"%"+riskpercenttradingcapital+" | "+DoubleToString(atrfactor*100,0)+"%ATR");
+         CreateLabel(rowindex,FontSize,c,"Risk: "+DoubleToString(risk,2)+" | "+DoubleToString(riskpercent,2)+"%"+riskpercenttradingcapital+" | "+DoubleToString(atrfactor*100,1)+"%ATR");
          rowindex++;
       }
    }
