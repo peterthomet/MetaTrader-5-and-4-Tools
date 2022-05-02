@@ -2539,6 +2539,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       step*=ExtendedRepeatingFactor();
 
       double margin=(20*step)+(int)MathRound((AskX()-BidX())/Point());
+      double marginsmall=(5*step)+(int)MathRound((AskX()-BidX())/Point());
 
       //if(TimeLocal()-lastctrl<2)
       if(ctrlon)
@@ -2583,7 +2584,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             _OpenLots=MathRound(MathMin(_OpenLots+(vstep*ExtendedRepeatingFactor()),SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MAX))/vstep)*vstep;
          if (lparam == 65)
          {
-            double breach=0+(SymbolCommissionPoints()+margin);
+            double breach=0+(SymbolCommissionPoints()+marginsmall);
             if(_StopLossPips==DISABLEDPOINTS)
                return;
             _StopLossPips=MathMax(_StopLossPips-step,breach);
@@ -2596,7 +2597,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 83)
          {
-            double breach=0+(SymbolCommissionPoints()+margin);
+            double breach=0+(SymbolCommissionPoints()+marginsmall);
             if(_StopLossPips==DISABLEDPOINTS)
                _StopLossPips=breach;
             _StopLossPips+=step;
@@ -2604,7 +2605,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 68)
          {
-            double breach=0-(SymbolCommissionPoints()-margin);
+            double breach=0-(SymbolCommissionPoints()-marginsmall);
             if(_TakeProfitPips==DISABLEDPOINTS)
                return;
             _TakeProfitPips=MathMax(_TakeProfitPips-step,breach);
@@ -2617,7 +2618,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 70)
          {
-            double breach=0-(SymbolCommissionPoints()-margin);
+            double breach=0-(SymbolCommissionPoints()-marginsmall);
             if(_TakeProfitPips==DISABLEDPOINTS)
                _TakeProfitPips=breach;
             _TakeProfitPips+=step;
