@@ -2570,6 +2570,17 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             }
          }
 
+         if (lparam == 38)
+         {
+            // Up Arrow
+
+         }
+         if (lparam == 40)
+         {
+            // Down Arrow
+
+         }
+
          if (lparam == 48)
              WS.closecommands.Add();
          if (lparam == 56)
@@ -2650,6 +2661,11 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
       if(tradelevelsvisible)
       {
+         if (lparam == 48)
+         {
+            string magic=IntegerToString(WS.tradereference[selectedtradeindex].magicnumber,12,'0');
+             WS.closecommands.Add(magic+magic);
+         }
          if (lparam == 65)
          {
             double breach=0-(WS.tradereference[selectedtradeindex].points-(margin));
