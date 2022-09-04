@@ -186,6 +186,10 @@ double _OpenLots;
 bool _TradingHours[24];
 bool _TradingWeekdays[7];
 bool ctrlon;
+bool crosshairon;
+bool leftmousebutton;
+double startdragprice;
+double enddragprice;
 bool tradelevelsvisible;
 int selectedtradeindex;
 uint repeatlasttick=0;
@@ -532,6 +536,8 @@ TypeBasketInfo BI;
 
 void OnInit()
 {
+   ChartSetInteger(0,CHART_EVENT_MOUSE_MOVE,1);
+   
    atr=0;
    atrday=-1;
    
@@ -540,6 +546,10 @@ void OnInit()
    TradesViewSelected=ByPairs;
 
    ctrlon=false;
+   crosshairon=false;
+   leftmousebutton=false;
+   startdragprice=0;
+   enddragprice=0;
    tradelevelsvisible=false;
 
    initerror=false;
@@ -2498,8 +2508,80 @@ int ExtendedRepeatingFactor()
 }
 
 
+string MouseState(uint state) 
+{
+   string res;
+   res+="\nML: "   +(((state& 1)== 1)?"DN":"UP");   // mouse left
+   res+="\nMR: "   +(((state& 2)== 2)?"DN":"UP");   // mouse right 
+   res+="\nMM: "   +(((state&16)==16)?"DN":"UP");   // mouse middle
+   res+="\nMX: "   +(((state&32)==32)?"DN":"UP");   // mouse first X key
+   res+="\nMY: "   +(((state&64)==64)?"DN":"UP");   // mouse second X key
+   res+="\nSHIFT: "+(((state& 4)== 4)?"DN":"UP");   // shift key
+   res+="\nCTRL: " +(((state& 8)== 8)?"DN":"UP");   // control key
+   return(res);
+}
+
+
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
+   if(id==CHARTEVENT_MOUSE_MOVE)
+   {
+      uint state=(uint)sparam;
+      if((state&16)==16)
+         crosshairon=true;
+      if((state&2)==2)
+         crosshairon=false;
+      if((state&1)==1)
+      {
+         leftmousebutton=true;
+      }
+      else
+      {
+         if(leftmousebutton&&crosshairon)
+         {
+            startdragprice=0;
+            enddragprice=0;
+            crosshairon=false;
+         }
+         leftmousebutton=false;
+      }
+
+      if(ctrlon)
+      {
+         if(crosshairon&&leftmousebutton)
+         {
+            int x=(int)lparam; 
+            int y=(int)dparam; 
+            datetime time=0;
+            double price=0;
+            int window=0;
+         
+            if(ChartXYToTimePrice(0,x,y,window,time,price))
+            {
+               if(window==0)
+               {
+                  if(startdragprice==0)
+                  {
+                     startdragprice=price;
+
+                     ObjectDelete(0,"H Line");
+                     ObjectCreate(0,"H Line",OBJ_HLINE,0,time,startdragprice);
+                     ChartRedraw();
+                  }
+
+                  enddragprice=price;
+
+                  ObjectDelete(0,"H Line2");
+                  ObjectCreate(0,"H Line2",OBJ_HLINE,0,0,enddragprice);
+                  ChartRedraw();
+               
+                  Comment("POINT: ",(int)lparam,",",(int)dparam,"\n",MouseState((uint)sparam));
+               }
+            }
+         }
+      }
+   }
+
    if(id==CHARTEVENT_CHART_CHANGE)
    {
       chartheight=(int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS);
