@@ -96,7 +96,6 @@ input bool DrawBackgroundPanel = true;
 input int BackgroundPanelWidth = 250;
 input color BackgroundPanelColor = clrNONE;
 input bool MT5CommissionPerDeal = true;
-input double CommissionPerLotPerRoundtrip = 7;
 input int AvailableTradingCapital = 0;
 input int StartHour = 0;
 input int StartMinute = 0;
@@ -172,7 +171,8 @@ datetime lasterrortime;
 string lasterrorstring;
 bool istesting;
 bool initerror;
-string SymbolExtraChars = "";
+string SymbolExtraChars="";
+double SymbolCommission;
 string tickchar="";
 int magicnumberfloor=0;
 int basemagicnumber=0;
@@ -567,6 +567,22 @@ void OnInit()
       _ShowInfo=true;
 
    SymbolExtraChars = StringSubstr(Symbol(), 6);
+
+   SymbolCommission=0;
+   HistorySelect(0,TimeCurrent());
+   uint total=HistoryDealsTotal();
+   ulong ticket=0;
+   for(uint i=total-1;i>=0;i--)
+   {
+      if((ticket=HistoryDealGetTicket(i))>0)
+      {
+         if(HistoryDealGetString(ticket,DEAL_SYMBOL)==Symbol())
+         {
+            SymbolCommission=MathAbs(NormalizeDouble(HistoryDealGetDouble(ticket,DEAL_COMMISSION)/HistoryDealGetDouble(ticket,DEAL_VOLUME),2)*2);
+            break;
+         }
+      }
+   }
    
    lasttick=TimeLocal();
 
@@ -2842,7 +2858,7 @@ void SetLastError(int result)
 int SymbolCommissionPoints()
 {
    double tickvalue=CurrentSymbolTickValue();
-   return (int)NormalizeDouble(CommissionPerLotPerRoundtrip/tickvalue,0);
+   return (int)NormalizeDouble(SymbolCommission/tickvalue,0);
 }
 
 
