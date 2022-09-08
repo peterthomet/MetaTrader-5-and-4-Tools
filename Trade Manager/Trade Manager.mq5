@@ -2563,22 +2563,18 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
                if(window==0)
                {
                   if(startdragprice==0)
-                  {
                      startdragprice=price;
 
-                     CreateLevel(0,appnamespace+"PendingLevelOpen",DodgerBlue,startdragprice);
-
-                     //ObjectDelete(0,"H Line");
-                     //ObjectCreate(0,"H Line",OBJ_HLINE,0,time,startdragprice);
-                     ChartRedraw();
-                  }
-
                   enddragprice=price;
+                  
+                  if(MathAbs(startdragprice-enddragprice)>ATR()/500)
+                  {
+                     CreateLevel(0,appnamespace+"PendingLevelOpen",DodgerBlue,startdragprice);
+                     CreateLevel(0,appnamespace+"PendingLevelStop",DeepPink,enddragprice);
+                  }
+                  else
+                     ObjectsDeleteAll(0,appnamespace+"PendingLevel");
 
-                  CreateLevel(0,appnamespace+"PendingLevelStop",DeepPink,enddragprice);
-
-                  //ObjectDelete(0,"H Line2");
-                  //ObjectCreate(0,"H Line2",OBJ_HLINE,0,0,enddragprice);
                   ChartRedraw();
                }
             }
