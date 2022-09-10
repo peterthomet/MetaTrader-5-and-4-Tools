@@ -164,6 +164,7 @@ input double P20 = 0;
 
 string appname="Trade Manager";
 string appnamespace="";
+bool appinit=false;
 bool working=false;
 double pipsfactor;
 datetime lasttick;
@@ -568,22 +569,6 @@ void OnInit()
 
    SymbolExtraChars = StringSubstr(Symbol(), 6);
 
-   SymbolCommission=0;
-   HistorySelect(0,TimeCurrent());
-   uint total=HistoryDealsTotal();
-   ulong ticket=0;
-   for(uint i=total-1;i>=0;i--)
-   {
-      if((ticket=HistoryDealGetTicket(i))>0)
-      {
-         if(HistoryDealGetString(ticket,DEAL_SYMBOL)==Symbol())
-         {
-            SymbolCommission=MathAbs(NormalizeDouble(HistoryDealGetDouble(ticket,DEAL_COMMISSION)/HistoryDealGetDouble(ticket,DEAL_VOLUME),2)*2);
-            break;
-         }
-      }
-   }
-   
    lasttick=TimeLocal();
 
    pipsfactor=1;
@@ -804,6 +789,26 @@ void Manage()
    if(working||initerror||!TerminalInfoInteger(TERMINAL_CONNECTED))
       return;
    working=true;
+
+   if(!appinit)
+   {
+      SymbolCommission=0;
+      HistorySelect(0,TimeCurrent());
+      uint total=HistoryDealsTotal();
+      ulong ticket=0;
+      for(uint i=total-1;i>=0;i--)
+      {
+         if((ticket=HistoryDealGetTicket(i))>0)
+         {
+            if(HistoryDealGetString(ticket,DEAL_SYMBOL)==Symbol())
+            {
+               SymbolCommission=MathAbs(NormalizeDouble(HistoryDealGetDouble(ticket,DEAL_COMMISSION)/HistoryDealGetDouble(ticket,DEAL_VOLUME),2)*2);
+               break;
+            }
+         }
+      }
+      appinit=true;
+   }
 
    int closecommandindex=WS.closecommands.GetNextCommandIndex();
    while(closecommandindex>-1)
