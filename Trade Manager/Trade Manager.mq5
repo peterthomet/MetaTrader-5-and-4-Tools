@@ -674,7 +674,7 @@ void AppInit()
    HistorySelect(0,TimeCurrent());
    uint total=HistoryDealsTotal();
    ulong ticket=0;
-   for(uint i=total-1;i>=0;i--)
+   for(int i=total-1;i>=0;i--)
    {
       if((ticket=HistoryDealGetTicket(i))>0)
       {
