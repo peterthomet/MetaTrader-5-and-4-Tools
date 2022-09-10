@@ -665,6 +665,30 @@ void OnInit()
 }
 
 
+void AppInit()
+{
+   if(appinit)
+      return;
+
+   SymbolCommission=0;
+   HistorySelect(0,TimeCurrent());
+   uint total=HistoryDealsTotal();
+   ulong ticket=0;
+   for(uint i=total-1;i>=0;i--)
+   {
+      if((ticket=HistoryDealGetTicket(i))>0)
+      {
+         if(HistoryDealGetString(ticket,DEAL_SYMBOL)==Symbol())
+         {
+            SymbolCommission=MathAbs(NormalizeDouble(HistoryDealGetDouble(ticket,DEAL_COMMISSION)/HistoryDealGetDouble(ticket,DEAL_VOLUME),2)*2);
+            break;
+         }
+      }
+   }
+   appinit=true;
+}
+
+
 void InitTesting()
 {
    if(!istesting)
@@ -790,25 +814,7 @@ void Manage()
       return;
    working=true;
 
-   if(!appinit)
-   {
-      SymbolCommission=0;
-      HistorySelect(0,TimeCurrent());
-      uint total=HistoryDealsTotal();
-      ulong ticket=0;
-      for(uint i=total-1;i>=0;i--)
-      {
-         if((ticket=HistoryDealGetTicket(i))>0)
-         {
-            if(HistoryDealGetString(ticket,DEAL_SYMBOL)==Symbol())
-            {
-               SymbolCommission=MathAbs(NormalizeDouble(HistoryDealGetDouble(ticket,DEAL_COMMISSION)/HistoryDealGetDouble(ticket,DEAL_VOLUME),2)*2);
-               break;
-            }
-         }
-      }
-      appinit=true;
-   }
+   AppInit();
 
    int closecommandindex=WS.closecommands.GetNextCommandIndex();
    while(closecommandindex>-1)
