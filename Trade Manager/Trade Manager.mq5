@@ -376,6 +376,14 @@ struct TypeCloseCommands
    }
 };
 
+struct TypePendingOrder
+{
+   int ordertype;
+   double entryprice;
+   double stopprice;
+   double volume;
+};
+
 struct TypeWorkingState
 {
    BEStopModes StopMode;
@@ -390,6 +398,7 @@ struct TypeWorkingState
    double globalgain;
    datetime lastorderexecution;
    TypeCloseCommands closecommands;
+   TypePendingOrder pendingorders[];
    void Init()
    {
       closebasketatBE=false;
@@ -404,6 +413,7 @@ struct TypeWorkingState
       globalgain=0;
       lastorderexecution=0;
       closecommands.Init();
+      ArrayResize(pendingorders,0);
    };
    void Reset()
    {
@@ -672,7 +682,7 @@ void AppInit()
 
    SymbolCommission=0;
    HistorySelect(0,TimeCurrent());
-   uint total=HistoryDealsTotal();
+   int total=HistoryDealsTotal();
    ulong ticket=0;
    for(int i=total-1;i>=0;i--)
    {
@@ -1907,6 +1917,10 @@ void ToggleCtrl(bool disable=false)
    {
       DeleteLevels();
       //DeleteLegend();
+
+      ArrayResize(WS.pendingorders,0);
+      ObjectsDeleteAll(0,appnamespace+"PendingLevel");
+
       ctrlon=false;
    }
 }
@@ -2573,18 +2587,45 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             {
                if(window==0)
                {
+                  ArrayResize(WS.pendingorders,0);
+               
                   if(startdragprice==0)
                      startdragprice=price;
 
-                  enddragprice=price;
-                  
-                  if(MathAbs(startdragprice-enddragprice)>ATR()/500)
+                  if(MathAbs(startdragprice-price)>ATR()/500)
                   {
+                     enddragprice=price;
                      CreateLevel(0,appnamespace+"PendingLevelOpen",DodgerBlue,startdragprice);
                      CreateLevel(0,appnamespace+"PendingLevelStop",DeepPink,enddragprice);
+
+                     string objname=appnamespace+"PendingLevelText";
+                     string text="";
+                     datetime t[];
+                     CopyTime(Symbol(),Period(),0,1,t);
+                     
+                     ObjectCreate(0,objname,OBJ_TEXT,0,t[0],startdragprice);
+                     if(startdragprice<enddragprice)
+                     {
+                        text="Sell";
+                        ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_LOWER);
+                     }
+                     else
+                     {
+                        text="Buy";
+                        ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+                     }
+                     text+=" "+DoubleToString(_OpenLots,2);
+                     text+=" - Risk: 20.35 | 1.2% | 1.8%ATR";
+                     ObjectSetInteger(0,objname,OBJPROP_COLOR,TextColorInfo);
+                     ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,FontSize);
+                     ObjectSetString(0,objname,OBJPROP_FONT,FontName);
+                     ObjectSetString(0,objname,OBJPROP_TEXT,text);
                   }
                   else
+                  {
+                     enddragprice=0;
                      ObjectsDeleteAll(0,appnamespace+"PendingLevel");
+                  }
 
                   ChartRedraw();
                }
