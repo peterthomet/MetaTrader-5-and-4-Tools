@@ -2549,6 +2549,74 @@ int ExtendedRepeatingFactor()
 }
 
 
+void BuildPendingLevels(double price, datetime time)
+{
+   if(MathAbs(startdragprice-price)>ATR()/500)
+   {
+      enddragprice=price;
+      CreateLevel(0,appnamespace+"PendingLevelOpen",DodgerBlue,startdragprice);
+      CreateLevel(0,appnamespace+"PendingLevelStop",DeepPink,enddragprice);
+      BuildPendingLevelsText(time);
+   }
+   else
+   {
+      enddragprice=0;
+      ObjectsDeleteAll(0,appnamespace+"PendingLevel");
+   }
+   
+   ChartRedraw();
+}
+
+
+void BuildPendingLevelsText(datetime time=NULL)
+{
+      string objname=appnamespace+"PendingLevelText";
+      string text="";
+
+      if(time!=NULL)
+         ObjectCreate(0,objname,OBJ_TEXT,0,time,startdragprice);
+
+      if(startdragprice<enddragprice)
+      {
+         text="Sell";
+         ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_LOWER);
+      }
+      else
+      {
+         text="Buy";
+         ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
+      }
+
+      double volume=_OpenLots;
+      double tickvalue=CurrentSymbolTickValue();
+      int cp=SymbolCommissionPoints();
+      double stoppoints=MathAbs(startdragprice-enddragprice)/Point()+cp;
+      
+      if(_StopLossPips!=DISABLEDPOINTS)
+      {
+         double baserisk=_StopLossPips*_OpenLots*tickvalue;
+         volume=baserisk/(stoppoints*tickvalue);
+      }
+      
+      text+=" "+DoubleToString(volume,2);
+
+      double risk=stoppoints*volume*tickvalue;
+      double riskpercent=risk/(AccountBalanceX()/100);
+      double atrfactor=stoppoints/(ATR()/Point());
+
+      string riskpercenttradingcapital="";
+      if(AvailableTradingCapital>0)
+         riskpercenttradingcapital=" | "+DoubleToString(risk/(AvailableTradingCapital/100),2)+"%";
+      
+      text+=" / Risk: "+DoubleToString(risk,2)+" | "+DoubleToString(riskpercent,2)+"%"+riskpercenttradingcapital+" | "+DoubleToString(atrfactor*100,1)+"%ATR";
+
+      ObjectSetInteger(0,objname,OBJPROP_COLOR,TextColorInfo);
+      ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,FontSize);
+      ObjectSetString(0,objname,OBJPROP_FONT,FontName);
+      ObjectSetString(0,objname,OBJPROP_TEXT,text);
+}
+
+
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
    if(id==CHARTEVENT_MOUSE_MOVE)
@@ -2591,43 +2659,8 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
                
                   if(startdragprice==0)
                      startdragprice=price;
-
-                  if(MathAbs(startdragprice-price)>ATR()/500)
-                  {
-                     enddragprice=price;
-                     CreateLevel(0,appnamespace+"PendingLevelOpen",DodgerBlue,startdragprice);
-                     CreateLevel(0,appnamespace+"PendingLevelStop",DeepPink,enddragprice);
-
-                     string objname=appnamespace+"PendingLevelText";
-                     string text="";
-                     datetime t[];
-                     CopyTime(Symbol(),Period(),0,1,t);
                      
-                     ObjectCreate(0,objname,OBJ_TEXT,0,t[0],startdragprice);
-                     if(startdragprice<enddragprice)
-                     {
-                        text="Sell";
-                        ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_LOWER);
-                     }
-                     else
-                     {
-                        text="Buy";
-                        ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
-                     }
-                     text+=" "+DoubleToString(_OpenLots,2);
-                     text+=" - Risk: 20.35 | 1.2% | 1.8%ATR";
-                     ObjectSetInteger(0,objname,OBJPROP_COLOR,TextColorInfo);
-                     ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,FontSize);
-                     ObjectSetString(0,objname,OBJPROP_FONT,FontName);
-                     ObjectSetString(0,objname,OBJPROP_TEXT,text);
-                  }
-                  else
-                  {
-                     enddragprice=0;
-                     ObjectsDeleteAll(0,appnamespace+"PendingLevel");
-                  }
-
-                  ChartRedraw();
+                  BuildPendingLevels(price,time);
                }
             }
          }
@@ -2724,9 +2757,17 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          if (lparam == 53)
             SetHardStopMode();
          if (lparam == 188)
+         {
             _OpenLots=MathRound(MathMax(_OpenLots-(vstep*ExtendedRepeatingFactor()),SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MIN))/vstep)*vstep;
+            if(crosshairon&&leftmousebutton)
+               BuildPendingLevelsText();
+         }
          if (lparam == 190)
+         {
             _OpenLots=MathRound(MathMin(_OpenLots+(vstep*ExtendedRepeatingFactor()),SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MAX))/vstep)*vstep;
+            if(crosshairon&&leftmousebutton)
+               BuildPendingLevelsText();
+         }
          if (lparam == 65)
          {
             double breach=0+(SymbolCommissionPoints()+marginsmall);
@@ -2739,6 +2780,8 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
                DeleteLevels();
             }
             DrawLevels();
+            if(crosshairon&&leftmousebutton)
+               BuildPendingLevelsText();
          }
          if (lparam == 83)
          {
@@ -2747,6 +2790,8 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
                _StopLossPips=breach;
             _StopLossPips+=step;
             DrawLevels();
+            if(crosshairon&&leftmousebutton)
+               BuildPendingLevelsText();
          }
          if (lparam == 68)
          {
