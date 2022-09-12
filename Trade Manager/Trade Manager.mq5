@@ -381,6 +381,7 @@ struct TypePendingOrder
    int ordertype;
    double entryprice;
    double stopprice;
+   double stoppoints;
    double volume;
 };
 
@@ -2620,7 +2621,8 @@ double CalculatePendingLevelsVolume()
       int cp=SymbolCommissionPoints();
       double stoppoints=MathAbs(startdragprice-enddragprice)/Point()+cp;
       double baserisk=_StopLossPips*_OpenLots*tickvalue;
-      volume=baserisk/(stoppoints*tickvalue);
+      double volumestep=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_STEP);
+      volume=MathFloor((baserisk/(stoppoints*tickvalue))/volumestep)*volumestep;
       volume=MathMax(volume,SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MIN));
       volume=MathMin(volume,SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MAX));
    }
@@ -2645,6 +2647,19 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       {
          if(leftmousebutton&&crosshairon)
          {
+            if(enddragprice!=0)
+            {
+               ArrayResize(WS.pendingorders,1);
+               if(startdragprice>enddragprice) // Its a Buy
+               {
+               
+               }
+               else // Its a Sell
+               {
+               
+               }
+            }
+         
             startdragprice=0;
             enddragprice=0;
             crosshairon=false;
