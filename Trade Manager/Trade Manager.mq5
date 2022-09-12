@@ -2587,17 +2587,11 @@ void BuildPendingLevelsText(datetime time=NULL)
          ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
       }
 
-      double volume=_OpenLots;
+      double volume=CalculatePendingLevelsVolume();
       double tickvalue=CurrentSymbolTickValue();
       int cp=SymbolCommissionPoints();
       double stoppoints=MathAbs(startdragprice-enddragprice)/Point()+cp;
-      
-      if(_StopLossPips!=DISABLEDPOINTS)
-      {
-         double baserisk=_StopLossPips*_OpenLots*tickvalue;
-         volume=baserisk/(stoppoints*tickvalue);
-      }
-      
+
       text+=" "+DoubleToString(volume,2);
 
       double risk=stoppoints*volume*tickvalue;
@@ -2614,6 +2608,23 @@ void BuildPendingLevelsText(datetime time=NULL)
       ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,FontSize);
       ObjectSetString(0,objname,OBJPROP_FONT,FontName);
       ObjectSetString(0,objname,OBJPROP_TEXT,text);
+}
+
+
+double CalculatePendingLevelsVolume()
+{
+   double volume=_OpenLots;
+   if(_StopLossPips!=DISABLEDPOINTS)
+   {
+      double tickvalue=CurrentSymbolTickValue();
+      int cp=SymbolCommissionPoints();
+      double stoppoints=MathAbs(startdragprice-enddragprice)/Point()+cp;
+      double baserisk=_StopLossPips*_OpenLots*tickvalue;
+      volume=baserisk/(stoppoints*tickvalue);
+      volume=MathMax(volume,SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MIN));
+      volume=MathMin(volume,SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MAX));
+   }
+   return volume;
 }
 
 
