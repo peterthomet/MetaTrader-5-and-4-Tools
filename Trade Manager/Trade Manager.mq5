@@ -838,6 +838,7 @@ void Manage()
    if(ManageOrders())
    {
       ManageBasket();
+      CheckPendingOrders();
       DisplayText();
    }
 
@@ -1295,6 +1296,43 @@ void ManageBasket()
    {
       if(TimeLocal()-WS.tradereference[selectedtradeindex].lastupdate>1)
          ToggleTradeLevels(false);
+   }
+}
+
+
+void CheckPendingOrders()
+{
+   if(ArraySize(WS.pendingorders)>0)
+   {
+      double ask=AskX();
+      double bid=BidX();
+      TypePendingOrder p=WS.pendingorders[0];
+      int openorder=-1;
+   
+      if(p.ordertype==ORDER_TYPE_BUY_STOP && ask>=p.entryprice)
+         openorder=OP_BUY;
+
+      if(p.ordertype==ORDER_TYPE_BUY_LIMIT)
+      {
+      
+      }
+      if(p.ordertype==ORDER_TYPE_SELL_STOP)
+      {
+      
+      }
+      if(p.ordertype==ORDER_TYPE_SELL_LIMIT)
+      {
+      
+      }
+      
+      if(openorder==OP_BUY)
+         OpenBuy(NULL,p.volume,0,p.stoppoints);
+
+      if(openorder!=-1)
+      {
+         ArrayResize(WS.pendingorders,0);
+         ObjectsDeleteAll(0,appnamespace+"PendingLevel");
+      }
    }
 }
 
@@ -2650,13 +2688,23 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             if(enddragprice!=0)
             {
                ArrayResize(WS.pendingorders,1);
-               if(startdragprice>enddragprice) // Its a Buy
+               WS.pendingorders[0].entryprice=startdragprice;
+               WS.pendingorders[0].stopprice=enddragprice;
+               WS.pendingorders[0].stoppoints=MathAbs(startdragprice-enddragprice)/Point()+SymbolCommissionPoints();
+               WS.pendingorders[0].volume=CalculatePendingLevelsVolume();
+               if(startdragprice>enddragprice)
                {
-               
+                  if(AskX()>startdragprice)
+                     WS.pendingorders[0].ordertype=ORDER_TYPE_BUY_LIMIT;
+                  else
+                     WS.pendingorders[0].ordertype=ORDER_TYPE_BUY_STOP;
                }
-               else // Its a Sell
+               else
                {
-               
+                  if(BidX()>startdragprice)
+                     WS.pendingorders[0].ordertype=ORDER_TYPE_SELL_STOP;
+                  else
+                     WS.pendingorders[0].ordertype=ORDER_TYPE_SELL_LIMIT;
                }
             }
          
