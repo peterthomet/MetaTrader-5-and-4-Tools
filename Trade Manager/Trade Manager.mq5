@@ -809,6 +809,7 @@ void OnTick()
    if(ctrlon)
       DrawLevels();
 
+   CheckPendingOrders();
    Manage();
 }
 
@@ -838,7 +839,6 @@ void Manage()
    if(ManageOrders())
    {
       ManageBasket();
-      CheckPendingOrders();
       DisplayText();
    }
 
@@ -1312,21 +1312,20 @@ void CheckPendingOrders()
       if(p.ordertype==ORDER_TYPE_BUY_STOP && ask>=p.entryprice)
          openorder=OP_BUY;
 
-      if(p.ordertype==ORDER_TYPE_BUY_LIMIT)
-      {
-      
-      }
-      if(p.ordertype==ORDER_TYPE_SELL_STOP)
-      {
-      
-      }
-      if(p.ordertype==ORDER_TYPE_SELL_LIMIT)
-      {
-      
-      }
+      if(p.ordertype==ORDER_TYPE_BUY_LIMIT && ask<=p.entryprice)
+         openorder=OP_BUY;
+
+      if(p.ordertype==ORDER_TYPE_SELL_STOP && bid<=p.entryprice)
+         openorder=OP_SELL;
+
+      if(p.ordertype==ORDER_TYPE_SELL_LIMIT && bid>=p.entryprice)
+         openorder=OP_SELL;
       
       if(openorder==OP_BUY)
          OpenBuy(NULL,p.volume,0,p.stoppoints);
+
+      if(openorder==OP_SELL)
+         OpenSell(NULL,p.volume,0,p.stoppoints);
 
       if(openorder!=-1)
       {
