@@ -97,6 +97,7 @@ input int BackgroundPanelWidth = 250;
 input color BackgroundPanelColor = clrNONE;
 input bool MT5CommissionPerDeal = true;
 input int AvailableTradingCapital = 0;
+input int PendingOrdersSplit = 3;
 input int StartHour = 0;
 input int StartMinute = 0;
 input int MinPoints1 = 0;
@@ -1320,12 +1321,24 @@ void CheckPendingOrders()
 
       if(p.ordertype==ORDER_TYPE_SELL_LIMIT && bid>=p.entryprice)
          openorder=OP_SELL;
-      
-      if(openorder==OP_BUY)
-         OpenBuy(NULL,p.volume,0,p.stoppoints);
 
-      if(openorder==OP_SELL)
-         OpenSell(NULL,p.volume,0,p.stoppoints);
+      double minvolume=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MIN);
+      double volumestep=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_STEP);
+      int volumesplit=MathMax(PendingOrdersSplit,1);
+      volumesplit=MathMin(MathFloor(p.volume/minvolume),volumesplit);
+      
+      for(int i=1;i<=volumesplit;i++)
+      {
+         double v=MathRound((p.volume/volumesplit)/volumestep)*volumestep;
+         if(i==volumesplit)
+            v=p.volume-(v*(i-1));
+
+         if(openorder==OP_BUY)
+            OpenBuy(NULL,v,0,p.stoppoints,p.stoppoints*i);
+   
+         if(openorder==OP_SELL)
+            OpenSell(NULL,v,0,p.stoppoints,p.stoppoints*i);
+      }
 
       if(openorder!=-1)
       {
