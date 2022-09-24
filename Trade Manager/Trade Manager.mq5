@@ -98,6 +98,7 @@ input color BackgroundPanelColor = clrNONE;
 input bool MT5CommissionPerDeal = true;
 input int AvailableTradingCapital = 0;
 input int PendingOrdersSplit = 3;
+input double PendingOrdersRiskFactor = 3;
 input int StartHour = 0;
 input int StartMinute = 0;
 input int MinPoints1 = 0;
@@ -2607,6 +2608,7 @@ void BuildPendingLevels(double price, datetime time)
       enddragprice=price;
       CreateLevel(0,appnamespace+"PendingLevelOpen",DodgerBlue,startdragprice);
       CreateLevel(0,appnamespace+"PendingLevelStop",DeepPink,enddragprice);
+      //CreateRectangle(0,appnamespace+"PendingLevelRect",WhiteSmoke,startdragprice,enddragprice);
       BuildPendingLevelsText(time);
    }
    else
@@ -2670,7 +2672,7 @@ double CalculatePendingLevelsVolume()
       double tickvalue=CurrentSymbolTickValue();
       int cp=SymbolCommissionPoints();
       double stoppoints=MathAbs(startdragprice-enddragprice)/Point()+cp;
-      double baserisk=_StopLossPips*_OpenLots*tickvalue;
+      double baserisk=(_StopLossPips*_OpenLots*tickvalue)*PendingOrdersRiskFactor;
       double volumestep=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_STEP);
       volume=MathFloor((baserisk/(stoppoints*tickvalue))/volumestep)*volumestep;
       volume=MathMax(volume,SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MIN));
