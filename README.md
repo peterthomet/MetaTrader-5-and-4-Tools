@@ -73,6 +73,14 @@ For those who want to install everything in one shot, I have added a zip file of
 <br/>
 <br/>
 
+## Trade Manager Add Pending Orders with Drag and Drop and Proper Risk
+
+
+[![](http://img.youtube.com/vi/UVdEPk4fzwE/maxresdefault.jpg)](http://www.youtube.com/watch?v=UVdEPk4fzwE "Trade Manager | Add Pending Orders with Drag and Drop and Proper Risk")
+
+<br/>
+<br/>
+
 ## Forex Currency Strength Analysis Tool
 
 
