@@ -1326,7 +1326,7 @@ void CheckPendingOrders()
       double minvolume=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MIN);
       double volumestep=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_STEP);
       int volumesplit=MathMax(PendingOrdersSplit,1);
-      volumesplit=MathMin(MathFloor(p.volume/minvolume),volumesplit);
+      volumesplit=(int)MathMin(MathFloor(p.volume/minvolume),volumesplit);
       
       for(int i=1;i<=volumesplit;i++)
       {
@@ -1417,6 +1417,31 @@ void DisplayText()
    if(AvailableTradingCapital>0)
       moretradingcapital=" | "+IntegerToString(AvailableTradingCapital);
    CreateLabel(rowindex,FontSize,TextColor,"Balance: "+DoubleToString(AccountBalanceX(),0)+moretradingcapital);
+   rowindex++;
+
+   int pt=PositionsTotal();
+   double profits=0;
+   for(int i=0;i<pt;i++)
+      if(StringLen(PositionGetSymbol(i))>0)
+         profits+=PositionGetDouble(POSITION_PROFIT);
+
+   MqlDateTime s;
+   TimeCurrent(s);
+   s.hour=0;
+   s.min=0;
+   s.sec=0;
+   HistorySelect(StructToTime(s),TimeCurrent());
+   int total=HistoryDealsTotal();
+   ulong ticket=0;
+   for(int i=total-1;i>=0;i--)
+   {
+      if((ticket=HistoryDealGetTicket(i))>0)
+      {
+         profits+=HistoryDealGetDouble(ticket,DEAL_COMMISSION);
+         profits+=HistoryDealGetDouble(ticket,DEAL_PROFIT);
+      }
+   }
+   CreateLabel(rowindex,FontSize,TextColor,"Profit/Loss Today: "+DoubleToString(profits,2));
    rowindex++;
    
    CreateLabel(rowindex,FontSize,TextColor,"Free Margin: "+DoubleToString(AccountFreeMarginX(),1));
