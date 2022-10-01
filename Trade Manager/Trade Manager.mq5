@@ -1250,6 +1250,10 @@ void ManageBasket()
       }
    }
 
+   if(MaxDailyLoss>0)
+      if(BI.globalprofitloss<=(0-MaxDailyLoss))
+         closeall=true;
+
    if(StopLossPercentTradingCapital>0)
    {
       if((WS.globalgain)+((AccountBalanceNet()/100)*StopLossPercentTradingCapital)<=0)
@@ -1595,6 +1599,12 @@ void DisplayText()
          {
             double ptcrisk=(AccountBalanceNet()/100)*StopLossPercentTradingCapital;
             totalrisk=MathMin(ptcrisk,totalrisk);
+         }
+
+         if(MaxDailyLoss>0)
+         {
+            double dayriskleft=MaxDailyLoss+BI.globalprofitloss-BI.gain;
+            totalrisk=MathMin(dayriskleft,totalrisk);
          }
 
          color c=TextColorMinus;
