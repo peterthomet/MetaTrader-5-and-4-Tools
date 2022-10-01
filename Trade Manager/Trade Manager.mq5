@@ -63,6 +63,7 @@ input double HedgeVolumeFactor = 1;
 input double HedgeFlatAtLevel = 5;
 input double TakeProfitPercentTradingCapital = 0;
 input double StopLossPercentTradingCapital = 0;
+input double MaxDailyLoss = 0;
 input TypeStopLossPercentTradingCapitalAction StopLossPercentTradingCapitalAction = CloseAllTrades;
 input bool CloseTradesBeforeMidnight = false;
 input int CloseTradesBeforeMidnightHour = 23; 
@@ -521,6 +522,7 @@ struct TypeBasketInfo
    TypeCurrenciesTradesInfo currenciesintrades[];
    int largestlossindex;
    double largestloss;
+   double globalprofitloss;
    void Init()
    {
       gain=0;
@@ -540,6 +542,7 @@ struct TypeBasketInfo
       ArrayResize(currenciesintrades,8);
       largestlossindex=-1;
       largestloss=0;
+      globalprofitloss=0;
    };
 };
 
@@ -1056,17 +1059,22 @@ bool ManageOrders()
    int cnt, ordertotal=OrdersTotalX();
 
    BI.Init();
+   
+   BI.globalprofitloss=GetDayProfitLossClosed();
 
    for(cnt=0;cnt<ordertotal;cnt++)
    {
       if(OrderSelectX(cnt))
       {
+         double gain=OrderProfitNet();
+
+         BI.globalprofitloss+=gain;
+
          if(IsOrderToManage())
          {
             double tickvalue=OrderSymbolTickValue();
             if(tickvalue==0)
                return false;
-            double gain=OrderProfitNet();
             double gainpips=(gain/OrderLotsX())/tickvalue;
 
             TypeTradeInfo ti;
@@ -1302,6 +1310,35 @@ void ManageBasket()
 }
 
 
+double GetDayProfitLossClosed()
+{
+   double profits=0;
+   MqlDateTime s;
+   TimeCurrent(s);
+   s.hour=0;
+   s.min=0;
+   s.sec=0;
+   HistorySelect(StructToTime(s),TimeCurrent());
+   int total=HistoryDealsTotal();
+   ulong ticket=0;
+   for(int i=total-1;i>=0;i--)
+   {
+      if((ticket=HistoryDealGetTicket(i))>0)
+      {
+         if(HistoryDealGetInteger(ticket,DEAL_ENTRY)==DEAL_ENTRY_OUT)
+         {
+            double commission=HistoryDealGetDouble(ticket,DEAL_COMMISSION);
+            if(MT5CommissionPerDeal)
+               commission=commission*2;
+            profits+=commission;
+            profits+=HistoryDealGetDouble(ticket,DEAL_PROFIT);
+         }
+      }
+   }
+   return profits;
+}
+
+
 void CheckPendingOrders()
 {
    if(ArraySize(WS.pendingorders)>0)
@@ -1419,31 +1456,6 @@ void DisplayText()
    CreateLabel(rowindex,FontSize,TextColor,"Balance: "+DoubleToString(AccountBalanceX(),0)+moretradingcapital);
    rowindex++;
 
-   int pt=PositionsTotal();
-   double profits=0;
-   for(int i=0;i<pt;i++)
-      if(StringLen(PositionGetSymbol(i))>0)
-         profits+=PositionGetDouble(POSITION_PROFIT);
-
-   MqlDateTime s;
-   TimeCurrent(s);
-   s.hour=0;
-   s.min=0;
-   s.sec=0;
-   HistorySelect(StructToTime(s),TimeCurrent());
-   int total=HistoryDealsTotal();
-   ulong ticket=0;
-   for(int i=total-1;i>=0;i--)
-   {
-      if((ticket=HistoryDealGetTicket(i))>0)
-      {
-         profits+=HistoryDealGetDouble(ticket,DEAL_COMMISSION);
-         profits+=HistoryDealGetDouble(ticket,DEAL_PROFIT);
-      }
-   }
-   CreateLabel(rowindex,FontSize,TextColor,"Profit/Loss Today: "+DoubleToString(profits,2));
-   rowindex++;
-   
    CreateLabel(rowindex,FontSize,TextColor,"Free Margin: "+DoubleToString(AccountFreeMarginX(),1));
    rowindex++;
 
@@ -1455,6 +1467,15 @@ void DisplayText()
       CreateLabel(rowindex,FontSize,TextColor,"General Stop Loss: "+DoubleToString(StopLossPercentTradingCapital,1)+"%");
       rowindex++;
    }
+
+   if(MaxDailyLoss>0)
+   {
+      CreateLabel(rowindex,FontSize,TextColor,"Max Daily Loss: "+DoubleToString(MaxDailyLoss,0));
+      rowindex++;
+   }
+   
+   CreateLabel(rowindex,FontSize,TextColor,"Profit/Loss Today: "+DoubleToString(BI.globalprofitloss,2));
+   rowindex++;
 
    if(TakeProfitPercentTradingCapital>0)
    {
