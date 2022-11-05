@@ -41,7 +41,8 @@ For those who want to install everything in one shot, I have added a zip file of
    **<code>X</code>** Toggle Currency to open Buy/Sell Bag (7 Trades)<br>
    **<code>Y</code>** Reset open Buy/Sell Bag to current Pair<br>
    **<code>V</code>** Toggle View of opened Trades by Pairs or Currencies<br>
- 
+   **<code>L</code>** Toggle Lipstick (Drawings of Asia Range and NY Open)<br>
+
    
 ### <code>Shift</code> Activates and Deactivates the Single Trade Management Mode
 
