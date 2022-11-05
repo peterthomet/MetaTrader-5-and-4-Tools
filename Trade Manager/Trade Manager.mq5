@@ -192,6 +192,7 @@ bool _TradingWeekdays[7];
 bool ctrlon;
 bool crosshairon;
 bool leftmousebutton;
+bool lipstickon;
 double startdragprice;
 double enddragprice;
 bool tradelevelsvisible;
@@ -565,6 +566,7 @@ void OnInit()
    ctrlon=false;
    crosshairon=false;
    leftmousebutton=false;
+   lipstickon=false;
    startdragprice=0;
    enddragprice=0;
    tradelevelsvisible=false;
@@ -650,6 +652,9 @@ void OnInit()
       GetGlobalVariables();
 
    chartheight=(int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS);
+
+   if(lipstickon)
+      CreateLipstick();
 
    if(DrawBackgroundPanel&&_ShowInfo)
    {
@@ -918,6 +923,12 @@ void SetGlobalVariables()
    else
       GlobalVariableDel(varname);
 
+   varname=appnamespace+"lipstickon";
+   if(lipstickon)
+      GlobalVariableSet(varname,0);
+   else
+      GlobalVariableDel(varname);
+
    GlobalVariableSet(appnamespace+"InstrumentSelected",InstrumentSelected);
 
    GlobalVariableSet(appnamespace+"TradesViewSelected",TradesViewSelected);
@@ -963,6 +974,9 @@ void GetGlobalVariables()
    varname=appnamespace+"closebasketatBE";
    if(GlobalVariableCheck(varname))
       WS.closebasketatBE=true;
+   varname=appnamespace+"lipstickon";
+   if(GlobalVariableCheck(varname))
+      lipstickon=true;
    varname=appnamespace+"InstrumentSelected";
    if(GlobalVariableCheck(varname))
       InstrumentSelected=(int)GlobalVariableGet(varname);
@@ -2034,6 +2048,71 @@ void ToggleCtrl(bool disable=false)
 }
 
 
+void CreateLipstick()
+{
+   //datetime dt[1];
+   //if(CopyTime(_Symbol,_Period,(int)ChartGetInteger(0,CHART_FIRST_VISIBLE_BAR)-(ChartGetInteger(0,CHART_VISIBLE_BARS)-1),1,dt)<1)
+   //   return;
+   //Print(dt[0]);
+
+   MqlRates r[200];
+   if(CopyRates(_Symbol,PERIOD_M15,0,200,r)<200)
+      return;
+
+   datetime asiastart=0, asiaend=0, nymidnight=0;
+   double asiahigh=DBL_MIN, asialow=DBL_MAX, nyopen=0;
+   int lasthour=6;
+
+   for(int i=199;i>=0;i--)
+   {
+      MqlDateTime t;
+      TimeToStruct(r[i].time,t);
+
+      if(t.hour==16 && t.min==30)
+         CreateTrendline(0,appnamespace+"LipstickNYOpen",Tomato,1,STYLE_SOLID,r[i].open,r[i].open,r[i].time,r[i].time+3600);
+
+      if(t.hour==15 && t.min==30)
+         CreateTrendline(0,appnamespace+"LipstickNYPreOpen",Tomato,1,STYLE_DOT,r[i].open,r[i].open,r[i].time,r[i].time+3600);
+
+      if(nymidnight==0)
+      {
+         if(t.hour==7 && t.min==0)
+         {
+            nymidnight=r[i].time;
+            nyopen=r[i].open;
+         }
+      }
+
+      if(nymidnight!=0 && asiaend==0)
+      {
+         if(t.hour==6)
+            asiaend=r[i].time+(PeriodSeconds(PERIOD_M15)-1);
+      }
+
+      if(asiaend!=0)
+      {
+         if(t.hour>lasthour)
+            break;
+         asiahigh=MathMax(asiahigh,r[i].high);
+         asialow=MathMin(asialow,r[i].low);
+         asiastart=r[i].time;
+         lasthour=t.hour;
+      }
+   }
+
+   CreateRectangle(0,appnamespace+"LipstickAsiaRect",WhiteSmoke,asiahigh,asialow,asiastart,asiaend);
+   CreateTrendline(0,appnamespace+"LipstickAsiaHigh",CornflowerBlue,1,STYLE_DASH,asiahigh,asiahigh,asiastart,asiaend);
+   CreateTrendline(0,appnamespace+"LipstickAsiaLow",CornflowerBlue,1,STYLE_DASH,asialow,asialow,asiastart,asiaend);
+   CreateTrendline(0,appnamespace+"LipstickNYMidnight",CornflowerBlue,1,STYLE_SOLID,nyopen,nyopen,nymidnight,nymidnight+3600);
+}
+
+
+void DeleteLipstick()
+{
+   ObjectsDeleteAll(0,appnamespace+"Lipstick");
+}
+
+
 void DrawLevels()
 {
    if(DrawLevelsAllCharts)
@@ -2092,8 +2171,12 @@ void CreateLevel(long chartid, string objname, color c, double price, int width=
 }
 
 
-void CreateRectangle(long chartid, string objname, color c, double price1, double price2)
+void CreateRectangle(long chartid, string objname, color c, double price1, double price2, datetime time1=NULL, datetime time2=NULL)
 {
+   if(time1==NULL)
+      time1=TimeCurrent()-4000000;
+   if(time2==NULL)
+      time2=TimeCurrent();
    if(ObjectFind(chartid,objname)<0)
    {
       ObjectCreate(chartid,objname,OBJ_RECTANGLE,0,0,0);
@@ -2103,9 +2186,27 @@ void CreateRectangle(long chartid, string objname, color c, double price1, doubl
       ObjectSetInteger(chartid,objname,OBJPROP_BACK,true);
    }
    ObjectSetDouble(chartid,objname,OBJPROP_PRICE,0,price1);
-   ObjectSetInteger(chartid,objname,OBJPROP_TIME,0,TimeCurrent()-4000000);
+   ObjectSetInteger(chartid,objname,OBJPROP_TIME,0,time1);
    ObjectSetDouble(chartid,objname,OBJPROP_PRICE,1,price2);
-   ObjectSetInteger(chartid,objname,OBJPROP_TIME,1,TimeCurrent());
+   ObjectSetInteger(chartid,objname,OBJPROP_TIME,1,time2);
+}
+
+
+void CreateTrendline(long chartid, string objname, color c, int width, int style, double price1, double price2, datetime time1, datetime time2)
+{
+   if(ObjectFind(chartid,objname)<0)
+   {
+      ObjectCreate(chartid,objname,OBJ_TREND,0,0,0);
+      ObjectSetInteger(chartid,objname,OBJPROP_COLOR,c);
+      ObjectSetInteger(chartid,objname,OBJPROP_WIDTH,width);
+      ObjectSetInteger(chartid,objname,OBJPROP_STYLE,style);
+      ObjectSetInteger(chartid,objname,OBJPROP_RAY_RIGHT,true);
+      ObjectSetInteger(chartid,objname,OBJPROP_BACK,true);
+   }
+   ObjectSetDouble(chartid,objname,OBJPROP_PRICE,0,price1);
+   ObjectSetInteger(chartid,objname,OBJPROP_TIME,0,time1);
+   ObjectSetDouble(chartid,objname,OBJPROP_PRICE,1,price2);
+   ObjectSetInteger(chartid,objname,OBJPROP_TIME,1,time2);
 }
 
 
@@ -2976,6 +3077,15 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             if(TradesViewSelected>ByCurrenciesGrouped)
                TradesViewSelected=ByPairs;
             listshift=0;
+         }
+         
+         if (lparam == 76)
+         {
+            if(lipstickon)
+               DeleteLipstick();
+            else
+               CreateLipstick();
+            lipstickon=!lipstickon;
          }
       }
 
