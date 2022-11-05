@@ -18,6 +18,7 @@
    <X> Toggle Currency to open Buy/Sell Bag (7 Trades)
    <Y> Reset open Buy/Sell Bag to current Pair
    <V> Toggle View of opened Trades by Pairs or Currencies
+   <L> Toggle Lipstick (Drawings of Asia Range and NY Open)
 
 
 <Shift> Activates and Deactivates the Single Trade Management Mode
