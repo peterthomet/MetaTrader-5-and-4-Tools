@@ -2050,13 +2050,12 @@ void ToggleCtrl(bool disable=false)
 
 void CreateLipstick()
 {
-   //datetime dt[1];
-   //if(CopyTime(_Symbol,_Period,(int)ChartGetInteger(0,CHART_FIRST_VISIBLE_BAR)-(ChartGetInteger(0,CHART_VISIBLE_BARS)-1),1,dt)<1)
-   //   return;
-   //Print(dt[0]);
+   datetime dt[1];
+   if(CopyTime(_Symbol,_Period,(int)ChartGetInteger(0,CHART_FIRST_VISIBLE_BAR)-(ChartGetInteger(0,CHART_VISIBLE_BARS)-1),1,dt)<1)
+      return;
 
    MqlRates r[200];
-   if(CopyRates(_Symbol,PERIOD_M15,0,200,r)<200)
+   if(CopyRates(_Symbol,PERIOD_M15,dt[0],200,r)<200)
       return;
 
    datetime asiastart=0, asiaend=0, nymidnight=0;
