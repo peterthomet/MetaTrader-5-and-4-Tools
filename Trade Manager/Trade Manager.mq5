@@ -100,6 +100,8 @@ input bool MT5CommissionPerDeal = true;
 input int AvailableTradingCapital = 0;
 input int PendingOrdersSplit = 3;
 input double PendingOrdersRiskFactor = 3;
+input double PendingOrdersFirstTPStep = 5;
+input double PendingOrdersNextTPSteps = 1;
 input int StartHour = 0;
 input int StartMinute = 0;
 input int MinPoints1 = 0;
@@ -1388,12 +1390,14 @@ void CheckPendingOrders()
          double v=MathRound((p.volume/volumesplit)/volumestep)*volumestep;
          if(i==volumesplit)
             v=p.volume-(v*(i-1));
+            
+         double takeprofitpoints=(p.stoppoints*PendingOrdersFirstTPStep)+((p.stoppoints*PendingOrdersNextTPSteps)*(i-1));
 
          if(openorder==OP_BUY)
-            OpenBuy(NULL,v,0,p.stoppoints,p.stoppoints*i);
+            OpenBuy(NULL,v,0,p.stoppoints,takeprofitpoints);
    
          if(openorder==OP_SELL)
-            OpenSell(NULL,v,0,p.stoppoints,p.stoppoints*i);
+            OpenSell(NULL,v,0,p.stoppoints,takeprofitpoints);
       }
 
       if(openorder!=-1)
