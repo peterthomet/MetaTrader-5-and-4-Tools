@@ -2058,8 +2058,11 @@ void CreateLipstick()
    if(CopyTime(_Symbol,_Period,(int)ChartGetInteger(0,CHART_FIRST_VISIBLE_BAR)-((int)ChartGetInteger(0,CHART_VISIBLE_BARS)-1),1,dt)<1)
       return;
 
-   MqlRates r[600];
+   MqlRates r[600], r2[20];
    if(CopyRates(_Symbol,PERIOD_M5,dt[0],600,r)<600)
+      return;
+
+   if(CopyRates(_Symbol,PERIOD_W1,0,20,r2)<20)
       return;
 
    datetime asiastart=0, asiaend=0, nymidnight=0;
@@ -2129,6 +2132,20 @@ void CreateLipstick()
    CreateTrendline(0,appnamespace+"LipstickAsiaHigh",CornflowerBlue,1,STYLE_DASH,asiahigh,asiahigh,asiastart,asiaend);
    CreateTrendline(0,appnamespace+"LipstickAsiaLow",CornflowerBlue,1,STYLE_DASH,asialow,asialow,asiastart,asiaend);
    CreateTrendline(0,appnamespace+"LipstickNYMidnight",CornflowerBlue,1,STYLE_SOLID,nyopen,nyopen,nymidnight,nymidnight+3600);
+   
+   for(int i=10;i<=19;i++)
+   {
+      //CreateTrendline(0,appnamespace+"LipstickNWOGO"+IntegerToString(i),DimGray,2,STYLE_SOLID,r2[i].open,r2[i].open,r2[i].time,r2[i].time+(86400*3));
+      //CreateTrendline(0,appnamespace+"LipstickNWOGC"+IntegerToString(i),DimGray,2,STYLE_SOLID,r2[i-1].close,r2[i-1].close,r2[i].time,r2[i].time+(86400*3));
+
+      int cv=250-(i*5);
+      //cv=248;
+      //if(i>=16)
+         //cv=180;
+      CreateRectangle(0,appnamespace+"LipstickNWOGRect"+IntegerToString(i),(cv<<16)+(cv<<8)+(cv),r2[i].open,r2[i-1].close,r2[i].time,r2[19].time+PeriodSeconds(PERIOD_W1));
+      double middle=r2[i].open-((r2[i].open-r2[i-1].close)/2);
+      CreateTrendline(0,appnamespace+"LipstickNWOGM"+IntegerToString(i),White,1,STYLE_DOT,middle,middle,r2[i].time,r2[i].time+(86400*3));
+   }
 }
 
 
