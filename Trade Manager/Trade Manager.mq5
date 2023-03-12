@@ -51,6 +51,13 @@ enum TypeStopLossPercentTradingCapitalAction
    CloseAllTrades
 };
 
+enum TypeLipStickMode
+{
+   LipStickNone,
+   LipStickMode1,
+   LipStickMode2
+};
+
 input TypeInstance Instance = 1;
 input TypeAutomation Automation = NoAutomation;
 input double BreakEvenAfterPips = 5;
@@ -194,7 +201,8 @@ bool _TradingWeekdays[7];
 bool ctrlon;
 bool crosshairon;
 bool leftmousebutton;
-bool lipstickon;
+int lipstickmode;
+int currentlipstickmode;
 double startdragprice;
 double enddragprice;
 bool tradelevelsvisible;
@@ -568,7 +576,8 @@ void OnInit()
    ctrlon=false;
    crosshairon=false;
    leftmousebutton=false;
-   lipstickon=false;
+   lipstickmode=LipStickNone;
+   currentlipstickmode=LipStickNone;
    startdragprice=0;
    enddragprice=0;
    tradelevelsvisible=false;
@@ -654,9 +663,6 @@ void OnInit()
       GetGlobalVariables();
 
    chartheight=(int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS);
-
-   if(lipstickon)
-      CreateLipstick();
 
    if(DrawBackgroundPanel&&_ShowInfo)
    {
@@ -848,6 +854,15 @@ void Manage()
       closecommandindex=WS.closecommands.GetNextCommandIndex();
    }
 
+   if(currentlipstickmode!=lipstickmode)
+   {
+      if(lipstickmode==LipStickNone)
+         DeleteLipstick();
+      else
+         CreateLipstick();
+      currentlipstickmode=lipstickmode;
+   }
+
    if(ManageOrders())
    {
       ManageBasket();
@@ -925,11 +940,7 @@ void SetGlobalVariables()
    else
       GlobalVariableDel(varname);
 
-   varname=appnamespace+"lipstickon";
-   if(lipstickon)
-      GlobalVariableSet(varname,0);
-   else
-      GlobalVariableDel(varname);
+   GlobalVariableSet(appnamespace+"lipstickmode",lipstickmode);
 
    GlobalVariableSet(appnamespace+"InstrumentSelected",InstrumentSelected);
 
@@ -976,9 +987,9 @@ void GetGlobalVariables()
    varname=appnamespace+"closebasketatBE";
    if(GlobalVariableCheck(varname))
       WS.closebasketatBE=true;
-   varname=appnamespace+"lipstickon";
+   varname=appnamespace+"lipstickmode";
    if(GlobalVariableCheck(varname))
-      lipstickon=true;
+      lipstickmode=(int)GlobalVariableGet(varname);
    varname=appnamespace+"InstrumentSelected";
    if(GlobalVariableCheck(varname))
       InstrumentSelected=(int)GlobalVariableGet(varname);
@@ -2058,11 +2069,8 @@ void CreateLipstick()
    if(CopyTime(_Symbol,_Period,(int)ChartGetInteger(0,CHART_FIRST_VISIBLE_BAR)-((int)ChartGetInteger(0,CHART_VISIBLE_BARS)-1),1,dt)<1)
       return;
 
-   MqlRates r[600], r2[20];
+   MqlRates r[600];
    if(CopyRates(_Symbol,PERIOD_M5,dt[0],600,r)<600)
-      return;
-
-   if(CopyRates(_Symbol,PERIOD_W1,0,20,r2)<20)
       return;
 
    datetime asiastart=0, asiaend=0, nymidnight=0;
@@ -2132,6 +2140,13 @@ void CreateLipstick()
    CreateTrendline(0,appnamespace+"LipstickAsiaHigh",CornflowerBlue,1,STYLE_DASH,asiahigh,asiahigh,asiastart,asiaend);
    CreateTrendline(0,appnamespace+"LipstickAsiaLow",CornflowerBlue,1,STYLE_DASH,asialow,asialow,asiastart,asiaend);
    CreateTrendline(0,appnamespace+"LipstickNYMidnight",CornflowerBlue,1,STYLE_SOLID,nyopen,nyopen,nymidnight,nymidnight+3600);
+
+   if(lipstickmode<LipStickMode2)
+      return;
+
+   MqlRates r2[20];
+   if(CopyRates(_Symbol,PERIOD_W1,0,20,r2)<20)
+      return;
    
    for(int i=10;i<=19;i++)
    {
@@ -3123,11 +3138,9 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          
          if (lparam == 76)
          {
-            if(lipstickon)
-               DeleteLipstick();
-            else
-               CreateLipstick();
-            lipstickon=!lipstickon;
+            lipstickmode++;
+            if(lipstickmode>LipStickMode2)
+               lipstickmode=LipStickNone;
          }
       }
 
