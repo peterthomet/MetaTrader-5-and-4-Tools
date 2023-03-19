@@ -1,9 +1,9 @@
 ﻿//
-// Trade Manager.mq4/mq5
+// Trade Manager.mq5
 // getYourNet.ch
 //
 
-#property copyright "Copyright 2021, getYourNet.ch"
+#property copyright "Copyright 2023, getYourNet.ch"
 #property link "http://shop.getyournet.ch/trademanager"
 
 #ifdef __MQL4__
@@ -230,6 +230,7 @@ string pairs[8][7]={
    {"NZDUSD","EURNZD","GBPNZD","NZDJPY","NZDCHF","NZDCAD","AUDNZD"}
    };
 color currencycolor[8];
+string symbollist;
 
 struct TypeTextObjects
 {
@@ -656,6 +657,8 @@ void OnInit()
    currencycolor[5]=Color_CAD;
    currencycolor[6]=Color_AUD;
    currencycolor[7]=Color_NZD;
+   
+   symbollist="";
 
    WS.Init();
    
@@ -955,6 +958,25 @@ void SetGlobalVariables()
       GlobalVariableSet(appnamespace+"TradeReference.takeprofitpips"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].takeprofitpips);
       GlobalVariableSet(appnamespace+"TradeReference.takeprofitlevel"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].takeprofitlevel);
    }
+   
+   //if(symbollist.Find(Symbol(),0)<0)
+   //   symbollist+=";"+Symbol();
+   //GlobalVariableSet(appnamespace+"symbollist",symbollist);
+   
+   PersistentVariables vars(AccountInfoString(ACCOUNT_SERVER)+" "+IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN))+" "+appnamespace+" Variables.txt");
+   int test_int = 444;
+   double test_double = 44.4;
+   string test_string = "Hello world!";
+   vars["test_int"] = test_int;
+   vars["test_double"] = test_double;
+   vars["test_string"] = test_string;
+   vars.save();
+   
+   vars.load();
+   test_int = vars["test_int"].value<int>();
+   test_double = vars["test_double"].value<double>();
+   test_string = vars["test_string"].value<string>();
+   //printf("results: int=%d, double=%.2f, string=%s",test_int, test_double,test_string);   
 }
 
 
@@ -1045,6 +1067,10 @@ void GetGlobalVariables()
          UpdateTradeReference(magicnumber,NULL,NULL,NULL,NULL,GlobalVariableGet(n));
       }
    }
+
+   //varname=appnamespace+"symbollist";
+   //if(GlobalVariableCheck(varname))
+   //   TradesViewSelected=GlobalVariableGet(symbollist);
 }
 
 
@@ -5128,3 +5154,136 @@ public:
 
 
 Strategy* strats[];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// --------------------------------------------------------------
+// Variables INI File Classes
+// --------------------------------------------------------------
+
+
+#include <Arrays\List.mqh>
+
+
+class VariableData : public CObject
+{
+protected:
+   string m_name;
+   string m_value;
+
+public:
+   VariableData(){}
+   VariableData(string name):m_name(name){}
+   template<typename T>
+   void operator=(T value){ m_value=(string)value;}
+   template<typename T>
+   T value() {return (T)m_value;}
+   string name() {return m_name;}
+   virtual bool Save(const int file_handle) override
+   {
+      if(file_handle==INVALID_HANDLE)
+         return(false);
+      FileWriteString(file_handle,m_name+"="+m_value+"\r\n");
+      return true;
+   }
+   virtual bool Load(const int file_handle) override
+   {
+      if(file_handle==INVALID_HANDLE)
+         return(false);
+      string r=FileReadString(file_handle);
+      int d=r.Find("=");
+      if(d<1)
+         return false;
+      m_name=r.Substr(0,d);
+      m_value=r.Substr(d+1,-1);
+      return true;
+   }
+};
+
+
+class VariableList : public CList
+{
+   public: virtual CObject *CreateElement(void) { return new VariableData(); }
+
+   bool Save(const int file_handle) override
+   {
+      CObject *node;
+      bool     result=true;
+      if(!CheckPointer(m_curr_node) || file_handle==INVALID_HANDLE)
+         return(false);
+      node=m_first_node;
+      while(node!=NULL)
+      {
+         result&=node.Save(file_handle);
+         node=node.Next();
+      }
+      return(result);
+   }
+
+   bool Load(const int file_handle) override
+   {
+      CObject *node;
+      bool result=true;
+      if(file_handle==INVALID_HANDLE)
+         return(false);
+      Clear();
+      while(result)
+      {
+         node=CreateElement();
+         result=node.Load(file_handle);
+         if(result)
+            Add(node);
+         else
+            delete node;
+      }
+      return(result);
+   }
+};
+
+
+class PersistentVariables : public CObject
+{
+   VariableList m_list;
+   string m_file_name;
+public:
+   PersistentVariables(string file_name):m_file_name(file_name){}
+   VariableData *operator[](string name)
+   {
+      VariableData *vd = m_list.GetFirstNode();
+      for(;CheckPointer(vd); vd=vd.Next())
+         if(vd.name() == name)
+            return vd;
+      vd = new VariableData(name);
+      m_list.Add(vd);
+      return vd;
+   }
+   bool load()
+   {
+      int h = FileOpen(m_file_name, FILE_READ|FILE_TXT);
+      m_list.Clear();
+      bool res = m_list.Load(h);
+      FileClose(h);
+      return res;
+   }
+   bool save()
+   {
+      int h = FileOpen(m_file_name, FILE_WRITE|FILE_TXT);
+      bool res = m_list.Save(h);
+      FileClose(h);
+      return res;
+   }
+};
