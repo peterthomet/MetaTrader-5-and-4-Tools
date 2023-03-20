@@ -231,6 +231,7 @@ string pairs[8][7]={
    };
 color currencycolor[8];
 string symbollist;
+string inifilename;
 
 struct TypeTextObjects
 {
@@ -659,6 +660,8 @@ void OnInit()
    currencycolor[7]=Color_NZD;
    
    symbollist="";
+   
+   inifilename=AccountInfoString(ACCOUNT_SERVER)+" "+IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN))+" "+appnamespace+".ini";
 
    WS.Init();
    
@@ -963,20 +966,20 @@ void SetGlobalVariables()
    //   symbollist+=";"+Symbol();
    //GlobalVariableSet(appnamespace+"symbollist",symbollist);
    
-   PersistentVariables vars(AccountInfoString(ACCOUNT_SERVER)+" "+IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN))+" "+appnamespace+" Variables.txt");
+   PersistentVariables pv(inifilename);
    int test_int = 444;
    double test_double = 44.4;
    string test_string = "Hello world!";
-   vars["test_int"] = test_int;
-   vars["test_double"] = test_double;
-   vars["test_string"] = test_string;
-   vars.save();
+   pv["test_int"] = test_int;
+   pv["test_double"] = test_double;
+   pv["test_string"] = test_string;
+   pv.save();
    
-   vars.load();
-   test_int = vars["test_int"].value<int>();
-   test_double = vars["test_double"].value<double>();
-   test_string = vars["test_string"].value<string>();
-   //printf("results: int=%d, double=%.2f, string=%s",test_int, test_double,test_string);   
+   pv.load();
+   test_int = pv["test_int"].value<int>();
+   test_double = pv["test_double"].value<double>();
+   test_string = pv["test_string"].value<string>();
+   //Print(test_string);
 }
 
 
@@ -5193,6 +5196,7 @@ public:
    template<typename T>
    T value() {return (T)m_value;}
    string name() {return m_name;}
+
    virtual bool Save(const int file_handle) override
    {
       if(file_handle==INVALID_HANDLE)
@@ -5200,6 +5204,7 @@ public:
       FileWriteString(file_handle,m_name+"="+m_value+"\r\n");
       return true;
    }
+
    virtual bool Load(const int file_handle) override
    {
       if(file_handle==INVALID_HANDLE)
@@ -5261,6 +5266,7 @@ class PersistentVariables : public CObject
    string m_file_name;
 public:
    PersistentVariables(string file_name):m_file_name(file_name){}
+
    VariableData *operator[](string name)
    {
       VariableData *vd = m_list.GetFirstNode();
@@ -5271,6 +5277,7 @@ public:
       m_list.Add(vd);
       return vd;
    }
+
    bool load()
    {
       int h = FileOpen(m_file_name, FILE_READ|FILE_TXT);
@@ -5279,6 +5286,7 @@ public:
       FileClose(h);
       return res;
    }
+
    bool save()
    {
       int h = FileOpen(m_file_name, FILE_WRITE|FILE_TXT);
