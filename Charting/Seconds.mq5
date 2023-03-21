@@ -121,9 +121,16 @@ int OnCalculate(const int rates_total,
                 const int& spread[])
 {
    int i=rates_total-1;
-   canh[i]=high[i];
-   canl[i]=low[i];
-   cano[i]=open[i];
+   if(canh[i]==0)
+   {
+      canh[i]=close[i];
+      canl[i]=close[i];
+      cano[i]=close[i];
+      canc[i]=close[i];
+      colors[i]=0;
+   }
+   canh[i]=MathMax(canh[i],close[i]);
+   canl[i]=MathMin(canl[i],close[i]);
    canc[i]=close[i];
    colors[i]=cano[i]>canc[i] ? 1 : 0;
    time0=time[i];
