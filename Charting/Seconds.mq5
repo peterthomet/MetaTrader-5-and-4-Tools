@@ -12,6 +12,7 @@
 #property indicator_label1  "Up Candle, Down Candle"
 #property indicator_type1   DRAW_COLOR_CANDLES
 #property indicator_color1  MediumSeaGreen,C'44,44,44'
+
 enum Intervals
 {
    S1, // 1 Second
@@ -25,12 +26,13 @@ enum Intervals
    S30 // 30 Seconds
 };
 input Intervals Seconds=S15;
+input int MaxBars=200; // Maximum Bars
+
 double canc[],cano[],canh[],canl[],colors[],seconds[][4];
 #define sopen 0
 #define sclose 1
 #define shigh 2
 #define slow 3
-
 bool updating, init;
 datetime lasttime, time0, lasttime0;
 int intervalseconds[9]={1,2,3,4,5,10,15,20,30};
@@ -71,7 +73,7 @@ void OnTimer()
    TimeCurrent(dt);
    datetime dti=TimeCurrent();
    double c=(double)dt.sec/(double)intervalseconds[Seconds];
-   int maxbars=200;
+   int maxbars=MaxBars;
 
    if(time0!=lasttime0)
    {
