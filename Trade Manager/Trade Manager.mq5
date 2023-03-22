@@ -927,153 +927,161 @@ void SetHardStopMode()
 
 void SetGlobalVariables()
 {
-   string varname;
-   GlobalVariableSet(appnamespace+"StopMode",WS.StopMode);
-   GlobalVariableSet(appnamespace+"peakgain",WS.peakgain);
-   GlobalVariableSet(appnamespace+"peakpips",WS.peakpips);
-   GlobalVariableSet(appnamespace+"OpenLots",_OpenLots);
-   GlobalVariableSet(appnamespace+"StopLossPips",_StopLossPips);
-   GlobalVariableSet(appnamespace+"TakeProfitPips",_TakeProfitPips);
-   GlobalVariableSet(appnamespace+"currentbasemagicnumber",WS.currentbasemagicnumber);
-   varname=appnamespace+"ManualBEStopLocked";
-   if(WS.ManualBEStopLocked)
-      GlobalVariableSet(varname,0);
-   else
-      GlobalVariableDel(varname);
-   varname=appnamespace+"closebasketatBE";
-   if(WS.closebasketatBE)
-      GlobalVariableSet(varname,0);
-   else
-      GlobalVariableDel(varname);
+   PersistentVariables pv(inifilename);
 
-   GlobalVariableSet(appnamespace+"lipstickmode",lipstickmode);
-
-   GlobalVariableSet(appnamespace+"InstrumentSelected",InstrumentSelected);
-
-   GlobalVariableSet(appnamespace+"TradesViewSelected",TradesViewSelected);
+   pv["StopMode"]=WS.StopMode;
+   pv["peakgain"]=WS.peakgain;
+   pv["peakpips"]=WS.peakpips;
+   pv["OpenLots"]=_OpenLots;
+   pv["StopLossPips"]=_StopLossPips;
+   pv["TakeProfitPips"]=_TakeProfitPips;
+   pv["currentbasemagicnumber"]=WS.currentbasemagicnumber;
+   pv["ManualBEStopLocked"]=WS.ManualBEStopLocked;
+   pv["closebasketatBE"]=WS.closebasketatBE;
+   pv["lipstickmode"]=lipstickmode;
+   pv["InstrumentSelected"]=InstrumentSelected;
+   pv["TradesViewSelected"]=TradesViewSelected;
 
    int asize=ArraySize(WS.tradereference);
    for(int i=0; i<asize; i++)
    {
-      GlobalVariableSet(appnamespace+"TradeReference.gain"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].gain);
-      GlobalVariableSet(appnamespace+"TradeReference.stoplosspips"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].stoplosspips);
-      GlobalVariableSet(appnamespace+"TradeReference.stoplosslevel"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].stoplosslevel);
-      GlobalVariableSet(appnamespace+"TradeReference.takeprofitpips"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].takeprofitpips);
-      GlobalVariableSet(appnamespace+"TradeReference.takeprofitlevel"+IntegerToString(WS.tradereference[i].magicnumber),WS.tradereference[i].takeprofitlevel);
+      pv["TradeReference.gain"+IntegerToString(WS.tradereference[i].magicnumber)]=WS.tradereference[i].gain;
+      pv["TradeReference.stoplosspips"+IntegerToString(WS.tradereference[i].magicnumber)]=WS.tradereference[i].stoplosspips;
+      pv["TradeReference.stoplosslevel"+IntegerToString(WS.tradereference[i].magicnumber)]=WS.tradereference[i].stoplosslevel;
+      pv["TradeReference.takeprofitpips"+IntegerToString(WS.tradereference[i].magicnumber)]=WS.tradereference[i].takeprofitpips;
+      pv["TradeReference.takeprofitlevel"+IntegerToString(WS.tradereference[i].magicnumber)]=WS.tradereference[i].takeprofitlevel;
    }
    
    //if(symbollist.Find(Symbol(),0)<0)
    //   symbollist+=";"+Symbol();
    //GlobalVariableSet(appnamespace+"symbollist",symbollist);
-   
-   PersistentVariables pv(inifilename);
-   int test_int = 444;
-   double test_double = 44.4;
-   string test_string = "Hello world!";
-   pv["test_int"] = test_int;
-   pv["test_double"] = test_double;
-   pv["test_string"] = test_string;
+
    pv.save();
-   
-   pv.load();
-   test_int = pv["test_int"].value<int>();
-   test_double = pv["test_double"].value<double>();
-   test_string = pv["test_string"].value<string>();
-   //Print(test_string);
 }
 
 
 void GetGlobalVariables()
 {
-   string varname=appnamespace+"StopMode";
-   if(GlobalVariableCheck(varname))
-      WS.StopMode=(BEStopModes)GlobalVariableGet(varname);
-   varname=appnamespace+"peakgain";
-   if(GlobalVariableCheck(varname))
-      WS.peakgain=GlobalVariableGet(varname);
-   varname=appnamespace+"peakpips";
-   if(GlobalVariableCheck(varname))
-      WS.peakpips=GlobalVariableGet(varname);
-   varname=appnamespace+"OpenLots";
-   if(GlobalVariableCheck(varname))
-      _OpenLots=GlobalVariableGet(varname);
-   varname=appnamespace+"StopLossPips";
-   if(GlobalVariableCheck(varname))
-      _StopLossPips=GlobalVariableGet(varname);
-   varname=appnamespace+"TakeProfitPips";
-   if(GlobalVariableCheck(varname))
-      _TakeProfitPips=GlobalVariableGet(varname);
-   varname=appnamespace+"currentbasemagicnumber";
-   if(GlobalVariableCheck(varname))
-      WS.currentbasemagicnumber=(int)GlobalVariableGet(varname);
-   varname=appnamespace+"ManualBEStopLocked";
-   if(GlobalVariableCheck(varname))
-      WS.ManualBEStopLocked=true;
-   varname=appnamespace+"closebasketatBE";
-   if(GlobalVariableCheck(varname))
-      WS.closebasketatBE=true;
-   varname=appnamespace+"lipstickmode";
-   if(GlobalVariableCheck(varname))
-      lipstickmode=(int)GlobalVariableGet(varname);
-   varname=appnamespace+"InstrumentSelected";
-   if(GlobalVariableCheck(varname))
-      InstrumentSelected=(int)GlobalVariableGet(varname);
-   varname=appnamespace+"TradesViewSelected";
-   if(GlobalVariableCheck(varname))
-      TradesViewSelected=(int)GlobalVariableGet(varname);
-      
-   int varcount=GlobalVariablesTotal();
-   for(int i=0; i<varcount; i++)
+   PersistentVariables pv(inifilename);
+   pv.load();
+   
+   if(pv["StopMode"].int_()!=NULL)
    {
-      string n=GlobalVariableName(i);
-      string s;
-      long magicnumber;
-      int p;
+      WS.StopMode=(BEStopModes)pv["StopMode"].int_();
+      WS.peakgain=pv["peakgain"].double_();
+      WS.peakpips=pv["peakpips"].double_();
+      _OpenLots=pv["OpenLots"].double_();
+      _StopLossPips=pv["StopLossPips"].double_();
+      _TakeProfitPips=pv["TakeProfitPips"].double_();
+      WS.currentbasemagicnumber=pv["currentbasemagicnumber"].int_();
+      WS.ManualBEStopLocked=pv["ManualBEStopLocked"].bool_();
+      WS.closebasketatBE=pv["closebasketatBE"].bool_();
+      lipstickmode=pv["lipstickmode"].int_();
+      InstrumentSelected=pv["InstrumentSelected"].int_();
+      TradesViewSelected=pv["TradesViewSelected"].int_();
 
-      s=appnamespace+"TradeReference.gain";
-      p=StringFind(n,s);
-      if(p==0)
-      {
-         magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
-         UpdateTradeReference(magicnumber,GlobalVariableGet(n));
-      }
+      VariableData *vd;
+      
+      vd=pv.GroupFirst("TradeReference.gain");
+      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
+         UpdateTradeReference(vd.name(),pv.Group(),vd.double_());
 
-      s=appnamespace+"TradeReference.stoplosspips";
-      p=StringFind(n,s);
-      if(p==0)
-      {
-         magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
-         UpdateTradeReference(magicnumber,NULL,GlobalVariableGet(n));
-      }
+      vd=pv.GroupFirst("TradeReference.stoplosspips");
+      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
+         UpdateTradeReference(vd.name(),pv.Group(),NULL,vd.double_());
 
-      s=appnamespace+"TradeReference.stoplosslevel";
-      p=StringFind(n,s);
-      if(p==0)
+      //varname=appnamespace+"symbollist";
+      //if(GlobalVariableCheck(varname))
+      //   TradesViewSelected=GlobalVariableGet(symbollist);
+   }
+   else
+   {
+      string varname=appnamespace+"StopMode";
+      if(GlobalVariableCheck(varname))
+         WS.StopMode=(BEStopModes)GlobalVariableGet(varname);
+      varname=appnamespace+"peakgain";
+      if(GlobalVariableCheck(varname))
+         WS.peakgain=GlobalVariableGet(varname);
+      varname=appnamespace+"peakpips";
+      if(GlobalVariableCheck(varname))
+         WS.peakpips=GlobalVariableGet(varname);
+      varname=appnamespace+"OpenLots";
+      if(GlobalVariableCheck(varname))
+         _OpenLots=GlobalVariableGet(varname);
+      varname=appnamespace+"StopLossPips";
+      if(GlobalVariableCheck(varname))
+         _StopLossPips=GlobalVariableGet(varname);
+      varname=appnamespace+"TakeProfitPips";
+      if(GlobalVariableCheck(varname))
+         _TakeProfitPips=GlobalVariableGet(varname);
+      varname=appnamespace+"currentbasemagicnumber";
+      if(GlobalVariableCheck(varname))
+         WS.currentbasemagicnumber=(int)GlobalVariableGet(varname);
+      varname=appnamespace+"ManualBEStopLocked";
+      if(GlobalVariableCheck(varname))
+         WS.ManualBEStopLocked=true;
+      varname=appnamespace+"closebasketatBE";
+      if(GlobalVariableCheck(varname))
+         WS.closebasketatBE=true;
+      varname=appnamespace+"lipstickmode";
+      if(GlobalVariableCheck(varname))
+         lipstickmode=(int)GlobalVariableGet(varname);
+      varname=appnamespace+"InstrumentSelected";
+      if(GlobalVariableCheck(varname))
+         InstrumentSelected=(int)GlobalVariableGet(varname);
+      varname=appnamespace+"TradesViewSelected";
+      if(GlobalVariableCheck(varname))
+         TradesViewSelected=(int)GlobalVariableGet(varname);
+         
+      int varcount=GlobalVariablesTotal();
+      for(int i=0; i<varcount; i++)
       {
-         magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
-         UpdateTradeReference(magicnumber,NULL,NULL,NULL,GlobalVariableGet(n));
-      }
-
-      s=appnamespace+"TradeReference.takeprofitpips";
-      p=StringFind(n,s);
-      if(p==0)
-      {
-         magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
-         UpdateTradeReference(magicnumber,NULL,NULL,GlobalVariableGet(n));
-      }
-
-      s=appnamespace+"TradeReference.takeprofitlevel";
-      p=StringFind(n,s);
-      if(p==0)
-      {
-         magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
-         UpdateTradeReference(magicnumber,NULL,NULL,NULL,NULL,GlobalVariableGet(n));
+         string n=GlobalVariableName(i);
+         string s;
+         long magicnumber;
+         int p;
+   
+         s=appnamespace+"TradeReference.gain";
+         p=StringFind(n,s);
+         if(p==0)
+         {
+            magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
+            UpdateTradeReference(magicnumber,GlobalVariableGet(n));
+         }
+   
+         s=appnamespace+"TradeReference.stoplosspips";
+         p=StringFind(n,s);
+         if(p==0)
+         {
+            magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
+            UpdateTradeReference(magicnumber,NULL,GlobalVariableGet(n));
+         }
+   
+         s=appnamespace+"TradeReference.stoplosslevel";
+         p=StringFind(n,s);
+         if(p==0)
+         {
+            magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
+            UpdateTradeReference(magicnumber,NULL,NULL,NULL,GlobalVariableGet(n));
+         }
+   
+         s=appnamespace+"TradeReference.takeprofitpips";
+         p=StringFind(n,s);
+         if(p==0)
+         {
+            magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
+            UpdateTradeReference(magicnumber,NULL,NULL,GlobalVariableGet(n));
+         }
+   
+         s=appnamespace+"TradeReference.takeprofitlevel";
+         p=StringFind(n,s);
+         if(p==0)
+         {
+            magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
+            UpdateTradeReference(magicnumber,NULL,NULL,NULL,NULL,GlobalVariableGet(n));
+         }
       }
    }
-
-   //varname=appnamespace+"symbollist";
-   //if(GlobalVariableCheck(varname))
-   //   TradesViewSelected=GlobalVariableGet(symbollist);
 }
 
 
@@ -2545,6 +2553,14 @@ void UpdateTradeReference(TypePairsTradesInfo& piti, TypeTradeInfo& tiin)
    WS.tradereference[index].volume=tiin.volume;
    WS.tradereference[index].commissionpoints=tiin.commissionpoints;
    WS.tradereference[index].lastupdate=TimeLocal();
+}
+
+
+void UpdateTradeReference(string name, string group, double gain=NULL, double stoplosspips=NULL, double takeprofitpips=NULL, double stoplosslevel=NULL, double takeprofitlevel=NULL)
+{
+   long magicnumber;
+   magicnumber=StringToInteger(StringSubstr(name,StringLen(group)));
+   UpdateTradeReference(magicnumber,gain,stoplosspips,takeprofitpips,stoplosslevel,takeprofitlevel);
 }
 
 
@@ -5195,6 +5211,10 @@ public:
    void operator=(T value){ m_value=(string)value;}
    template<typename T>
    T value() {return (T)m_value;}
+   int int_() {return (int)m_value;}
+   double double_() {return (double)m_value;}
+   string string_() {return m_value;}
+   bool bool_() {return (m_value=="true") ? true : false;}
    string name() {return m_name;}
 
    virtual bool Save(const int file_handle) override
@@ -5264,8 +5284,34 @@ class PersistentVariables : public CObject
 {
    VariableList m_list;
    string m_file_name;
+   string m_group;
 public:
    PersistentVariables(string file_name):m_file_name(file_name){}
+
+   VariableData *GroupNext(VariableData *vd)
+   {
+      //VariableData *vd = m_list.GetNextNode();
+      vd=vd.Next();
+      for(;CheckPointer(vd); vd=vd.Next())
+         if(StringFind(vd.name(),m_group) == 0)
+            return vd;
+      return NULL;
+   }
+
+   VariableData *GroupFirst(string name)
+   {
+      m_group=name;
+      VariableData *vd = m_list.GetFirstNode();
+      for(;CheckPointer(vd); vd=vd.Next())
+         if(StringFind(vd.name(),name) == 0)
+            return vd;
+      return NULL;
+   }
+   
+   string Group()
+   {
+      return m_group;
+   }
 
    VariableData *operator[](string name)
    {
