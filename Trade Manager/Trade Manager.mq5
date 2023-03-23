@@ -103,6 +103,7 @@ input bool DrawLevelsAllCharts = true;
 input bool DrawBackgroundPanel = true;
 input int BackgroundPanelWidth = 250;
 input color BackgroundPanelColor = clrNONE;
+input int SymbolListSize = 10;
 input bool MT5CommissionPerDeal = true;
 input int AvailableTradingCapital = 0;
 input int PendingOrdersSplit = 3;
@@ -925,6 +926,48 @@ void SetHardStopMode()
 }
 
 
+void ManageSymbolList()
+{
+   if(symbollist.Find(Symbol())<0)
+   {
+      if(symbollist.Length()>0)
+         symbollist+=";";
+      symbollist+=Symbol();
+   }
+
+   string symbols[];
+   int n=StringSplit(symbollist,';',symbols);
+
+   if(n>(SymbolListSize+1))
+   {
+      symbollist="";
+      for(int i=n-(SymbolListSize+1); i<n; i++)
+      {
+         if(symbollist.Length()>0)
+            symbollist+=";";
+         symbollist+=symbols[i];
+      }
+   }
+}
+
+
+void DisplaySymbolList()
+{
+   int rowindex=0;
+   string symbols[];
+   int n=StringSplit(symbollist,';',symbols);
+
+   for(int i=n-1; i>=0; i--)
+   {
+      if(symbols[i]!=Symbol())
+      {
+         CreateSymbolLabel(rowindex,FontSize,TextColor,symbols[i],"-TMSymbolListButton",0,"");
+         rowindex++;
+      }
+   }
+}
+
+
 void SetGlobalVariables()
 {
    PersistentVariables pv(inifilename);
@@ -952,9 +995,8 @@ void SetGlobalVariables()
       pv["TradeReference.takeprofitlevel"+IntegerToString(WS.tradereference[i].magicnumber)]=WS.tradereference[i].takeprofitlevel;
    }
    
-   //if(symbollist.Find(Symbol(),0)<0)
-   //   symbollist+=";"+Symbol();
-   //GlobalVariableSet(appnamespace+"symbollist",symbollist);
+   ManageSymbolList();
+   pv["symbollist"]=symbollist;
 
    pv.save();
 }
@@ -990,9 +1032,20 @@ void GetGlobalVariables()
       for(;CheckPointer(vd);vd=pv.GroupNext(vd))
          UpdateTradeReference(vd.name(),pv.Group(),NULL,vd.double_());
 
-      //varname=appnamespace+"symbollist";
-      //if(GlobalVariableCheck(varname))
-      //   TradesViewSelected=GlobalVariableGet(symbollist);
+      vd=pv.GroupFirst("TradeReference.stoplosslevel");
+      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
+         UpdateTradeReference(vd.name(),pv.Group(),NULL,NULL,NULL,vd.double_());
+
+      vd=pv.GroupFirst("TradeReference.takeprofitpips");
+      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
+         UpdateTradeReference(vd.name(),pv.Group(),NULL,NULL,vd.double_());
+
+      vd=pv.GroupFirst("TradeReference.takeprofitlevel");
+      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
+         UpdateTradeReference(vd.name(),pv.Group(),NULL,NULL,NULL,NULL,vd.double_());
+
+      symbollist=pv["symbollist"].string_();
+      DisplaySymbolList();
    }
    else
    {
@@ -1914,6 +1967,25 @@ void CreateArrowDown()
    TextObjects.AddObject(objname);
 
    arrowdown=true;
+}
+
+
+void CreateSymbolLabel(int RI, int fontsize, color c, string text, string group="", int xshift=0, string tooltip="")
+{
+   int rowpos=RI;
+
+   string objname=appnamespace+"Text"+IntegerToString(rowpos+1)+group;
+   ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
+   ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_LEFT_UPPER);
+   ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_LEFT_UPPER);
+   ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,7+xshift);
+   ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,3+(TextGap*rowpos));
+   ObjectSetInteger(0,objname,OBJPROP_COLOR,c);
+   ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,fontsize);
+   ObjectSetString(0,objname,OBJPROP_FONT,FontName);
+   ObjectSetString(0,objname,OBJPROP_TEXT,text);
+   if(StringLen(tooltip)>0)
+      ObjectSetString(0,objname,OBJPROP_TOOLTIP,tooltip);
 }
 
 
@@ -3029,7 +3101,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       if(StringFind(sparam,"TextArrowUp")>-1)
          listshift--;
 
-      if(StringFind(sparam,"-TMSymbolButton")>-1)
+      if(StringFind(sparam,"-TMSymbolButton")>-1 || StringFind(sparam,"-TMSymbolListButton")>-1)
          SwitchSymbol(ObjectGetString(0,sparam,OBJPROP_TEXT));
 
       if(ctrlon)
@@ -3052,7 +3124,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       step=MathMax(step,1);
       step*=ExtendedRepeatingFactor();
 
-      double margin=(20*step)+(int)MathRound((AskX()-BidX())/Point());
+      double margin=(10*step)+(int)MathRound((AskX()-BidX())/Point());
       double marginsmall=(5*step)+(int)MathRound((AskX()-BidX())/Point());
 
       //if(TimeLocal()-lastctrl<2)
@@ -3214,7 +3286,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 83)
          {
-            double breach=0-(WS.tradereference[selectedtradeindex].points-(margin));
+            double breach=0-(WS.tradereference[selectedtradeindex].points-(margin*2));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
                WS.tradereference[selectedtradeindex].stoplosspips=breach;
             WS.tradereference[selectedtradeindex].stoplosspips+=step;
@@ -3235,7 +3307,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 70)
          {
-            double breach=WS.tradereference[selectedtradeindex].points+(margin);
+            double breach=WS.tradereference[selectedtradeindex].points+(margin*2);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
                WS.tradereference[selectedtradeindex].takeprofitpips=breach;
             WS.tradereference[selectedtradeindex].takeprofitpips+=step;
