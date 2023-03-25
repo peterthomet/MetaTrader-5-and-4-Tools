@@ -689,6 +689,8 @@ void OnInit()
       ObjectSetInteger(0,objname,OBJPROP_BGCOLOR,c);
    }
 
+   DisplaySymbolList();
+
    InitStrategies();
    
    InitTesting();
@@ -928,26 +930,26 @@ void SetHardStopMode()
 
 void ManageSymbolList()
 {
-   if(symbollist.Find(Symbol())<0)
-   {
-      if(symbollist.Length()>0)
-         symbollist+=";";
-      symbollist+=Symbol();
-   }
-
    string symbols[];
    int n=StringSplit(symbollist,';',symbols);
 
-   if(n>(SymbolListSize+1))
+   int listsize=MathMax(10,SymbolListSize);
+
+   symbollist="";
+
+   for(int i=(n>listsize) ? (n-listsize) : 0; i<n; i++)
    {
-      symbollist="";
-      for(int i=n-(SymbolListSize+1); i<n; i++)
+      if(symbols[i]!=Symbol())
       {
          if(symbollist.Length()>0)
             symbollist+=";";
          symbollist+=symbols[i];
       }
    }
+
+   if(symbollist.Length()>0)
+      symbollist+=";";
+   symbollist+=Symbol();
 }
 
 
@@ -957,11 +959,14 @@ void DisplaySymbolList()
    string symbols[];
    int n=StringSplit(symbollist,';',symbols);
 
-   for(int i=n-1; i>=0; i--)
+   if(SymbolListSize>1)
    {
-      if(symbols[i]!=Symbol())
+      for(int i=n-1; i>=MathMax(0,n-SymbolListSize); i--)
       {
-         CreateSymbolLabel(rowindex,FontSize,TextColor,symbols[i],"-TMSymbolListButton",0,"");
+         color paircolor=TextColor;
+         if(symbols[i]==Symbol())
+            paircolor=TextColorBold;
+         CreateSymbolLabel(rowindex,FontSize,paircolor,symbols[i],"-TMSymbolListButton",0,"");
          rowindex++;
       }
    }
@@ -971,13 +976,17 @@ void DisplaySymbolList()
 void SetGlobalVariables()
 {
    PersistentVariables pv(inifilename);
+   pv.load();
 
    pv["StopMode"]=WS.StopMode;
    pv["peakgain"]=WS.peakgain;
    pv["peakpips"]=WS.peakpips;
    pv["OpenLots"]=_OpenLots;
+   pv["OpenLots-"+Symbol()]=_OpenLots;
    pv["StopLossPips"]=_StopLossPips;
+   pv["StopLossPips-"+Symbol()]=_StopLossPips;
    pv["TakeProfitPips"]=_TakeProfitPips;
+   pv["TakeProfitPips-"+Symbol()]=_TakeProfitPips;
    pv["currentbasemagicnumber"]=WS.currentbasemagicnumber;
    pv["ManualBEStopLocked"]=WS.ManualBEStopLocked;
    pv["closebasketatBE"]=WS.closebasketatBE;
@@ -985,6 +994,7 @@ void SetGlobalVariables()
    pv["InstrumentSelected"]=InstrumentSelected;
    pv["TradesViewSelected"]=TradesViewSelected;
 
+   pv.ClearGroup("TradeReference.");
    int asize=ArraySize(WS.tradereference);
    for(int i=0; i<asize; i++)
    {
@@ -1013,8 +1023,11 @@ void GetGlobalVariables()
       WS.peakgain=pv["peakgain"].double_();
       WS.peakpips=pv["peakpips"].double_();
       _OpenLots=pv["OpenLots"].double_();
+      _OpenLots=pv["OpenLots-"+Symbol()].double_()>0 ? pv["OpenLots-"+Symbol()].double_() : _OpenLots;
       _StopLossPips=pv["StopLossPips"].double_();
+      _StopLossPips=pv["StopLossPips-"+Symbol()].double_()>0 ? pv["StopLossPips-"+Symbol()].double_() : _StopLossPips;
       _TakeProfitPips=pv["TakeProfitPips"].double_();
+      _TakeProfitPips=pv["TakeProfitPips-"+Symbol()].double_()>0 ? pv["TakeProfitPips-"+Symbol()].double_() : _TakeProfitPips;
       WS.currentbasemagicnumber=pv["currentbasemagicnumber"].int_();
       WS.ManualBEStopLocked=pv["ManualBEStopLocked"].bool_();
       WS.closebasketatBE=pv["closebasketatBE"].bool_();
@@ -1045,7 +1058,7 @@ void GetGlobalVariables()
          UpdateTradeReference(vd.name(),pv.Group(),NULL,NULL,NULL,NULL,vd.double_());
 
       symbollist=pv["symbollist"].string_();
-      DisplaySymbolList();
+      ManageSymbolList();
    }
    else
    {
@@ -5275,10 +5288,11 @@ class VariableData : public CObject
 protected:
    string m_name;
    string m_value;
+   bool deleted;
 
 public:
-   VariableData(){}
-   VariableData(string name):m_name(name){}
+   VariableData(){ deleted=false; }
+   VariableData(string name):m_name(name){ deleted=false; }
    template<typename T>
    void operator=(T value){ m_value=(string)value;}
    template<typename T>
@@ -5288,12 +5302,15 @@ public:
    string string_() {return m_value;}
    bool bool_() {return (m_value=="true") ? true : false;}
    string name() {return m_name;}
+   void deleteit() {deleted=true;}
+   bool isdeleted() {return deleted;}
 
    virtual bool Save(const int file_handle) override
    {
       if(file_handle==INVALID_HANDLE)
          return(false);
-      FileWriteString(file_handle,m_name+"="+m_value+"\r\n");
+      if(!deleted)
+         FileWriteString(file_handle,m_name+"="+m_value+"\r\n");
       return true;
    }
 
@@ -5379,6 +5396,14 @@ public:
             return vd;
       return NULL;
    }
+
+   void ClearGroup(string name)
+   {
+      VariableData *vd = m_list.GetFirstNode();
+      for(;CheckPointer(vd); vd=vd.Next())
+         if(StringFind(vd.name(),name) == 0)
+            vd.deleteit();
+   }
    
    string Group()
    {
@@ -5389,7 +5414,7 @@ public:
    {
       VariableData *vd = m_list.GetFirstNode();
       for(;CheckPointer(vd); vd=vd.Next())
-         if(vd.name() == name)
+         if(vd.name() == name && !vd.isdeleted())
             return vd;
       vd = new VariableData(name);
       m_list.Add(vd);
