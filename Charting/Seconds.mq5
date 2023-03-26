@@ -33,15 +33,17 @@ double canc[],cano[],canh[],canl[],colors[],seconds[][4];
 #define sclose 1
 #define shigh 2
 #define slow 3
-bool updating, init;
+bool updating, init, historyloaded;
 datetime lasttime, time0, lasttime0;
 int intervalseconds[9]={1,2,3,4,5,10,15,20,30};
+string appnamespace="SecondsChartIndicator";
 
 
 void OnInit()
 {
    updating=false;
    init=true;
+   historyloaded=false;
    lasttime=0;
    time0=0;
    lasttime0=0;
@@ -51,7 +53,7 @@ void OnInit()
    SetIndexBuffer(3,canc,INDICATOR_DATA);
    SetIndexBuffer(4,colors,INDICATOR_COLOR_INDEX);
    PlotIndexSetDouble(0,PLOT_EMPTY_VALUE,0.0);
-   PlotIndexSetInteger(0,PLOT_SHOW_DATA,false);
+   //PlotIndexSetInteger(0,PLOT_SHOW_DATA,false);
    IndicatorSetString(INDICATOR_SHORTNAME,(string)intervalseconds[Seconds]+" Seconds Chart");
    EventSetMillisecondTimer(1);
 }
@@ -59,6 +61,7 @@ void OnInit()
 
 void OnDeinit(const int reason)
 {
+   ObjectsDeleteAll(0,appnamespace,ChartWindowFind());
    EventKillTimer();
 }
 
@@ -68,6 +71,17 @@ void OnTimer()
    if(updating)
       return;
    updating=true;
+
+   if(!historyloaded)
+   {
+      MqlTick ticks[];
+      int received=CopyTicks(Symbol(),ticks,COPY_TICKS_INFO,((TimeCurrent()-3600)*1000),100000);
+      Print("Ticks loaded: "+received);
+      Print("First Tick Time: "+ticks[0].time);
+      Print("Last Tick Time: "+ticks[received-1].time);
+
+      historyloaded=true;
+   }
 
    MqlDateTime dt;
    TimeCurrent(dt);
@@ -136,6 +150,12 @@ int OnCalculate(const int rates_total,
    canc[i]=close[i];
    colors[i]=cano[i]>canc[i] ? 1 : 0;
    time0=time[i];
+
+   ObjectCreate(0,appnamespace+"-BIDLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_BID));
+   ObjectSetInteger(0,appnamespace+"-BIDLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_BID));
+
+   ObjectCreate(0,appnamespace+"-ASKLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_ASK));
+   ObjectSetInteger(0,appnamespace+"-ASKLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_ASK));
 
    if(init)
    {
