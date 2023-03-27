@@ -34,7 +34,7 @@ double canc[],cano[],canh[],canl[],colors[],seconds[][4];
 #define shigh 2
 #define slow 3
 bool updating, init, historyloaded;
-datetime lasttime, time0, lasttime0;
+datetime lasttime, time0, lasttime0, lasthistoryload;
 int intervalseconds[9]={1,2,3,4,5,10,15,20,30};
 string appnamespace="SecondsChartIndicator";
 
@@ -47,6 +47,7 @@ void OnInit()
    lasttime=0;
    time0=0;
    lasttime0=0;
+   lasthistoryload=0;
    SetIndexBuffer(0,cano,INDICATOR_DATA);
    SetIndexBuffer(1,canh,INDICATOR_DATA);
    SetIndexBuffer(2,canl,INDICATOR_DATA);
@@ -72,22 +73,46 @@ void OnTimer()
       return;
    updating=true;
 
-   if(!historyloaded)
-   {
-      MqlTick ticks[];
-      int received=CopyTicks(Symbol(),ticks,COPY_TICKS_INFO,((TimeCurrent()-3600)*1000),100000);
-      Print("Ticks loaded: "+received);
-      Print("First Tick Time: "+ticks[0].time);
-      Print("Last Tick Time: "+ticks[received-1].time);
-
-      historyloaded=true;
-   }
-
    MqlDateTime dt;
    TimeCurrent(dt);
    datetime dti=TimeCurrent();
    double c=(double)dt.sec/(double)intervalseconds[Seconds];
    int maxbars=MaxBars;
+
+   if(!historyloaded && (lasthistoryload+3)<TimeCurrent())
+   {
+      MqlTick ticks[];
+      int received=CopyTicks(Symbol(),ticks,COPY_TICKS_INFO,((TimeCurrent()-3600)*1000),100000);
+      Print(Symbol()+" Ticks loaded: "+received);
+      
+      if(received>0)
+      {
+         Print("First Tick Time: "+ticks[0].time);
+         Print("Last Tick Time: "+ticks[received-1].time);
+         
+         MqlDateTime dttick;
+         double ctick;
+         datetime ticktimelast;
+         int rt=ArraySize(canh);
+         
+         for(int i=received-1; i>=0; i--)
+         {
+            if(i==(received-1))
+               ticktimelast=ticks[i].time;
+            TimeToStruct(ticks[i].time,dttick);
+            ctick=(double)dttick.sec/(double)intervalseconds[Seconds];
+
+            if(MathFloor(ctick)==MathCeil(ctick))
+            {
+               //Print(dtt.sec);
+               //break;
+            }
+            ticktimelast=ticks[i].time;
+         }
+         historyloaded=true;
+      }
+      lasthistoryload=TimeCurrent();
+   }
 
    if(time0!=lasttime0)
    {
@@ -151,11 +176,11 @@ int OnCalculate(const int rates_total,
    colors[i]=cano[i]>canc[i] ? 1 : 0;
    time0=time[i];
 
-   ObjectCreate(0,appnamespace+"-BIDLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_BID));
-   ObjectSetInteger(0,appnamespace+"-BIDLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_BID));
-
    ObjectCreate(0,appnamespace+"-ASKLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_ASK));
    ObjectSetInteger(0,appnamespace+"-ASKLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_ASK));
+
+   ObjectCreate(0,appnamespace+"-BIDLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_BID));
+   ObjectSetInteger(0,appnamespace+"-BIDLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_BID));
 
    if(init)
    {
