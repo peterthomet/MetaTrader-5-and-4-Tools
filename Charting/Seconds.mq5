@@ -27,6 +27,8 @@ enum Intervals
 };
 input Intervals Seconds=S15;
 input int MaxBars=200; // Maximum Bars
+input bool ShowBid=true; // Show Bid Line
+input bool ShowAsk=true; // Show Ask Line
 
 double canc[],cano[],canh[],canl[],colors[],seconds[][4];
 #define sopen 0
@@ -34,6 +36,7 @@ double canc[],cano[],canh[],canl[],colors[],seconds[][4];
 #define shigh 2
 #define slow 3
 bool updating, init, historyloaded;
+int historyloadcount;
 datetime lasttime, time0, lasttime0, lasthistoryload;
 int intervalseconds[9]={1,2,3,4,5,10,15,20,30};
 string appnamespace="SecondsChartIndicator";
@@ -44,6 +47,7 @@ void OnInit()
    updating=false;
    init=true;
    historyloaded=false;
+   historyloadcount=0;
    lasttime=0;
    time0=0;
    lasttime0=0;
@@ -54,7 +58,7 @@ void OnInit()
    SetIndexBuffer(3,canc,INDICATOR_DATA);
    SetIndexBuffer(4,colors,INDICATOR_COLOR_INDEX);
    PlotIndexSetDouble(0,PLOT_EMPTY_VALUE,0.0);
-   //PlotIndexSetInteger(0,PLOT_SHOW_DATA,false);
+   PlotIndexSetInteger(0,PLOT_SHOW_DATA,false);
    IndicatorSetString(INDICATOR_SHORTNAME,(string)intervalseconds[Seconds]+" Seconds Chart");
    EventSetMillisecondTimer(1);
 }
@@ -69,23 +73,24 @@ void OnDeinit(const int reason)
 
 void OnTimer()
 {
-   if(updating)
+   if(updating||init)
       return;
    updating=true;
 
    MqlDateTime dt;
-   TimeCurrent(dt);
-   datetime dti=TimeCurrent();
+   TimeTradeServer(dt);
+   datetime dti=TimeTradeServer();
    double c=(double)dt.sec/(double)intervalseconds[Seconds];
    int maxbars=MaxBars;
 
-   if(!historyloaded && (lasthistoryload+3)<TimeCurrent())
+   if(!historyloaded && (lasthistoryload+1)<TimeTradeServer())
    {
       MqlTick ticks[];
-      int received=CopyTicks(Symbol(),ticks,COPY_TICKS_INFO,((TimeCurrent()-3600)*1000),100000);
+      int received=CopyTicks(Symbol(),ticks,COPY_TICKS_INFO,((TimeTradeServer()-3600)*1000),100000);
+      historyloadcount++;
       Print(Symbol()+" Ticks loaded: "+received);
       
-      if(received>0)
+      if(received>0&&historyloadcount>1)
       {
          Print("First Tick Time: "+ticks[0].time);
          Print("Last Tick Time: "+ticks[received-1].time);
@@ -111,7 +116,7 @@ void OnTimer()
          }
          historyloaded=true;
       }
-      lasthistoryload=TimeCurrent();
+      lasthistoryload=TimeTradeServer();
    }
 
    if(time0!=lasttime0)
@@ -146,6 +151,7 @@ void OnTimer()
       }
       lasttime=dti;
    }
+   ChartRedraw();
    updating=false;
 }
 
@@ -161,32 +167,45 @@ int OnCalculate(const int rates_total,
                 const long& volume[],
                 const int& spread[])
 {
-   int i=rates_total-1;
-   if(canh[i]==0)
+   if(!init)
    {
-      canh[i]=close[i];
-      canl[i]=close[i];
-      cano[i]=close[i];
+      if(prev_calculated==(rates_total-1))
+         Print("SHIFT "+TimeCurrent()+" / "+TimeTradeServer());
+      int i=rates_total-1;
+      if(canh[i]==0)
+      {
+         canh[i]=close[i];
+         canl[i]=close[i];
+         cano[i]=close[i];
+         canc[i]=close[i];
+         colors[i]=0;
+      }
+      canh[i]=MathMax(canh[i],close[i]);
+      canl[i]=MathMin(canl[i],close[i]);
       canc[i]=close[i];
-      colors[i]=0;
+      colors[i]=cano[i]>canc[i] ? 1 : 0;
+      time0=time[i];
+   
+      if(ShowAsk)
+      {
+         ObjectCreate(0,appnamespace+"-ASKLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_ASK));
+         ObjectSetInteger(0,appnamespace+"-ASKLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_ASK));
+      }
+   
+      if(ShowBid)
+      {
+         ObjectCreate(0,appnamespace+"-BIDLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_BID));
+         ObjectSetInteger(0,appnamespace+"-BIDLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_BID));
+      }
    }
-   canh[i]=MathMax(canh[i],close[i]);
-   canl[i]=MathMin(canl[i],close[i]);
-   canc[i]=close[i];
-   colors[i]=cano[i]>canc[i] ? 1 : 0;
-   time0=time[i];
 
-   ObjectCreate(0,appnamespace+"-ASKLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_ASK));
-   ObjectSetInteger(0,appnamespace+"-ASKLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_ASK));
-
-   ObjectCreate(0,appnamespace+"-BIDLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_BID));
-   ObjectSetInteger(0,appnamespace+"-BIDLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_BID));
-
-   if(init)
+   if(init && rates_total==prev_calculated)
    {
       lasttime0=time0;
       init=false;
+      Print(TimeTradeServer());
    }
+
    return(rates_total);
 }
 
