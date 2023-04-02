@@ -83,74 +83,82 @@ void OnTimer()
    double c=(double)dt.sec/(double)intervalseconds[Seconds];
    int maxbars=MaxBars;
 
-   if(!historyloaded && (lasthistoryload+1)<TimeTradeServer())
+   if(!historyloaded && (lasthistoryload+3)<TimeTradeServer())
    {
       MqlTick ticks[];
       int received=CopyTicks(Symbol(),ticks,COPY_TICKS_INFO,((TimeTradeServer()-3600)*1000),100000);
       historyloadcount++;
-      Print(Symbol()+" Ticks loaded: "+received);
+      _Print(Symbol()+" Ticks loaded: "+received);
       
       if(received>0&&historyloadcount>1)
       {
-         Print("First Tick Time: "+ticks[0].time);
-         Print("Last Tick Time: "+ticks[received-1].time);
+         _Print("First Tick Time: "+ticks[0].time);
+         _Print("Last Tick Time: "+ticks[received-1].time);
          
-         MqlDateTime dttick;
-         double ctick;
-         datetime ticktimelast;
          int rt=ArraySize(canh);
+         int x=received-1;
+         datetime barstarttime=dti-(int)((c-MathFloor(c))*intervalseconds[Seconds]);
          
-         for(int i=received-1; i>=0; i--)
+         for(int i=rt-1; i>=rt-maxbars; i--)
          {
-            if(i==(received-1))
-               ticktimelast=ticks[i].time;
-            TimeToStruct(ticks[i].time,dttick);
-            ctick=(double)dttick.sec/(double)intervalseconds[Seconds];
-
-            if(MathFloor(ctick)==MathCeil(ctick))
+            canh[i]=ticks[x].bid;
+            canl[i]=ticks[x].bid;
+            cano[i]=ticks[x].bid;
+            canc[i]=ticks[x].bid;
+            colors[i]=0;
+            
+            while(barstarttime<=ticks[x].time && x>=0)
             {
-               //Print(dtt.sec);
-               //break;
+               x--;
+               canh[i]=MathMax(canh[i],ticks[x].bid);
+               canl[i]=MathMin(canl[i],ticks[x].bid);
+               cano[i]=ticks[x].bid;
+               colors[i]=cano[i]>canc[i] ? 1 : 0;
             }
-            ticktimelast=ticks[i].time;
+            barstarttime-=intervalseconds[Seconds];
          }
+         DrawPriceLines();
          historyloaded=true;
       }
       lasthistoryload=TimeTradeServer();
    }
 
-   if(time0!=lasttime0)
+   if(historyloaded)
    {
-      int rt=ArraySize(canh);
-      canh[rt-(maxbars+1)]=0;
-      canl[rt-(maxbars+1)]=0;
-      cano[rt-(maxbars+1)]=0;
-      canc[rt-(maxbars+1)]=0;
-      colors[rt-(maxbars+1)]=0;
-      lasttime0=time0;
-   }
-
-   if(MathFloor(c)==MathCeil(c) && dti!=lasttime)
-   {
-      if(time0+PeriodSeconds()-dti!=0)
+      if(time0!=lasttime0)
       {
          int rt=ArraySize(canh);
-         for(int i=rt-maxbars; i<rt-1; i++)
-         {
-            canh[i]=canh[i+1];
-            canl[i]=canl[i+1];
-            cano[i]=cano[i+1];
-            canc[i]=canc[i+1];
-            colors[i]=colors[i+1];
-         }
-         canh[rt-1]=canc[rt-2];
-         canl[rt-1]=canc[rt-2];
-         cano[rt-1]=canc[rt-2];
-         canc[rt-1]=canc[rt-2];
-         colors[rt-1]=0;
+         canh[rt-(maxbars+1)]=0;
+         canl[rt-(maxbars+1)]=0;
+         cano[rt-(maxbars+1)]=0;
+         canc[rt-(maxbars+1)]=0;
+         colors[rt-(maxbars+1)]=0;
+         lasttime0=time0;
       }
-      lasttime=dti;
+   
+      if(MathFloor(c)==MathCeil(c) && dti!=lasttime)
+      {
+         if(time0+PeriodSeconds()-dti!=0)
+         {
+            int rt=ArraySize(canh);
+            for(int i=rt-maxbars; i<rt-1; i++)
+            {
+               canh[i]=canh[i+1];
+               canl[i]=canl[i+1];
+               cano[i]=cano[i+1];
+               canc[i]=canc[i+1];
+               colors[i]=colors[i+1];
+            }
+            canh[rt-1]=canc[rt-2];
+            canl[rt-1]=canc[rt-2];
+            cano[rt-1]=canc[rt-2];
+            canc[rt-1]=canc[rt-2];
+            colors[rt-1]=0;
+         }
+         lasttime=dti;
+      }
    }
+   
    ChartRedraw();
    updating=false;
 }
@@ -167,10 +175,10 @@ int OnCalculate(const int rates_total,
                 const long& volume[],
                 const int& spread[])
 {
-   if(!init)
+   if(!init && historyloaded)
    {
       if(prev_calculated==(rates_total-1))
-         Print("SHIFT "+TimeCurrent()+" / "+TimeTradeServer());
+         _Print("SHIFT "+TimeCurrent()+" / "+TimeTradeServer());
       int i=rates_total-1;
       if(canh[i]==0)
       {
@@ -185,27 +193,39 @@ int OnCalculate(const int rates_total,
       canc[i]=close[i];
       colors[i]=cano[i]>canc[i] ? 1 : 0;
       time0=time[i];
-   
-      if(ShowAsk)
-      {
-         ObjectCreate(0,appnamespace+"-ASKLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_ASK));
-         ObjectSetInteger(0,appnamespace+"-ASKLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_ASK));
-      }
-   
-      if(ShowBid)
-      {
-         ObjectCreate(0,appnamespace+"-BIDLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_BID));
-         ObjectSetInteger(0,appnamespace+"-BIDLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_BID));
-      }
+      
+      DrawPriceLines();
    }
 
    if(init && rates_total==prev_calculated)
    {
       lasttime0=time0;
       init=false;
-      Print(TimeTradeServer());
+      _Print("INIT COMPLETED "+TimeTradeServer());
    }
 
    return(rates_total);
 }
 
+
+void DrawPriceLines()
+{
+   if(ShowAsk)
+   {
+      ObjectCreate(0,appnamespace+"-ASKLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_ASK));
+      ObjectSetInteger(0,appnamespace+"-ASKLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_ASK));
+   }
+
+   if(ShowBid)
+   {
+      ObjectCreate(0,appnamespace+"-BIDLINE",OBJ_HLINE,ChartWindowFind(),0,SymbolInfoDouble(Symbol(),SYMBOL_BID));
+      ObjectSetInteger(0,appnamespace+"-BIDLINE",OBJPROP_COLOR,ChartGetInteger(0,CHART_COLOR_BID));
+   }
+}
+
+
+void _Print(string text)
+{
+   return;
+   Print(text);
+}
