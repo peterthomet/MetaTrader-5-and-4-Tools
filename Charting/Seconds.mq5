@@ -83,7 +83,7 @@ void OnTimer()
    double c=(double)dt.sec/(double)intervalseconds[Seconds];
    int maxbars=MaxBars;
 
-   if(!historyloaded && (lasthistoryload+3)<TimeTradeServer())
+   if(!historyloaded && (lasthistoryload+1)<TimeTradeServer())
    {
       MqlTick ticks[];
       int received=CopyTicks(Symbol(),ticks,COPY_TICKS_INFO,((TimeTradeServer()-3600)*1000),100000);
@@ -197,7 +197,7 @@ int OnCalculate(const int rates_total,
       DrawPriceLines();
    }
 
-   if(init && rates_total==prev_calculated)
+   if(init /*&& rates_total==prev_calculated*/)
    {
       lasttime0=time0;
       init=false;
