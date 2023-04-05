@@ -30,7 +30,7 @@ input int MaxBars=200; // Maximum Bars
 input bool ShowBid=true; // Show Bid Line
 input bool ShowAsk=true; // Show Ask Line
 
-double canc[],cano[],canh[],canl[],colors[],seconds[][4];
+double canc[],cano[],canh[],canl[],colors[];
 #define sopen 0
 #define sclose 1
 #define shigh 2
@@ -88,12 +88,12 @@ void OnTimer()
       MqlTick ticks[];
       int received=CopyTicks(Symbol(),ticks,COPY_TICKS_INFO,((TimeTradeServer()-3600)*1000),100000);
       historyloadcount++;
-      _Print(Symbol()+" Ticks loaded: "+received);
+      _Print(Symbol()+" Ticks loaded: "+(string)received);
       
       if(received>0&&historyloadcount>1)
       {
-         _Print("First Tick Time: "+ticks[0].time);
-         _Print("Last Tick Time: "+ticks[received-1].time);
+         _Print("First Tick Time: "+(string)ticks[0].time);
+         _Print("Last Tick Time: "+(string)ticks[received-1].time);
          
          int rt=ArraySize(canh);
          int x=received-1;
@@ -178,7 +178,7 @@ int OnCalculate(const int rates_total,
    if(!init && historyloaded)
    {
       if(prev_calculated==(rates_total-1))
-         _Print("SHIFT "+TimeCurrent()+" / "+TimeTradeServer());
+         _Print("SHIFT "+(string)TimeCurrent()+" / "+(string)TimeTradeServer());
       int i=rates_total-1;
       if(canh[i]==0)
       {
@@ -201,7 +201,7 @@ int OnCalculate(const int rates_total,
    {
       lasttime0=time0;
       init=false;
-      _Print("INIT COMPLETED "+TimeTradeServer());
+      _Print("INIT COMPLETED "+(string)TimeTradeServer());
    }
 
    return(rates_total);
