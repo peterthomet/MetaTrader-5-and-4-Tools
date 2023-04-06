@@ -107,7 +107,7 @@ void OnTimer()
             canc[i]=ticks[x].bid;
             colors[i]=0;
             
-            while(barstarttime<=ticks[x].time && x>=0)
+            while(barstarttime<=ticks[x].time && x>0)
             {
                x--;
                canh[i]=MathMax(canh[i],ticks[x].bid);
@@ -138,6 +138,8 @@ void OnTimer()
    
       if(MathFloor(c)==MathCeil(c) && dti!=lasttime)
       {
+         _Print("SHIFT INTERNAL Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer());
+         _Print("CALCULATION "+(string)((int)time0+PeriodSeconds()-(int)dti));
          if(time0+PeriodSeconds()-dti!=0)
          {
             int rt=ArraySize(canh);
@@ -177,8 +179,6 @@ int OnCalculate(const int rates_total,
 {
    if(!init && historyloaded)
    {
-      if(prev_calculated==(rates_total-1))
-         _Print("SHIFT "+(string)TimeCurrent()+" / "+(string)TimeTradeServer());
       int i=rates_total-1;
       if(canh[i]==0)
       {
@@ -193,11 +193,14 @@ int OnCalculate(const int rates_total,
       canc[i]=close[i];
       colors[i]=cano[i]>canc[i] ? 1 : 0;
       time0=time[i];
+
+      if(prev_calculated==(rates_total-1))
+         _Print("SHIFT Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Candle: "+(string)time[i]);
       
       DrawPriceLines();
    }
 
-   if(init /*&& rates_total==prev_calculated*/)
+   if(init && rates_total==prev_calculated)
    {
       lasttime0=time0;
       init=false;
@@ -226,6 +229,6 @@ void DrawPriceLines()
 
 void _Print(string text)
 {
-   return;
+   //return;
    Print(text);
 }
