@@ -66,10 +66,10 @@ void OnInit()
    PlotIndexSetInteger(0,PLOT_LINE_COLOR,1,(int)ChartGetInteger(0,CHART_COLOR_CANDLE_BEAR));
    IndicatorSetString(INDICATOR_SHORTNAME,(string)intervalseconds[Seconds]+" Seconds Chart");
 
-   if(GlobalVariableCheck(appnamespace+"d_CHART_FIXED_MAX"))
-      d_CHART_FIXED_MAX=GlobalVariableGet(appnamespace+"d_CHART_FIXED_MAX");
-   if(GlobalVariableCheck(appnamespace+"d_CHART_FIXED_MIN"))
-      d_CHART_FIXED_MIN=GlobalVariableGet(appnamespace+"d_CHART_FIXED_MIN");
+   if(GlobalVariableCheck(appnamespace+Symbol()+"d_CHART_FIXED_MAX"))
+      d_CHART_FIXED_MAX=GlobalVariableGet(appnamespace+Symbol()+"d_CHART_FIXED_MAX");
+   if(GlobalVariableCheck(appnamespace+Symbol()+"d_CHART_FIXED_MIN"))
+      d_CHART_FIXED_MIN=GlobalVariableGet(appnamespace+Symbol()+"d_CHART_FIXED_MIN");
 
    EventSetMillisecondTimer(1);
 }
@@ -80,10 +80,10 @@ void OnDeinit(const int reason)
    if(visible)
       Disable();
 
-   GlobalVariableTemp(appnamespace+"d_CHART_FIXED_MAX");
-   GlobalVariableSet(appnamespace+"d_CHART_FIXED_MAX",d_CHART_FIXED_MAX);
-   GlobalVariableTemp(appnamespace+"d_CHART_FIXED_MIN");
-   GlobalVariableSet(appnamespace+"d_CHART_FIXED_MIN",d_CHART_FIXED_MIN);
+   GlobalVariableTemp(appnamespace+Symbol()+"d_CHART_FIXED_MAX");
+   GlobalVariableSet(appnamespace+Symbol()+"d_CHART_FIXED_MAX",d_CHART_FIXED_MAX);
+   GlobalVariableTemp(appnamespace+Symbol()+"d_CHART_FIXED_MIN");
+   GlobalVariableSet(appnamespace+Symbol()+"d_CHART_FIXED_MIN",d_CHART_FIXED_MIN);
 
    ObjectsDeleteAll(0,appnamespace,ChartWindowFind());
    EventKillTimer();
@@ -126,7 +126,7 @@ void OnTimer()
             canc[i]=ticks[x].bid;
             colors[i]=0;
             
-            while(barstarttime<=ticks[x].time && x>=0)
+            while(barstarttime<=ticks[x].time && x>0)
             {
                x--;
                canh[i]=MathMax(canh[i],ticks[x].bid);
@@ -156,6 +156,8 @@ void OnTimer()
    
       if(MathFloor(c)==MathCeil(c) && dti!=lasttime)
       {
+         _Print("SHIFT INTERNAL Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer());
+         _Print("CALCULATION "+(string)((int)time0+PeriodSeconds()-(int)dti));
          if(time0+PeriodSeconds()-dti!=0)
          {
             int rt=ArraySize(canh);
@@ -195,8 +197,6 @@ int OnCalculate(const int rates_total,
 {
    if(!init && historyloaded)
    {
-      if(prev_calculated==(rates_total-1))
-         _Print("SHIFT "+(string)TimeCurrent()+" / "+(string)TimeTradeServer());
       int i=rates_total-1;
       if(canh[i]==0)
       {
@@ -211,9 +211,12 @@ int OnCalculate(const int rates_total,
       canc[i]=close[i];
       colors[i]=cano[i]>canc[i] ? 1 : 0;
       time0=time[i];
+
+      if(prev_calculated==(rates_total-1))
+         _Print("SHIFT Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Candle: "+(string)time[i]);
    }
 
-   if(init /*&& rates_total==prev_calculated*/)
+   if(init && rates_total==prev_calculated)
    {
       lasttime0=time0;
       init=false;
