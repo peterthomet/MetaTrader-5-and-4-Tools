@@ -156,10 +156,10 @@ void OnTimer()
    
       if(MathFloor(c)==MathCeil(c) && dti!=lasttime)
       {
-         _Print("SHIFT INTERNAL Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer());
-         _Print("CALCULATION "+(string)((int)time0+PeriodSeconds()-(int)dti));
-         if(time0+PeriodSeconds()-dti!=0)
+         int diff=(int)(time0+PeriodSeconds()-dti);
+         if(diff!=0 && diff!=PeriodSeconds())
          {
+            _Print("SHIFT INTERNAL Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Value: "+(string)diff);
             int rt=ArraySize(canh);
             for(int i=rt-maxbars; i<rt-1; i++)
             {
@@ -195,9 +195,11 @@ int OnCalculate(const int rates_total,
                 const long& volume[],
                 const int& spread[])
 {
+   int i=rates_total-1;
+   time0=time[i];
+
    if(!init && historyloaded)
    {
-      int i=rates_total-1;
       if(canh[i]==0)
       {
          canh[i]=close[i];
@@ -210,10 +212,9 @@ int OnCalculate(const int rates_total,
       canl[i]=MathMin(canl[i],close[i]);
       canc[i]=close[i];
       colors[i]=cano[i]>canc[i] ? 1 : 0;
-      time0=time[i];
 
       if(prev_calculated==(rates_total-1))
-         _Print("SHIFT Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Candle: "+(string)time[i]);
+         _Print("SHIFT CHART AUTO Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Candle: "+(string)time[i]);
    }
 
    if(init && rates_total==prev_calculated)
