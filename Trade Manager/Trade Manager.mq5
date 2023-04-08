@@ -3334,6 +3334,19 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       }
 
    }
+
+   if(id==CHARTEVENT_OBJECT_DRAG)
+   {
+      if(ObjectGetInteger(0,sparam,OBJPROP_TYPE)==OBJ_TREND)
+      {
+         double p1=ObjectGetDouble(0,sparam,OBJPROP_PRICE,0);
+         double p2=ObjectGetDouble(0,sparam,OBJPROP_PRICE,1);
+         double ratio=(p1/p2)-1;
+         if(ratio>-0.0001&&ratio<0.0001)
+            ObjectSetDouble(0,sparam,OBJPROP_PRICE,1,p1);
+      }
+   }
+   
 }
 
 
