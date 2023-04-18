@@ -87,3 +87,11 @@ For those who want to install everything in one shot, I have added a zip file of
 
 [![](http://img.youtube.com/vi/g5eWgzQYdiU/maxresdefault.jpg)](http://www.youtube.com/watch?v=g5eWgzQYdiU "Forex Currency Strength Analysis Tool")
 
+<br/>
+<br/>
+
+## Seconds Charts for MetaTrader 5
+
+
+[![](http://img.youtube.com/vi/ElzsQ5niUTk/maxresdefault.jpg)](http://www.youtube.com/watch?v=ElzsQ5niUTk "Seconds Charts for MetaTrader 5")
+
