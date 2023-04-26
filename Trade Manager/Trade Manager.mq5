@@ -1995,6 +1995,7 @@ void CreateSymbolLabel(int RI, int fontsize, color c, string text, string group=
    ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,3+(TextGap*rowpos));
    ObjectSetInteger(0,objname,OBJPROP_COLOR,c);
    ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,fontsize);
+   ObjectSetInteger(0,objname,OBJPROP_ZORDER,1000);
    ObjectSetString(0,objname,OBJPROP_FONT,FontName);
    ObjectSetString(0,objname,OBJPROP_TEXT,text);
    if(StringLen(tooltip)>0)
