@@ -1,5 +1,5 @@
 //
-// Seconds.mq5
+// Seconds-Main.mq5
 // getYourNet.ch
 //
 
