@@ -233,6 +233,8 @@ string pairs[8][7]={
 color currencycolor[8];
 string symbollist;
 string inifilename;
+long firstbar=0;
+long lastfirstbar=-1;
 
 struct TypeTextObjects
 {
@@ -868,8 +870,18 @@ void Manage()
       if(lipstickmode==LipStickNone)
          DeleteLipstick();
       else
+      {
          CreateLipstick();
+         lastfirstbar=firstbar;
+      }
       currentlipstickmode=lipstickmode;
+   }
+
+   if(lipstickmode!=LipStickNone && lastfirstbar!=firstbar)
+   {
+      DeleteLipstick();
+      CreateLipstick();
+      lastfirstbar=firstbar;
    }
 
    if(ManageOrders())
@@ -2192,18 +2204,30 @@ void CreateLipstick()
    if(CopyTime(_Symbol,_Period,(int)ChartGetInteger(0,CHART_FIRST_VISIBLE_BAR)-((int)ChartGetInteger(0,CHART_VISIBLE_BARS)-1),1,dt)<1)
       return;
 
-   MqlRates r[600];
-   if(CopyRates(_Symbol,PERIOD_M5,dt[0],600,r)<600)
+   int rcount=600;
+   MqlRates r[];
+   ArrayResize(r,rcount);
+   if(CopyRates(_Symbol,PERIOD_M5,dt[0],rcount,r)<rcount)
       return;
 
-   datetime asiastart=0, asiaend=0, nymidnight=0;
+   datetime asiastart=0, asiaend=0, nymidnight=0, dayend=0;
    double asiahigh=DBL_MIN, asialow=DBL_MAX, nyopen=0, drhigh=DBL_MIN, drlow=DBL_MAX, idrhigh=DBL_MIN, idrlow=DBL_MAX;
    int lasthour=6;
 
-   for(int i=599;i>=0;i--)
+   for(int i=rcount-1;i>=0;i--)
    {
       MqlDateTime t;
       TimeToStruct(r[i].time,t);
+
+      if(t.hour>=7 && dayend==0)
+      {
+         MqlDateTime dend;
+         TimeToStruct(r[i].time,dend);
+         dend.hour=23;
+         dend.min=59;
+         dend.sec=59;
+         dayend=StructToTime(dend);
+      }
 
       if((t.hour==17 && t.min==25) || drhigh!=DBL_MIN)
       {
@@ -2215,23 +2239,25 @@ void CreateLipstick()
 
       if(t.hour==16 && t.min==30)
       {
-         CreateTrendline(0,appnamespace+"LipstickNYOpen",Tomato,1,STYLE_SOLID,r[i].open,r[i].open,r[i].time,r[i].time+3600);
-         if(drhigh!=0)
+         CreateTrendline(0,appnamespace+"LipstickNYOpen",Tomato,1,STYLE_SOLID,r[i].open,r[i].open,r[i].time,dayend,false);
+         CreateTrendline(0,appnamespace+"LipstickSB1",Tomato,5,STYLE_SOLID,r[i].open,r[i].open,r[i].time+1800,r[i].time+1800+3599,false);
+         CreateTrendline(0,appnamespace+"LipstickSB2",Tomato,5,STYLE_SOLID,r[i].open,r[i].open,r[i].time+16200,r[i].time+16200+3599,false);
+         if(drhigh!=DBL_MIN)
          {
             double half=(drhigh-drlow)/2;
             CreateRectangle(0,appnamespace+"LipstickDRRect",AliceBlue,drhigh,drlow,r[i].time,r[i].time+3540);
-            CreateTrendline(0,appnamespace+"LipstickIDRHigh",LightGray,1,STYLE_DOT,idrhigh,idrhigh,r[i].time,r[i].time+3600);
-            CreateTrendline(0,appnamespace+"LipstickIDRLow",LightGray,1,STYLE_DOT,idrlow,idrlow,r[i].time,r[i].time+3600);
+            CreateTrendline(0,appnamespace+"LipstickIDRHigh",LightGray,1,STYLE_DOT,idrhigh,idrhigh,r[i].time,dayend,false);
+            CreateTrendline(0,appnamespace+"LipstickIDRLow",LightGray,1,STYLE_DOT,idrlow,idrlow,r[i].time,dayend,false);
             for(int j=5; j>=-5; j--)
             {
                double l=drhigh-half+(half*j);
-               CreateTrendline(0,appnamespace+"LipstickDR-"+IntegerToString(j),LightSkyBlue,1,STYLE_DOT,l,l,r[i].time,r[i].time+3600);
+               CreateTrendline(0,appnamespace+"LipstickDR-"+IntegerToString(j),LightSkyBlue,1,STYLE_DOT,l,l,r[i].time,dayend,false);
             }
          }
       }
 
       if(t.hour==15 && t.min==30)
-         CreateTrendline(0,appnamespace+"LipstickNYPreOpen",Tomato,1,STYLE_DOT,r[i].open,r[i].open,r[i].time,r[i].time+3600);
+         CreateTrendline(0,appnamespace+"LipstickNYPreOpen",Tomato,1,STYLE_DOT,r[i].open,r[i].open,r[i].time,dayend,false);
 
       if(nymidnight==0)
       {
@@ -2260,9 +2286,9 @@ void CreateLipstick()
    }
 
    CreateRectangle(0,appnamespace+"LipstickAsiaRect",WhiteSmoke,asiahigh,asialow,asiastart,asiaend);
-   CreateTrendline(0,appnamespace+"LipstickAsiaHigh",CornflowerBlue,1,STYLE_DASH,asiahigh,asiahigh,asiastart,asiaend);
-   CreateTrendline(0,appnamespace+"LipstickAsiaLow",CornflowerBlue,1,STYLE_DASH,asialow,asialow,asiastart,asiaend);
-   CreateTrendline(0,appnamespace+"LipstickNYMidnight",CornflowerBlue,1,STYLE_SOLID,nyopen,nyopen,nymidnight,nymidnight+3600);
+   CreateTrendline(0,appnamespace+"LipstickAsiaHigh",CornflowerBlue,1,STYLE_DASH,asiahigh,asiahigh,asiastart,dayend,false);
+   CreateTrendline(0,appnamespace+"LipstickAsiaLow",CornflowerBlue,1,STYLE_DASH,asialow,asialow,asiastart,dayend,false);
+   CreateTrendline(0,appnamespace+"LipstickNYMidnight",CornflowerBlue,1,STYLE_SOLID,nyopen,nyopen,nymidnight,dayend,false);
 
    if(lipstickmode<LipStickMode2)
       return;
@@ -2372,7 +2398,7 @@ void CreateRectangle(long chartid, string objname, color c, double price1, doubl
 }
 
 
-void CreateTrendline(long chartid, string objname, color c, int width, int style, double price1, double price2, datetime time1, datetime time2)
+void CreateTrendline(long chartid, string objname, color c, int width, int style, double price1, double price2, datetime time1, datetime time2, bool rayright=true)
 {
    if(ObjectFind(chartid,objname)<0)
    {
@@ -2380,7 +2406,7 @@ void CreateTrendline(long chartid, string objname, color c, int width, int style
       ObjectSetInteger(chartid,objname,OBJPROP_COLOR,c);
       ObjectSetInteger(chartid,objname,OBJPROP_WIDTH,width);
       ObjectSetInteger(chartid,objname,OBJPROP_STYLE,style);
-      ObjectSetInteger(chartid,objname,OBJPROP_RAY_RIGHT,true);
+      ObjectSetInteger(chartid,objname,OBJPROP_RAY_RIGHT,rayright);
       ObjectSetInteger(chartid,objname,OBJPROP_BACK,true);
    }
    ObjectSetDouble(chartid,objname,OBJPROP_PRICE,0,price1);
@@ -3103,6 +3129,13 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
    if(id==CHARTEVENT_CHART_CHANGE)
    {
       chartheight=(int)ChartGetInteger(0,CHART_HEIGHT_IN_PIXELS);
+
+      long firstvisible=ChartGetInteger(0,CHART_FIRST_VISIBLE_BAR);
+      long visiblebars=ChartGetInteger(0,CHART_VISIBLE_BARS);
+      if(firstvisible>visiblebars-1)
+         firstbar=firstvisible-visiblebars+1;
+      else
+         firstbar=0;
    }
 
    if(id==CHARTEVENT_OBJECT_CLICK)
