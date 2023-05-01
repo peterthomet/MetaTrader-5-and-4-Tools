@@ -34,6 +34,7 @@ double canc[],cano[],canh[],canl[],colors[];
 bool updating, init, historyloaded;
 int historyloadcount;
 bool visible;
+bool CrossHair;
 int c_CHART_COLOR_CANDLE_BULL,c_CHART_COLOR_CANDLE_BEAR,c_CHART_COLOR_CHART_UP,c_CHART_COLOR_CHART_DOWN,c_CHART_COLOR_CHART_LINE,b_CHART_SCALEFIX;
 double d_CHART_FIXED_MAX,d_CHART_FIXED_MIN;
 datetime lasttime, time0, lasttime0, lasthistoryload;
@@ -48,6 +49,7 @@ void OnInit()
    historyloaded=false;
    historyloadcount=0;
    visible=false;
+   CrossHair=false;
    d_CHART_FIXED_MAX=0;
    d_CHART_FIXED_MIN=0;
    lasttime=0;
@@ -70,6 +72,8 @@ void OnInit()
       d_CHART_FIXED_MAX=GlobalVariableGet(appnamespace+Symbol()+"d_CHART_FIXED_MAX");
    if(GlobalVariableCheck(appnamespace+Symbol()+"d_CHART_FIXED_MIN"))
       d_CHART_FIXED_MIN=GlobalVariableGet(appnamespace+Symbol()+"d_CHART_FIXED_MIN");
+
+   ChartSetInteger(0,CHART_EVENT_MOUSE_MOVE,true);
 
    EventSetMillisecondTimer(1);
 }
@@ -105,7 +109,7 @@ void OnTimer()
    if(!historyloaded && (lasthistoryload+1)<TimeTradeServer())
    {
       MqlTick ticks[];
-      int received=CopyTicks(Symbol(),ticks,COPY_TICKS_INFO,((TimeTradeServer()-3600)*1000),100000);
+      int received=CopyTicksRange(Symbol(),ticks,COPY_TICKS_INFO,((TimeTradeServer()-3600)*1000),0);
       historyloadcount++;
       _Print(Symbol()+" Ticks loaded: "+(string)received);
       
@@ -230,10 +234,35 @@ int OnCalculate(const int rates_total,
 
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
+   if(id==CHARTEVENT_MOUSE_MOVE)
+   {
+      if(sparam=="16")
+         CrossHair=true;
+      if(CrossHair&&sparam=="1")
+      {
+         // Reset
+         CrossHair=false;
+      }
+
+      if(CrossHair)
+      {
+         int x=(int)lparam;
+         int y=(int)dparam;
+         datetime dt=0;
+         double price=0;
+         int window=0;
+         if(ChartXYToTimePrice(0,x,y,window,dt,price))
+         {
+            PrintFormat("Window=%d X=%d  Y=%d  =>  Time=%s  Price=%G SParam=%s",window,x,y,TimeToString(dt),price,sparam);
+         }
+      }
+   }
+   
    if(id==CHARTEVENT_CHART_CHANGE)
    {
 
    }
+
    if(id==CHARTEVENT_KEYDOWN)
    {
       if(lparam == 90) // Key Z
