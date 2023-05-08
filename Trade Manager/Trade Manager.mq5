@@ -185,7 +185,7 @@ datetime lasterrortime;
 string lasterrorstring;
 bool istesting;
 bool initerror;
-string SymbolExtraChars="";
+string SymbolExtraChars;
 double SymbolCommission;
 string tickchar="";
 int magicnumberfloor=0;
@@ -602,7 +602,8 @@ void OnInit()
    if(istesting&&MQLInfoInteger(MQL_VISUAL_MODE))
       _ShowInfo=true;
 
-   SymbolExtraChars = StringSubstr(Symbol(), 6);
+   //SymbolExtraChars=StringSubstr(Symbol(), 6);
+   SymbolExtraChars="";
 
    lasttick=TimeLocal();
 
@@ -2827,7 +2828,8 @@ void AddTrade(TypePairsTradesInfo& piti, TypeTradeInfo& ti[], TypeTradeInfo& tii
 int GetPairsInTradesIndex(string tradedsymbol)
 {
    int asize=ArraySize(BI.pairsintrades), idx=-1;
-   string symbol=StringSubstr(tradedsymbol,0,6);
+   //string symbol=StringSubstr(tradedsymbol,0,6);
+   string symbol=tradedsymbol;
    bool found=false;
    for(int i=0; i<asize; i++)
    {
@@ -3425,7 +3427,8 @@ void SwitchSymbol(string tosymbol)
 {
    if(istesting)
       return;
-   string currentsymbol=StringSubstr(ChartSymbol(),0,6);
+   //string currentsymbol=StringSubstr(ChartSymbol(),0,6);
+   string currentsymbol=ChartSymbol();
    if(currentsymbol!=tosymbol)
    {
       if(SwitchSymbolClickAllCharts)
