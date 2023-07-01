@@ -221,7 +221,7 @@ int OnCalculate(const int rates_total,
          _Print("SHIFT CHART AUTO Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Candle: "+(string)time[i]);
    }
 
-   if(init && rates_total==prev_calculated)
+   if(init)
    {
       lasttime0=time0;
       init=false;
