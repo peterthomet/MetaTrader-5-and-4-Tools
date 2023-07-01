@@ -201,7 +201,7 @@ int OnCalculate(const int rates_total,
       DrawPriceLines();
    }
 
-   if(init && rates_total==prev_calculated)
+   if(init)
    {
       lasttime0=time0;
       init=false;
