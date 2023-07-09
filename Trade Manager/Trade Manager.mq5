@@ -2217,14 +2217,14 @@ void CreateLipstick()
    if(CopyTime(_Symbol,_Period,(int)ChartGetInteger(0,CHART_FIRST_VISIBLE_BAR)-((int)ChartGetInteger(0,CHART_VISIBLE_BARS)-1),1,dt)<1)
       return;
 
-   int rcount=600;
+   int rcount=1200;
    MqlRates r[];
    ArrayResize(r,rcount);
    if(CopyRates(_Symbol,PERIOD_M5,dt[0],rcount,r)<rcount)
       return;
 
-   datetime asiastart=0, asiaend=0, nymidnight=0, dayend=0, lastdaystart=0;
-   double asiahigh=DBL_MIN, asialow=DBL_MAX, nyopen=0, drhigh=DBL_MIN, drlow=DBL_MAX, idrhigh=DBL_MIN, idrlow=DBL_MAX, lastdayhigh=DBL_MIN, lastdaylow=DBL_MAX;
+   datetime asiastart=0, asiaend=0, nymidnight=0, dayend=0, lastdaystart=0, day3start=0, day4start=0;
+   double asiahigh=DBL_MIN, asialow=DBL_MAX, nyopen=0, drhigh=DBL_MIN, drlow=DBL_MAX, idrhigh=DBL_MIN, idrlow=DBL_MAX, lastdayhigh=DBL_MIN, lastdaylow=DBL_MAX, day3high=DBL_MIN, day3low=DBL_MAX, day4high=DBL_MIN, day4low=DBL_MAX;
    int lasthour=6, day=1;
 
    for(int i=rcount-1;i>=0;i--)
@@ -2315,6 +2315,28 @@ void CreateLipstick()
          if(t.hour==7 && t.min==0)
          {
             lastdaystart=r[i].time;
+            day=3;
+         }
+      }
+      else if(day==3)
+      {
+         day3high=MathMax(day3high,r[i].high);
+         day3low=MathMin(day3low,r[i].low);
+
+         if(t.hour==7 && t.min==0)
+         {
+            day3start=r[i].time;
+            day=4;
+         }
+      }
+      else if(day==4)
+      {
+         day4high=MathMax(day4high,r[i].high);
+         day4low=MathMin(day4low,r[i].low);
+
+         if(t.hour==7 && t.min==0)
+         {
+            day4start=r[i].time;
             break;
          }
       }
@@ -2327,6 +2349,14 @@ void CreateLipstick()
 
    CreateTrendline(0,appnamespace+"LipstickLastDayHigh",DarkOrange,2,STYLE_DASH,lastdayhigh,lastdayhigh,lastdaystart,dayend,false);
    CreateTrendline(0,appnamespace+"LipstickLastDayLow",CornflowerBlue,2,STYLE_DASH,lastdaylow,lastdaylow,lastdaystart,dayend,false);
+   double mid=lastdayhigh-((lastdayhigh-lastdaylow)/2), quarter=(lastdayhigh-lastdaylow)/4;
+   CreateTrendline(0,appnamespace+"LipstickLastDayMiddle",DarkGray,2,STYLE_DASH,mid,mid,lastdaystart,dayend,false);
+   CreateTrendline(0,appnamespace+"LipstickLastDayUpperQuarter",DarkGray,2,STYLE_DASH,mid+quarter,mid+quarter,lastdaystart,dayend,false);
+   CreateTrendline(0,appnamespace+"LipstickLastDayLowerQuarter",DarkGray,2,STYLE_DASH,mid-quarter,mid-quarter,lastdaystart,dayend,false);
+   CreateTrendline(0,appnamespace+"LipstickDay3High",DarkOrange,2,STYLE_DASH,day3high,day3high,day3start,lastdaystart-1,false);
+   CreateTrendline(0,appnamespace+"LipstickDay3Low",CornflowerBlue,2,STYLE_DASH,day3low,day3low,day3start,lastdaystart-1,false);
+   CreateTrendline(0,appnamespace+"LipstickDay4High",DarkOrange,2,STYLE_DASH,day4high,day4high,day4start,day3start-1,false);
+   CreateTrendline(0,appnamespace+"LipstickDay4Low",CornflowerBlue,2,STYLE_DASH,day4low,day4low,day4start,day3start-1,false);
 
    if(lipstickmode<LipStickMode2)
       return;
