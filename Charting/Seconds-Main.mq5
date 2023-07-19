@@ -10,6 +10,7 @@
 #property indicator_buffers 5
 #property indicator_plots   1
 #property indicator_type1   DRAW_COLOR_CANDLES
+#property indicator_color1  clrNONE, clrNONE
 
 enum Intervals
 {
@@ -64,8 +65,10 @@ void OnInit()
    PlotIndexSetDouble(0,PLOT_EMPTY_VALUE,0.0);
    PlotIndexSetInteger(0,PLOT_SHOW_DATA,false);
    PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_NONE);
-   PlotIndexSetInteger(0,PLOT_LINE_COLOR,0,(int)ChartGetInteger(0,CHART_COLOR_CANDLE_BULL));
-   PlotIndexSetInteger(0,PLOT_LINE_COLOR,1,(int)ChartGetInteger(0,CHART_COLOR_CANDLE_BEAR));
+   if(PlotIndexGetInteger(0,PLOT_LINE_COLOR,0)==clrNONE)
+      PlotIndexSetInteger(0,PLOT_LINE_COLOR,0,(int)ChartGetInteger(0,CHART_COLOR_CANDLE_BULL));
+   if(PlotIndexGetInteger(0,PLOT_LINE_COLOR,1)==clrNONE)
+      PlotIndexSetInteger(0,PLOT_LINE_COLOR,1,(int)ChartGetInteger(0,CHART_COLOR_CANDLE_BEAR));
    IndicatorSetString(INDICATOR_SHORTNAME,(string)intervalseconds[Seconds]+" Seconds Chart");
 
    if(GlobalVariableCheck(appnamespace+Symbol()+"d_CHART_FIXED_MAX"))
