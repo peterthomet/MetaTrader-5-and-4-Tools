@@ -36,8 +36,8 @@ bool updating, init, historyloaded;
 int historyloadcount;
 bool visible;
 bool CrossHair;
-int c_CHART_COLOR_CANDLE_BULL,c_CHART_COLOR_CANDLE_BEAR,c_CHART_COLOR_CHART_UP,c_CHART_COLOR_CHART_DOWN,c_CHART_COLOR_CHART_LINE,b_CHART_SCALEFIX;
-double d_CHART_FIXED_MAX,d_CHART_FIXED_MIN;
+int c_CHART_COLOR_CANDLE_BULL,c_CHART_COLOR_CANDLE_BEAR,c_CHART_COLOR_CHART_UP,c_CHART_COLOR_CHART_DOWN,c_CHART_COLOR_CHART_LINE,scalefixsave;
+double d_CHART_FIXED_MAX,d_CHART_FIXED_MIN,maxprice,minprice,maxsave,minsave;
 datetime lasttime, time0, lasttime0, lasthistoryload;
 int intervalseconds[9]={1,2,3,4,5,10,15,20,30};
 string appnamespace="SecondsChartIndicator";
@@ -53,6 +53,10 @@ void OnInit()
    CrossHair=false;
    d_CHART_FIXED_MAX=0;
    d_CHART_FIXED_MIN=0;
+   maxprice=DBL_MIN;
+   minprice=DBL_MAX;
+   maxsave=0;
+   minsave=0;
    lasttime=0;
    time0=0;
    lasttime0=0;
@@ -142,6 +146,8 @@ void OnTimer()
                colors[i]=cano[i]>canc[i] ? 1 : 0;
             }
             barstarttime-=intervalseconds[Seconds];
+            maxprice=MathMax(maxprice,canh[i]);
+            minprice=MathMin(minprice,canl[i]);
          }
          historyloaded=true;
       }
@@ -292,12 +298,23 @@ void Enable()
    ChartSetInteger(0,CHART_COLOR_CHART_DOWN,clrNONE);
    c_CHART_COLOR_CHART_LINE=(int)ChartGetInteger(0,CHART_COLOR_CHART_LINE);
    ChartSetInteger(0,CHART_COLOR_CHART_LINE,clrNONE);
-   
-   b_CHART_SCALEFIX=(int)ChartGetInteger(0,CHART_SCALEFIX);
+
+   maxsave=ChartGetDouble(0,CHART_FIXED_MAX);
+   minsave=ChartGetDouble(0,CHART_FIXED_MIN);
+   scalefixsave=(int)ChartGetInteger(0,CHART_SCALEFIX);
+
    ChartSetInteger(0,CHART_SCALEFIX,true);
-   ChartSetDouble(0,CHART_FIXED_MAX,d_CHART_FIXED_MAX);
-   ChartSetDouble(0,CHART_FIXED_MIN,d_CHART_FIXED_MIN);
-   
+   if(d_CHART_FIXED_MAX==0)
+   {
+      ChartSetDouble(0,CHART_FIXED_MAX,maxprice+((maxprice-minprice)/2));
+      ChartSetDouble(0,CHART_FIXED_MIN,minprice-((maxprice-minprice)/2));
+   }
+   else
+   {
+      ChartSetDouble(0,CHART_FIXED_MAX,d_CHART_FIXED_MAX);
+      ChartSetDouble(0,CHART_FIXED_MIN,d_CHART_FIXED_MIN);
+   }
+
    PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_COLOR_CANDLES);
 }
 
@@ -314,7 +331,10 @@ void Disable()
    
    d_CHART_FIXED_MAX=ChartGetDouble(0,CHART_FIXED_MAX);
    d_CHART_FIXED_MIN=ChartGetDouble(0,CHART_FIXED_MIN);
-   ChartSetInteger(0,CHART_SCALEFIX,b_CHART_SCALEFIX);
+
+   ChartSetInteger(0,CHART_SCALEFIX,scalefixsave);
+   ChartSetDouble(0,CHART_FIXED_MAX,maxsave);
+   ChartSetDouble(0,CHART_FIXED_MIN,minsave);
 }
 
 
