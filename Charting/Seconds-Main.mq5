@@ -306,14 +306,17 @@ void Enable()
    ChartSetInteger(0,CHART_SCALEFIX,true);
    if(d_CHART_FIXED_MAX==0)
    {
-      ChartSetDouble(0,CHART_FIXED_MAX,maxprice+((maxprice-minprice)/2));
-      ChartSetDouble(0,CHART_FIXED_MIN,minprice-((maxprice-minprice)/2));
+      d_CHART_FIXED_MAX=maxprice+((maxprice-minprice)/3);
+      d_CHART_FIXED_MIN=minprice-((maxprice-minprice)/3);
    }
-   else
-   {
-      ChartSetDouble(0,CHART_FIXED_MAX,d_CHART_FIXED_MAX);
-      ChartSetDouble(0,CHART_FIXED_MIN,d_CHART_FIXED_MIN);
-   }
+   double price=canc[ArraySize(canc)-1];
+   double centeroffset=price-(d_CHART_FIXED_MAX-((d_CHART_FIXED_MAX-d_CHART_FIXED_MIN)/2));
+   if(MathAbs(centeroffset)<(d_CHART_FIXED_MAX-d_CHART_FIXED_MIN)/2)
+      centeroffset=0;
+   d_CHART_FIXED_MAX+=centeroffset;
+   d_CHART_FIXED_MIN+=centeroffset;
+   ChartSetDouble(0,CHART_FIXED_MAX,d_CHART_FIXED_MAX);
+   ChartSetDouble(0,CHART_FIXED_MIN,d_CHART_FIXED_MIN);
 
    PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_COLOR_CANDLES);
 }
