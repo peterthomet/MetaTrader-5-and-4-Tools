@@ -3238,7 +3238,8 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       double step=ATR()/1000/Point();
       step=MathFloor(step);
       step=MathMax(step,1);
-      step*=ExtendedRepeatingFactor();
+      double f=ExtendedRepeatingFactor();
+      step*=f;
 
       double margin=(10*step)+(int)MathRound((AskX()-BidX())/Point());
       double marginsmall=(5*step)+(int)MathRound((AskX()-BidX())/Point());
@@ -3389,11 +3390,14 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 65)
          {
-            double breach=0-(WS.tradereference[selectedtradeindex].points-(margin));
+            double breach=0-(WS.tradereference[selectedtradeindex].points-(marginsmall));
             if(WS.tradereference[selectedtradeindex].stoplosspips==DISABLEDPOINTS)
                return;
-            WS.tradereference[selectedtradeindex].stoplosspips=MathMax(WS.tradereference[selectedtradeindex].stoplosspips-step,breach);
-            if(WS.tradereference[selectedtradeindex].stoplosspips==breach)
+            if(f>1)
+               WS.tradereference[selectedtradeindex].stoplosspips=MathMax(WS.tradereference[selectedtradeindex].stoplosspips-step,breach);
+            else
+               WS.tradereference[selectedtradeindex].stoplosspips=WS.tradereference[selectedtradeindex].stoplosspips-step;
+            if(WS.tradereference[selectedtradeindex].stoplosspips==breach && f>1)
             {
                WS.tradereference[selectedtradeindex].stoplosspips=DISABLEDPOINTS;
                DeleteSelectedTradeLevels();
@@ -3410,11 +3414,14 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
          if (lparam == 68)
          {
-            double breach=WS.tradereference[selectedtradeindex].points+(margin);
+            double breach=WS.tradereference[selectedtradeindex].points+(marginsmall);
             if(WS.tradereference[selectedtradeindex].takeprofitpips==DISABLEDPOINTS)
                return;
-            WS.tradereference[selectedtradeindex].takeprofitpips=MathMax(WS.tradereference[selectedtradeindex].takeprofitpips-step,breach);
-            if(WS.tradereference[selectedtradeindex].takeprofitpips==breach)
+            if(f>1)
+               WS.tradereference[selectedtradeindex].takeprofitpips=MathMax(WS.tradereference[selectedtradeindex].takeprofitpips-step,breach);
+            else
+               WS.tradereference[selectedtradeindex].takeprofitpips=WS.tradereference[selectedtradeindex].takeprofitpips-step;
+            if(WS.tradereference[selectedtradeindex].takeprofitpips==breach && f>1)
             {
                WS.tradereference[selectedtradeindex].takeprofitpips=DISABLEDPOINTS;
                DeleteSelectedTradeLevels();
