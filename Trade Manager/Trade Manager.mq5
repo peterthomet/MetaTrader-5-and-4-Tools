@@ -177,8 +177,8 @@ input double P20 = 0;
 
 string appname="Trade Manager";
 string appnamespace="";
-bool appinit=false;
-bool working=false;
+bool appinit;
+bool working;
 double pipsfactor;
 datetime lasttick;
 datetime lasterrortime;
@@ -589,6 +589,8 @@ void OnInit()
    tradelevelsvisible=false;
 
    initerror=false;
+   appinit=false;
+   working=false;
    
    appnamespace=appname+" "+IntegerToString(Instance)+" ";
 
