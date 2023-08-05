@@ -2226,13 +2226,49 @@ void CreateLipstick()
       return;
 
    datetime asiastart=0, asiaend=0, nymidnight=0, dayend=0, lastdaystart=0, day3start=0, day4start=0;
-   double asiahigh=DBL_MIN, asialow=DBL_MAX, nyopen=0, drhigh=DBL_MIN, drlow=DBL_MAX, idrhigh=DBL_MIN, idrlow=DBL_MAX, lastdayhigh=DBL_MIN, lastdaylow=DBL_MAX, day3high=DBL_MIN, day3low=DBL_MAX, day4high=DBL_MIN, day4low=DBL_MAX;
+   double asiahigh=DBL_MIN, asialow=DBL_MAX, nyopen=0, drhigh=DBL_MIN, drlow=DBL_MAX, idrhigh=DBL_MIN, idrlow=DBL_MAX, lastdayhigh=DBL_MIN, lastdaylow=DBL_MAX, day3high=DBL_MIN, day3low=DBL_MAX, day4high=DBL_MIN, day4low=DBL_MAX, lunchhigh=DBL_MIN, lunchlow=DBL_MAX, londonhigh=DBL_MIN, londonlow=DBL_MAX, nyhigh=DBL_MIN, nylow=DBL_MAX;
    int lasthour=6, day=1;
 
    for(int i=rcount-1;i>=0;i--)
    {
       MqlDateTime t;
       TimeToStruct(r[i].time,t);
+
+      if(t.hour==19)
+      {
+         lunchhigh=MathMax(lunchhigh,r[i].high);
+         lunchlow=MathMin(lunchlow,r[i].low);
+         if(t.min==0)
+         {
+            CreateRectangle(0,appnamespace+"LipstickLunchRect"+IntegerToString(t.day),AntiqueWhite,lunchhigh,lunchlow,r[i].time,r[i].time+3540);
+            lunchhigh=DBL_MIN;
+            lunchlow=DBL_MAX;
+         }
+      }
+
+      if((t.hour==16 && t.min>=30) || (t.hour==17 && t.min<30))
+      {
+         nyhigh=MathMax(nyhigh,r[i].high);
+         nylow=MathMin(nylow,r[i].low);
+         if(t.min==30)
+         {
+            CreateRectangle(0,appnamespace+"LipstickNYRect"+IntegerToString(t.day),AliceBlue,nyhigh,nylow,r[i].time,r[i].time+3540);
+            nyhigh=DBL_MIN;
+            nylow=DBL_MAX;
+         }
+      }
+
+      if(t.hour==10)
+      {
+         londonhigh=MathMax(londonhigh,r[i].high);
+         londonlow=MathMin(londonlow,r[i].low);
+         if(t.min==0)
+         {
+            CreateRectangle(0,appnamespace+"LipstickLondonRect"+IntegerToString(t.day),Beige,londonhigh,londonlow,r[i].time,r[i].time+3540);
+            londonhigh=DBL_MIN;
+            londonlow=DBL_MAX;
+         }
+      }
 
       if(day==1)
       {
@@ -2257,20 +2293,20 @@ void CreateLipstick()
          if(t.hour==16 && t.min==30)
          {
             CreateTrendline(0,appnamespace+"LipstickNYOpen",Tomato,1,STYLE_SOLID,r[i].open,r[i].open,r[i].time,dayend,false);
-            CreateTrendline(0,appnamespace+"LipstickSB1",Tomato,5,STYLE_SOLID,r[i].open,r[i].open,r[i].time+1800,r[i].time+1800+3599,false);
-            CreateTrendline(0,appnamespace+"LipstickSB2",Tomato,5,STYLE_SOLID,r[i].open,r[i].open,r[i].time+16200,r[i].time+16200+3599,false);
-            if(drhigh!=DBL_MIN)
-            {
-               double half=(drhigh-drlow)/2;
-               CreateRectangle(0,appnamespace+"LipstickDRRect",AliceBlue,drhigh,drlow,r[i].time,r[i].time+3540);
-               CreateTrendline(0,appnamespace+"LipstickIDRHigh",LightGray,1,STYLE_DOT,idrhigh,idrhigh,r[i].time,dayend,false);
-               CreateTrendline(0,appnamespace+"LipstickIDRLow",LightGray,1,STYLE_DOT,idrlow,idrlow,r[i].time,dayend,false);
-               for(int j=5; j>=-5; j--)
-               {
-                  double l=drhigh-half+(half*j);
-                  CreateTrendline(0,appnamespace+"LipstickDR-"+IntegerToString(j),LightSkyBlue,1,STYLE_DOT,l,l,r[i].time,dayend,false);
-               }
-            }
+            CreateTrendline(0,appnamespace+"LipstickSB1",Tomato,3,STYLE_SOLID,r[i].open,r[i].open,r[i].time+1800,r[i].time+1800+3599,false);
+            CreateTrendline(0,appnamespace+"LipstickSB2",Tomato,3,STYLE_SOLID,r[i].open,r[i].open,r[i].time+16200,r[i].time+16200+3599,false);
+            //if(drhigh!=DBL_MIN)
+            //{
+            //   double half=(drhigh-drlow)/2;
+            //   //CreateRectangle(0,appnamespace+"LipstickDRRect",AliceBlue,drhigh,drlow,r[i].time,r[i].time+3540);
+            //   CreateTrendline(0,appnamespace+"LipstickIDRHigh",LightGray,1,STYLE_DOT,idrhigh,idrhigh,r[i].time,dayend,false);
+            //   CreateTrendline(0,appnamespace+"LipstickIDRLow",LightGray,1,STYLE_DOT,idrlow,idrlow,r[i].time,dayend,false);
+            //   for(int j=5; j>=-5; j--)
+            //   {
+            //      double l=drhigh-half+(half*j);
+            //      CreateTrendline(0,appnamespace+"LipstickDR-"+IntegerToString(j),LightSkyBlue,1,STYLE_DOT,l,l,r[i].time,dayend,false);
+            //   }
+            //}
          }
    
          if(t.hour==15 && t.min==30)
@@ -2319,6 +2355,9 @@ void CreateLipstick()
             lastdaystart=r[i].time;
             day=3;
          }
+
+         if(t.hour==23 && t.min==10)
+            CreateTrendline(0,appnamespace+"LipstickNYClose",DarkKhaki,1,STYLE_SOLID,r[i].close,r[i].close,r[i].time+(PeriodSeconds(PERIOD_M5)-1),dayend,false);
       }
       else if(day==3)
       {
@@ -2345,16 +2384,16 @@ void CreateLipstick()
    }
 
    CreateRectangle(0,appnamespace+"LipstickAsiaRect",WhiteSmoke,asiahigh,asialow,asiastart,asiaend);
-   CreateTrendline(0,appnamespace+"LipstickAsiaHigh",CornflowerBlue,1,STYLE_DASH,asiahigh,asiahigh,asiastart,dayend,false);
-   CreateTrendline(0,appnamespace+"LipstickAsiaLow",CornflowerBlue,1,STYLE_DASH,asialow,asialow,asiastart,dayend,false);
+   //CreateTrendline(0,appnamespace+"LipstickAsiaHigh",CornflowerBlue,1,STYLE_DASH,asiahigh,asiahigh,asiastart,dayend,false);
+   //CreateTrendline(0,appnamespace+"LipstickAsiaLow",CornflowerBlue,1,STYLE_DASH,asialow,asialow,asiastart,dayend,false);
    CreateTrendline(0,appnamespace+"LipstickNYMidnight",CornflowerBlue,1,STYLE_SOLID,nyopen,nyopen,nymidnight,dayend,false);
 
    CreateTrendline(0,appnamespace+"LipstickLastDayHigh",DarkOrange,2,STYLE_DASH,lastdayhigh,lastdayhigh,lastdaystart,dayend,false);
    CreateTrendline(0,appnamespace+"LipstickLastDayLow",CornflowerBlue,2,STYLE_DASH,lastdaylow,lastdaylow,lastdaystart,dayend,false);
    double mid=lastdayhigh-((lastdayhigh-lastdaylow)/2), quarter=(lastdayhigh-lastdaylow)/4;
-   CreateTrendline(0,appnamespace+"LipstickLastDayMiddle",DarkGray,2,STYLE_DASH,mid,mid,lastdaystart,dayend,false);
-   CreateTrendline(0,appnamespace+"LipstickLastDayUpperQuarter",DarkGray,2,STYLE_DASH,mid+quarter,mid+quarter,lastdaystart,dayend,false);
-   CreateTrendline(0,appnamespace+"LipstickLastDayLowerQuarter",DarkGray,2,STYLE_DASH,mid-quarter,mid-quarter,lastdaystart,dayend,false);
+   CreateTrendline(0,appnamespace+"LipstickLastDayMiddle",DarkGray,1,STYLE_DOT,mid,mid,lastdaystart,dayend,false);
+   CreateTrendline(0,appnamespace+"LipstickLastDayUpperQuarter",DarkGray,1,STYLE_DOT,mid+quarter,mid+quarter,lastdaystart,dayend,false);
+   CreateTrendline(0,appnamespace+"LipstickLastDayLowerQuarter",DarkGray,1,STYLE_DOT,mid-quarter,mid-quarter,lastdaystart,dayend,false);
    CreateTrendline(0,appnamespace+"LipstickDay3High",DarkOrange,2,STYLE_DASH,day3high,day3high,day3start,lastdaystart-1,false);
    CreateTrendline(0,appnamespace+"LipstickDay3Low",CornflowerBlue,2,STYLE_DASH,day3low,day3low,day3start,lastdaystart-1,false);
    CreateTrendline(0,appnamespace+"LipstickDay4High",DarkOrange,2,STYLE_DASH,day4high,day4high,day4start,day3start-1,false);
