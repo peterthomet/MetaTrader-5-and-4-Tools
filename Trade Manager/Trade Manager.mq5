@@ -60,8 +60,8 @@ enum TypeLipStickMode
 
 input TypeInstance Instance = 1;
 input TypeAutomation Automation = NoAutomation;
-input double BreakEvenAfterPips = 5;
-input double AboveBEPips = 1;
+input double BreakEvenAfterPercentATR = 10;
+input double AboveBEPercentATR = 4;
 input double StartTrailingPips = 7;
 input double TakeProfitPips = 0;
 input double StopLossPips = 0;
@@ -191,8 +191,8 @@ string tickchar="";
 int magicnumberfloor=0;
 int basemagicnumber=0;
 int hedgeoffsetmagicnumber=10000;
-double _BreakEvenAfterPips;
-double _AboveBEPips;
+double _BreakEvenAfterPercentATR;
+double _AboveBEPercentATR;
 double _StartTrailingPips;
 double _TakeProfitPips;
 double _StopLossPips;
@@ -609,12 +609,13 @@ void OnInit()
 
    lasttick=TimeLocal();
 
+   _BreakEvenAfterPercentATR=BreakEvenAfterPercentATR;
+   _AboveBEPercentATR=AboveBEPercentATR;
+
    pipsfactor=1;
    if(Digits()==5||Digits()==3)
       pipsfactor=10;
 
-   _BreakEvenAfterPips=BreakEvenAfterPips*pipsfactor;
-   _AboveBEPips=AboveBEPips*pipsfactor;
    _TakeProfitPips=TakeProfitPips*pipsfactor;
    if(_TakeProfitPips==0)
       _TakeProfitPips=DISABLEDPOINTS;
@@ -1249,7 +1250,7 @@ bool ManageOrders()
             {
                ti.type=OP_SELL;
                hedgeordertype=OP_BUY;
-               BESL=OrderOpenPriceX()-(_AboveBEPips*SymbolInfoDouble(OrderSymbolX(),SYMBOL_POINT));
+               BESL=OrderOpenPriceX()-((ATR()/100)*_AboveBEPercentATR);
                BI.sells++;
                BI.sellvolume+=OrderLotsX();
                BI.pairsintrades[pidx].sellvolume+=OrderLotsX();
@@ -1261,7 +1262,7 @@ bool ManageOrders()
             {
                ti.type=OP_BUY;
                hedgeordertype=OP_SELL;
-               BESL=OrderOpenPriceX()+(_AboveBEPips*SymbolInfoDouble(OrderSymbolX(),SYMBOL_POINT));
+               BESL=OrderOpenPriceX()+((ATR()/100)*_AboveBEPercentATR);
                BI.buys++;
                BI.buyvolume+=OrderLotsX();
                BI.pairsintrades[pidx].buyvolume+=OrderLotsX();
@@ -1289,7 +1290,7 @@ bool ManageOrders()
                BI.volumeplus+=OrderLotsX()*tickvalue;
             }
             
-            if(WS.StopMode==HardSingle&&gainpips>=_BreakEvenAfterPips&&NeedSetSL)
+            if(WS.StopMode==HardSingle&&gainpips>=(((ATR()/100)*_BreakEvenAfterPercentATR)/SymbolInfoDouble(OrderSymbolX(),SYMBOL_POINT))&&NeedSetSL)
                SetOrderSL(BESL);
 
             ti.volume=OrderLotsX();
@@ -1446,10 +1447,10 @@ void ManageBasket()
    if(WS.ManualBEStopLocked&&WS.globalgain<=0)
       closeall=true;
    
-   if(WS.StopMode==SoftBasket&&_BreakEvenAfterPips>0&&WS.peakpips>=_BreakEvenAfterPips)
-      WS.SoftBEStopLocked=true;   
+   if(WS.StopMode==SoftBasket&&_BreakEvenAfterPercentATR>0&&WS.peakpips>=(((ATR()/100)*_BreakEvenAfterPercentATR)/SymbolInfoDouble(OrderSymbolX(),SYMBOL_POINT)))
+      WS.SoftBEStopLocked=true;
    
-   if(WS.SoftBEStopLocked&&BI.gainpipsglobal<_AboveBEPips)
+   if(WS.SoftBEStopLocked&&BI.gainpipsglobal<(((ATR()/100)*_AboveBEPercentATR)/SymbolInfoDouble(OrderSymbolX(),SYMBOL_POINT)))
       closeall=true;
 
    if(CloseTradesBeforeMidnight)
@@ -1665,7 +1666,7 @@ void DisplayText()
       color c=TextColorInfo;
       double risk=_StopLossPips*_OpenLots*tickvalue;
       double riskpercent=risk/(AccountBalanceX()/100);
-      double atrfactor=_StopLossPips/(ATR()/Point());
+      double atrfactor=(_StopLossPips-SymbolCommissionPoints())/(ATR()/Point());
       if(tradelevelsvisible)
       {
          c=TextColorInfo;
@@ -1674,7 +1675,7 @@ void DisplayText()
          {
             risk=WS.tradereference[selectedtradeindex].stoplosspips*WS.tradereference[selectedtradeindex].volume*tickvalue;
             riskpercent=risk/(AccountBalanceX()/100);
-            atrfactor=WS.tradereference[selectedtradeindex].stoplosspips/(ATR()/Point());
+            atrfactor=(WS.tradereference[selectedtradeindex].stoplosspips-WS.tradereference[selectedtradeindex].commissionpoints)/(ATR()/Point());
          }
       }
       if(risk!=0)
@@ -2465,8 +2466,8 @@ void DrawLevels(long chartid)
       CreateLevel(chartid,appnamespace+"Level4",SeaGreen,AskX()-((_TakeProfitPips+cp)*Point()));
    }
 
-   CreateRectangle(chartid,appnamespace+"Rectangle10",WhiteSmoke,AskX()+((_BreakEvenAfterPips+cp)*Point()),BidX()-((_BreakEvenAfterPips+cp)*Point()));
-   CreateRectangle(chartid,appnamespace+"Rectangle11",WhiteSmoke,AskX()+((_AboveBEPips+cp)*Point()),BidX()-((_AboveBEPips+cp)*Point()));
+   CreateRectangle(chartid,appnamespace+"Rectangle10",WhiteSmoke,BidX()+((ATR()/100)*_BreakEvenAfterPercentATR),AskX()-((ATR()/100)*_BreakEvenAfterPercentATR));
+   CreateRectangle(chartid,appnamespace+"Rectangle11",WhiteSmoke,BidX()+((ATR()/100)*_AboveBEPercentATR),AskX()-((ATR()/100)*_AboveBEPercentATR));
 
    ChartRedraw(chartid);
 }
@@ -3130,7 +3131,7 @@ void BuildPendingLevelsText(datetime time=NULL)
 
       double risk=stoppoints*volume*tickvalue;
       double riskpercent=risk/(AccountBalanceX()/100);
-      double atrfactor=stoppoints/(ATR()/Point());
+      double atrfactor=(stoppoints-cp)/(ATR()/Point());
 
       string riskpercenttradingcapital="";
       if(AvailableTradingCapital>0)
