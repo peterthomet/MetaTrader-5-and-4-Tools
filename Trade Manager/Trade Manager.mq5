@@ -1447,10 +1447,10 @@ void ManageBasket()
    if(WS.ManualBEStopLocked&&WS.globalgain<=0)
       closeall=true;
    
-   if(WS.StopMode==SoftBasket&&_BreakEvenAfterPercentATR>0&&WS.peakpips>=(((ATR()/100)*_BreakEvenAfterPercentATR)/SymbolInfoDouble(OrderSymbolX(),SYMBOL_POINT)))
+   if(WS.StopMode==SoftBasket&&_BreakEvenAfterPercentATR>0&&WS.peakpips>=(((ATR()/100)*_BreakEvenAfterPercentATR)/Point()))
       WS.SoftBEStopLocked=true;
    
-   if(WS.SoftBEStopLocked&&BI.gainpipsglobal<(((ATR()/100)*_AboveBEPercentATR)/SymbolInfoDouble(OrderSymbolX(),SYMBOL_POINT)))
+   if(WS.SoftBEStopLocked&&BI.gainpipsglobal<(((ATR()/100)*_AboveBEPercentATR)/Point()))
       closeall=true;
 
    if(CloseTradesBeforeMidnight)
@@ -1607,6 +1607,12 @@ void DisplayText()
       stopmodetext="Soft Basket Break Even Mode";
    CreateLabel(rowindex,FontSize,TextColor,stopmodetext);
    rowindex++;
+
+   if(HedgeAtStopLoss)
+   {
+      CreateLabel(rowindex,FontSize,TextColor,"Hedge at Stop Loss");
+      rowindex++;
+   }
 
    if(CloseTradesBeforeMidnight)
    {
