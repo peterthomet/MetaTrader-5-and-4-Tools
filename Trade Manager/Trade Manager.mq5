@@ -239,30 +239,50 @@ datetime lastbartime=-1;
 
 struct TypeTextObjects
 {
-   string objects[];
+   string objects[][2];
+   int size;
+   TypeTextObjects()
+   {
+      size=0;
+   }
    void AddObject(string name)
    {
       bool found=false;
-      int size=ArraySize(objects);
       for(int i=0; i<size; i++)
       {
-         if(objects[i]==name)
+         if(objects[i][0]==name)
          {
+            objects[i][1]="A";
             found=true;
             break;
          }
       }
       if(!found)
       {
-         ArrayResize(objects,size+1);
-         objects[size]=name;
+         size++;
+         ArrayResize(objects,size,1000);
+         objects[size-1][0]=name;
+         objects[size-1][1]="A";
       }
    }
-   void HideAll()
+   void SetActiveObjectsPending()
    {
-      int size=ArraySize(objects);
       for(int i=0; i<size; i++)
-         ObjectSetInteger(0,objects[i],OBJPROP_XDISTANCE,-1000);
+      {
+         if(objects[i][1]=="A")
+            objects[i][1]="P";
+      }
+   }
+   void MoveUnusedObjects()
+   {
+      for(int i=0; i<size; i++)
+      {
+         if(objects[i][1]=="P")
+         {
+            objects[i][1]="M";
+            ObjectSetInteger(0,objects[i][0],OBJPROP_XDISTANCE,-1000);
+         }
+      }
    }
 };
 
@@ -1562,7 +1582,7 @@ void DisplayText()
    if(!_ShowInfo)
       return;
 
-   DeleteText();
+   TextObjects.SetActiveObjectsPending();
 
    if(tickchar=="")
       tickchar="\x2022 ";
@@ -1976,6 +1996,9 @@ void DisplayText()
       CreateLabel(rowindex,FontSize,TextColorMinus,lasterrorstring);
       rowindex++;
    }
+
+   TextObjects.MoveUnusedObjects();
+   
    ChartRedraw();
 }
 
@@ -2584,9 +2607,11 @@ void DeleteLevels()
 
 void DeleteText()
 {
+   // Not used anymore
+
    //ObjectsDeleteAll(0,appnamespace+"Text");
    // Workaround: We move objects out of view, because if we delete it, click events can get lost
-   TextObjects.HideAll();
+   //TextObjects.MoveUnusedObjects();
    arrowdown=false;
 }
 
@@ -3042,7 +3067,7 @@ void CloseAllInternal(string filter="")
                   delcnt++;
    }
    if(delcnt>0)
-      DeleteText();
+      TextObjects.SetActiveObjectsPending();
 }
 
 
