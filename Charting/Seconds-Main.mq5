@@ -27,12 +27,18 @@ enum Intervals
 input Intervals Seconds=S15;
 input int MaxBars=200; // Maximum Bars
 
+enum HystoryStates
+{
+   Unloaded,
+   SynchInitialized,
+   Loaded
+};
 double canc[],cano[],canh[],canl[],colors[];
 #define sopen 0
 #define sclose 1
 #define shigh 2
 #define slow 3
-bool updating, init, historyloaded;
+bool init, historyloaded;
 int historyloadcount;
 bool visible;
 bool CrossHair;
@@ -42,10 +48,20 @@ datetime lasttime, time0, lasttime0, lasthistoryload;
 int intervalseconds[9]={1,2,3,4,5,10,15,20,30};
 string appnamespace="SecondsChartIndicator";
 
+struct TypeTimes
+{
+   MqlDateTime ts;
+   datetime ti;
+   TypeTimes(datetime time)
+   {
+      ti=time;
+      TimeToStruct(ti,ts);
+   }
+};
+
 
 void OnInit()
 {
-   updating=false;
    init=true;
    historyloaded=false;
    historyloadcount=0;
@@ -103,22 +119,19 @@ void OnDeinit(const int reason)
 
 void OnTimer()
 {
-   if(updating||init)
+   if(init || TimeTradeServer()<time0)
       return;
-   updating=true;
 
-   MqlDateTime dt;
-   TimeTradeServer(dt);
-   datetime dti=TimeTradeServer();
-   double c=(double)dt.sec/(double)intervalseconds[Seconds];
+   TypeTimes t1(TimeTradeServer());
+   double c=(double)t1.ts.sec/(double)intervalseconds[Seconds];
    int maxbars=MaxBars;
 
-   if(!historyloaded && (lasthistoryload+1)<TimeTradeServer())
+   if(!historyloaded && (lasthistoryload)<TimeTradeServer())
    {
       MqlTick ticks[];
       int received=CopyTicksRange(Symbol(),ticks,COPY_TICKS_INFO,((TimeTradeServer()-3600)*1000),0);
       historyloadcount++;
-      _Print(Symbol()+" Ticks loaded: "+(string)received);
+      //_Print(Symbol()+" Ticks loaded: "+(string)received);
       
       if(received>0&&historyloadcount>1)
       {
@@ -127,8 +140,14 @@ void OnTimer()
          
          int rt=ArraySize(canh);
          int x=received-1;
-         datetime barstarttime=dti-(int)((c-MathFloor(c))*intervalseconds[Seconds]);
+         datetime barstarttime=t1.ti-(int)((c-MathFloor(c))*intervalseconds[Seconds]);
          
+         ArrayInitialize(canh,0);
+         ArrayInitialize(canl,0);
+         ArrayInitialize(cano,0);
+         ArrayInitialize(canc,0);
+         ArrayInitialize(colors,0);
+
          for(int i=rt-1; i>=rt-maxbars; i--)
          {
             canh[i]=ticks[x].bid;
@@ -167,12 +186,12 @@ void OnTimer()
          lasttime0=time0;
       }
    
-      if(MathFloor(c)==MathCeil(c) && dti!=lasttime)
+      if(MathFloor(c)==MathCeil(c) && t1.ti!=lasttime)
       {
-         int diff=(int)(time0+PeriodSeconds()-dti);
+         int diff=(int)(time0+PeriodSeconds()-t1.ti);
          if(diff!=0 && diff!=PeriodSeconds())
          {
-            _Print("SHIFT INTERNAL Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Value: "+(string)diff);
+            //_Print("SHIFT INTERNAL Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Value: "+(string)diff);
             int rt=ArraySize(canh);
             for(int i=rt-maxbars; i<rt-1; i++)
             {
@@ -187,13 +206,11 @@ void OnTimer()
             cano[rt-1]=canc[rt-2];
             canc[rt-1]=canc[rt-2];
             colors[rt-1]=0;
+            ChartRedraw();
          }
-         lasttime=dti;
+         lasttime=t1.ti;
       }
    }
-   
-   ChartRedraw();
-   updating=false;
 }
 
 
@@ -226,15 +243,15 @@ int OnCalculate(const int rates_total,
       canc[i]=close[i];
       colors[i]=cano[i]>canc[i] ? 1 : 0;
 
-      if(prev_calculated==(rates_total-1))
-         _Print("SHIFT CHART AUTO Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Candle: "+(string)time[i]);
+      //if(prev_calculated==(rates_total-1))
+      //   _Print("SHIFT CHART AUTO Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Candle: "+(string)time[i]);
    }
 
    if(init)
    {
       lasttime0=time0;
       init=false;
-      _Print("INIT COMPLETED "+(string)TimeTradeServer());
+      _Print("INIT COMPLETED / Trade-Server:"+(string)TimeTradeServer()+" Time0:"+(string)time0+" RATES-TOTAL:"+IntegerToString(rates_total)+" PREV-CALCULATED:"+IntegerToString(prev_calculated));
    }
 
    return(rates_total);
@@ -245,6 +262,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 {
    if(id==CHARTEVENT_MOUSE_MOVE)
    {
+      return;
       if(sparam=="16")
          CrossHair=true;
       if(CrossHair&&sparam=="1")
