@@ -2256,13 +2256,25 @@ void CreateLipstick()
       return;
 
    datetime asiastart=0, asiaend=0, nymidnight=0, dayend=0, lastdaystart=0, day3start=0, day4start=0;
-   double asiahigh=DBL_MIN, asialow=DBL_MAX, nyopen=0, drhigh=DBL_MIN, drlow=DBL_MAX, idrhigh=DBL_MIN, idrlow=DBL_MAX, lastdayhigh=DBL_MIN, lastdaylow=DBL_MAX, day3high=DBL_MIN, day3low=DBL_MAX, day4high=DBL_MIN, day4low=DBL_MAX, lunchhigh=DBL_MIN, lunchlow=DBL_MAX, londonhigh=DBL_MIN, londonlow=DBL_MAX, nyhigh=DBL_MIN, nylow=DBL_MAX;
+   double asiahigh=DBL_MIN, asialow=DBL_MAX, nyopen=0, drhigh=DBL_MIN, drlow=DBL_MAX, idrhigh=DBL_MIN, idrlow=DBL_MAX, lastdayhigh=DBL_MIN, lastdaylow=DBL_MAX, day3high=DBL_MIN, day3low=DBL_MAX, day4high=DBL_MIN, day4low=DBL_MAX, pmhigh=DBL_MIN, pmlow=DBL_MAX, lunchhigh=DBL_MIN, lunchlow=DBL_MAX, londonhigh=DBL_MIN, londonlow=DBL_MAX, nyhigh=DBL_MIN, nylow=DBL_MAX;
    int lasthour=6, day=1;
 
    for(int i=rcount-1;i>=0;i--)
    {
       MqlDateTime t;
       TimeToStruct(r[i].time,t);
+
+      if((t.hour==20 && t.min>=30) || t.hour==21 || t.hour==22)
+      {
+         pmhigh=MathMax(pmhigh,r[i].high);
+         pmlow=MathMin(pmlow,r[i].low);
+         if(t.hour==20 && t.min==30)
+         {
+            CreateRectangle(0,appnamespace+"LipstickPMRect"+IntegerToString(t.day),MistyRose,pmhigh,pmlow,r[i].time,r[i].time+8940);
+            pmhigh=DBL_MIN;
+            pmlow=DBL_MAX;
+         }
+      }
 
       if(t.hour==19)
       {
