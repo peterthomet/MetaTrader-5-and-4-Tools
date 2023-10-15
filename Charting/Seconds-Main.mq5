@@ -24,8 +24,8 @@ enum Intervals
    S20, // 20 Seconds
    S30 // 30 Seconds
 };
-input Intervals Seconds=S15;
-input int MaxBars=200; // Maximum Bars
+input Intervals Seconds=S30;
+input int MaxBars=500; // Maximum Bars
 
 enum HystoryStates
 {
@@ -117,6 +117,61 @@ void OnDeinit(const int reason)
 }
 
 
+void LoadHistory(datetime starttime=0)
+{
+   datetime dt[];
+   int count=(int)MathCeil(MaxBars/(60/intervalseconds[Seconds]));
+   if(CopyTime(Symbol(),PERIOD_M1,0,count,dt)<count)
+      return;
+   _Print("Starttime: "+dt[0]);
+   
+   MqlTick ticks[];
+   int received=CopyTicksRange(Symbol(),ticks,COPY_TICKS_INFO,dt[0]*1000,0);
+   historyloadcount++;
+   _Print(Symbol()+" Ticks loaded: "+(string)received);
+   
+   if(received>0&&historyloadcount>1)
+   {
+      _Print("First Tick Time: "+(string)ticks[0].time);
+      _Print("Last Tick Time: "+(string)ticks[received-1].time);
+      
+      int rt=ArraySize(canh);
+      int x=received-1;
+      TypeTimes t1(ticks[x].time);
+      double c=(double)t1.ts.sec/(double)intervalseconds[Seconds];
+      datetime barstarttime=t1.ti-(int)((c-MathFloor(c))*intervalseconds[Seconds]);
+      
+      ArrayInitialize(canh,0);
+      ArrayInitialize(canl,0);
+      ArrayInitialize(cano,0);
+      ArrayInitialize(canc,0);
+      ArrayInitialize(colors,0);
+
+      for(int i=rt-1; i>=rt-MaxBars; i--)
+      {
+         canh[i]=ticks[x].bid;
+         canl[i]=ticks[x].bid;
+         cano[i]=ticks[x].bid;
+         canc[i]=ticks[x].bid;
+         colors[i]=0;
+         
+         while(barstarttime<=ticks[x].time && x>0)
+         {
+            x--;
+            canh[i]=MathMax(canh[i],ticks[x].bid);
+            canl[i]=MathMin(canl[i],ticks[x].bid);
+            cano[i]=ticks[x].bid;
+            colors[i]=cano[i]>canc[i] ? 1 : 0;
+         }
+         barstarttime-=intervalseconds[Seconds];
+         maxprice=MathMax(maxprice,canh[i]);
+         minprice=MathMin(minprice,canl[i]);
+      }
+      historyloaded=true;
+   }
+}
+
+
 void OnTimer()
 {
    if(init || TimeTradeServer()<time0)
@@ -126,50 +181,9 @@ void OnTimer()
    double c=(double)t1.ts.sec/(double)intervalseconds[Seconds];
    int maxbars=MaxBars;
 
-   if(!historyloaded && (lasthistoryload)<TimeTradeServer())
+   if(!historyloaded && lasthistoryload<TimeTradeServer())
    {
-      MqlTick ticks[];
-      int received=CopyTicksRange(Symbol(),ticks,COPY_TICKS_INFO,((TimeTradeServer()-3600)*1000),0);
-      historyloadcount++;
-      //_Print(Symbol()+" Ticks loaded: "+(string)received);
-      
-      if(received>0&&historyloadcount>1)
-      {
-         _Print("First Tick Time: "+(string)ticks[0].time);
-         _Print("Last Tick Time: "+(string)ticks[received-1].time);
-         
-         int rt=ArraySize(canh);
-         int x=received-1;
-         datetime barstarttime=t1.ti-(int)((c-MathFloor(c))*intervalseconds[Seconds]);
-         
-         ArrayInitialize(canh,0);
-         ArrayInitialize(canl,0);
-         ArrayInitialize(cano,0);
-         ArrayInitialize(canc,0);
-         ArrayInitialize(colors,0);
-
-         for(int i=rt-1; i>=rt-maxbars; i--)
-         {
-            canh[i]=ticks[x].bid;
-            canl[i]=ticks[x].bid;
-            cano[i]=ticks[x].bid;
-            canc[i]=ticks[x].bid;
-            colors[i]=0;
-            
-            while(barstarttime<=ticks[x].time && x>0)
-            {
-               x--;
-               canh[i]=MathMax(canh[i],ticks[x].bid);
-               canl[i]=MathMin(canl[i],ticks[x].bid);
-               cano[i]=ticks[x].bid;
-               colors[i]=cano[i]>canc[i] ? 1 : 0;
-            }
-            barstarttime-=intervalseconds[Seconds];
-            maxprice=MathMax(maxprice,canh[i]);
-            minprice=MathMin(minprice,canl[i]);
-         }
-         historyloaded=true;
-      }
+      LoadHistory();
       lasthistoryload=TimeTradeServer();
    }
 
