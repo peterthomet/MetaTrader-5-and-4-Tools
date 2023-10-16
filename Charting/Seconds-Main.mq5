@@ -256,6 +256,13 @@ int OnCalculate(const int rates_total,
       canl[i]=MathMin(canl[i],close[i]);
       canc[i]=close[i];
       colors[i]=cano[i]>canc[i] ? 1 : 0;
+      
+      if(close[i]==0)
+         Print("Invalid Data, Close is 0");
+
+      double delta=MathAbs((close[i]-close[i-1])/(close[i-1]/100));
+      if(delta>=2)
+         Print("Invalid Data, Delta:"+DoubleToString(delta)+" Current/Last Close:"+DoubleToString(close[i])+"/"+DoubleToString(close[i-1]));
 
       //if(prev_calculated==(rates_total-1))
       //   _Print("SHIFT CHART AUTO Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Candle: "+(string)time[i]);
