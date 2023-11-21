@@ -322,6 +322,17 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          visible=!visible;
       }
    }
+
+   if(id==CHARTEVENT_OBJECT_CLICK)
+   {
+      Print("CHARTEVENT_OBJECT_CLICK "+sparam);
+
+      int f1=StringFind(sparam,"Button");
+      if(f1>-1)
+      {
+         StringSubstr(sparam,f1+6);
+      }
+   }
 }
 
 
@@ -358,6 +369,8 @@ void Enable()
    ChartSetDouble(0,CHART_FIXED_MIN,d_CHART_FIXED_MIN);
 
    PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_COLOR_CANDLES);
+   
+   CreateButtons();
 }
 
 
@@ -377,6 +390,47 @@ void Disable()
    ChartSetInteger(0,CHART_SCALEFIX,scalefixsave);
    ChartSetDouble(0,CHART_FIXED_MAX,maxsave);
    ChartSetDouble(0,CHART_FIXED_MIN,minsave);
+   
+   DeleteButtons();
+}
+
+
+void CreateButtons()
+{
+   for(int i=0; i<9; i++)
+   {
+      bool selected=false;
+      if(i==Seconds)
+         selected=true;
+      CreateButton(i,"S"+IntegerToString(intervalseconds[i]),selected);
+   }
+}
+
+
+void CreateButton(int index, string text, bool selected=false)
+{
+   string objname=appnamespace+"Button"+IntegerToString(index);
+   ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
+   ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_LEFT_LOWER);
+   ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_LEFT_LOWER);
+   int space=index*30;
+   if(index>=6)
+      space+=(8*(index-5));
+   ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,10+space);
+   ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,10);
+   color c=clrGray;
+   if(selected)
+      c=clrBlack;
+   ObjectSetInteger(0,objname,OBJPROP_COLOR,c);
+   ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,12);
+   ObjectSetString(0,objname,OBJPROP_FONT,"Arial");
+   ObjectSetString(0,objname,OBJPROP_TEXT,text);
+}
+
+
+void DeleteButtons()
+{
+   ObjectsDeleteAll(0,appnamespace+"Button");
 }
 
 
