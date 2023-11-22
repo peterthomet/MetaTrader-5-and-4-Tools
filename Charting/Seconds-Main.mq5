@@ -5,7 +5,7 @@
 
 #property copyright "Copyright 2023, getYourNet IT Services"
 #property link      "http://www.getyournet.ch"
-#property version   "1.00"
+#property version   "2.00"
 #property indicator_chart_window
 #property indicator_buffers 5
 #property indicator_plots   1
@@ -24,8 +24,14 @@ enum Intervals
    S20, // 20 Seconds
    S30 // 30 Seconds
 };
-input Intervals Seconds=S30;
+//input Intervals Seconds=S15;
 input int MaxBars=500; // Maximum Bars
+input string Font="Impact";
+input int FontSize=12; // Font Size
+input color Color=clrGray;
+input color ColorSelected=clrBlack; // Color Selected
+input int MarginX=10; // Left Margin
+input int MarginY=10; // Bottom Margin
 
 enum HystoryStates
 {
@@ -46,6 +52,7 @@ int c_CHART_COLOR_CANDLE_BULL,c_CHART_COLOR_CANDLE_BEAR,c_CHART_COLOR_CHART_UP,c
 double d_CHART_FIXED_MAX,d_CHART_FIXED_MIN,maxprice,minprice,maxsave,minsave;
 datetime lasttime, time0, lasttime0, lasthistoryload;
 int intervalseconds[9]={1,2,3,4,5,10,15,20,30};
+Intervals Seconds;
 string appnamespace="SecondsChartIndicator";
 
 struct TypeTimes
@@ -77,6 +84,7 @@ void OnInit()
    time0=0;
    lasttime0=0;
    lasthistoryload=0;
+   Seconds=S15;
    SetIndexBuffer(0,cano,INDICATOR_DATA);
    SetIndexBuffer(1,canh,INDICATOR_DATA);
    SetIndexBuffer(2,canl,INDICATOR_DATA);
@@ -89,12 +97,15 @@ void OnInit()
       PlotIndexSetInteger(0,PLOT_LINE_COLOR,0,(int)ChartGetInteger(0,CHART_COLOR_CANDLE_BULL));
    if(PlotIndexGetInteger(0,PLOT_LINE_COLOR,1)==clrNONE)
       PlotIndexSetInteger(0,PLOT_LINE_COLOR,1,(int)ChartGetInteger(0,CHART_COLOR_CANDLE_BEAR));
-   IndicatorSetString(INDICATOR_SHORTNAME,(string)intervalseconds[Seconds]+" Seconds Chart");
+   IndicatorSetString(INDICATOR_SHORTNAME,"Seconds Chart");
 
    if(GlobalVariableCheck(appnamespace+Symbol()+"d_CHART_FIXED_MAX"))
       d_CHART_FIXED_MAX=GlobalVariableGet(appnamespace+Symbol()+"d_CHART_FIXED_MAX");
    if(GlobalVariableCheck(appnamespace+Symbol()+"d_CHART_FIXED_MIN"))
       d_CHART_FIXED_MIN=GlobalVariableGet(appnamespace+Symbol()+"d_CHART_FIXED_MIN");
+
+   if(GlobalVariableCheck(appnamespace+IntegerToString(ChartID())+"Seconds"))
+      Seconds=GlobalVariableGet(appnamespace+IntegerToString(ChartID())+"Seconds");
 
    ChartSetInteger(0,CHART_EVENT_MOUSE_MOVE,true);
 
@@ -111,6 +122,8 @@ void OnDeinit(const int reason)
    GlobalVariableSet(appnamespace+Symbol()+"d_CHART_FIXED_MAX",d_CHART_FIXED_MAX);
    GlobalVariableTemp(appnamespace+Symbol()+"d_CHART_FIXED_MIN");
    GlobalVariableSet(appnamespace+Symbol()+"d_CHART_FIXED_MIN",d_CHART_FIXED_MIN);
+
+   GlobalVariableSet(appnamespace+IntegerToString(ChartID())+"Seconds",Seconds);
 
    ObjectsDeleteAll(0,appnamespace,ChartWindowFind());
    EventKillTimer();
@@ -139,7 +152,10 @@ void LoadHistory(datetime starttime=0)
       int x=received-1;
       TypeTimes t1(ticks[x].time);
       double c=(double)t1.ts.sec/(double)intervalseconds[Seconds];
-      datetime barstarttime=t1.ti-(int)((c-MathFloor(c))*intervalseconds[Seconds]);
+      datetime barstarttime=t1.ti-(int)(MathRound((c-MathFloor(c))*intervalseconds[Seconds]));
+
+      //Print(MathRound((c-MathFloor(c))*intervalseconds[Seconds]));
+      //Print(barstarttime);
       
       ArrayInitialize(canh,0);
       ArrayInitialize(canl,0);
@@ -325,12 +341,15 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
    if(id==CHARTEVENT_OBJECT_CLICK)
    {
-      Print("CHARTEVENT_OBJECT_CLICK "+sparam);
+      //Print("CHARTEVENT_OBJECT_CLICK "+sparam);
 
-      int f1=StringFind(sparam,"Button");
+      int f1=StringFind(sparam,"SCButton");
       if(f1>-1)
       {
-         StringSubstr(sparam,f1+6);
+         Seconds=StringToInteger(StringSubstr(sparam,f1+8));
+         historyloaded=false;
+         DeleteButtons();
+         CreateButtons();
       }
    }
 }
@@ -409,28 +428,28 @@ void CreateButtons()
 
 void CreateButton(int index, string text, bool selected=false)
 {
-   string objname=appnamespace+"Button"+IntegerToString(index);
+   string objname=appnamespace+"SCButton"+IntegerToString(index);
    ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
    ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_LEFT_LOWER);
    ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_LEFT_LOWER);
-   int space=index*30;
+   int space=index*25;
    if(index>=6)
       space+=(8*(index-5));
-   ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,10+space);
-   ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,10);
-   color c=clrGray;
+   ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,MarginX+space);
+   ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,MarginY);
+   color c=Color;
    if(selected)
-      c=clrBlack;
+      c=ColorSelected;
    ObjectSetInteger(0,objname,OBJPROP_COLOR,c);
-   ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,12);
-   ObjectSetString(0,objname,OBJPROP_FONT,"Arial");
+   ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,FontSize);
+   ObjectSetString(0,objname,OBJPROP_FONT,Font);
    ObjectSetString(0,objname,OBJPROP_TEXT,text);
 }
 
 
 void DeleteButtons()
 {
-   ObjectsDeleteAll(0,appnamespace+"Button");
+   ObjectsDeleteAll(0,appnamespace+"SCButton");
 }
 
 
