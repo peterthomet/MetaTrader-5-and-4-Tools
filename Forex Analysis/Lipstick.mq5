@@ -69,8 +69,6 @@ void ManageLipStick()
          DeleteLipstick();
       else
          draw=true;
-
-      currentlipstickmode=lipstickmode;
    }
 
    if(lipstickmode!=LipStickNone)
@@ -80,24 +78,28 @@ void ManageLipStick()
    if(draw)
    {
       DeleteLipstick();
-      CreateLipstick();
-      lastfirstbar=firstbar;
-      lastbartime=(datetime)SeriesInfoInteger(Symbol(),Period(),SERIES_LASTBAR_DATE);
+      if(CreateLipstick())
+      {
+         ChartRedraw();
+         lastfirstbar=firstbar;
+         lastbartime=(datetime)SeriesInfoInteger(Symbol(),Period(),SERIES_LASTBAR_DATE);
+         currentlipstickmode=lipstickmode;
+      }
    }
 }
 
 
-void CreateLipstick()
+bool CreateLipstick()
 {
    datetime dt[1];
    if(CopyTime(_Symbol,_Period,(int)ChartGetInteger(0,CHART_FIRST_VISIBLE_BAR)-((int)ChartGetInteger(0,CHART_VISIBLE_BARS)-1),1,dt)<1)
-      return;
+      return false;
 
    int rcount=1200;
    MqlRates r[];
    ArrayResize(r,rcount);
    if(CopyRates(_Symbol,PERIOD_M5,dt[0],rcount,r)<rcount)
-      return;
+      return false;
 
    datetime asiastart=0, asiaend=0, nymidnight=0, dayend=0, lastdaystart=0, day3start=0, day4start=0;
    double asiahigh=DBL_MIN, asialow=DBL_MAX, nyopen=0, drhigh=DBL_MIN, drlow=DBL_MAX, idrhigh=DBL_MIN, idrlow=DBL_MAX, lastdayhigh=DBL_MIN, lastdaylow=DBL_MAX, day3high=DBL_MIN, day3low=DBL_MAX, day4high=DBL_MIN, day4low=DBL_MAX, pmhigh=DBL_MIN, pmlow=DBL_MAX, lunchhigh=DBL_MIN, lunchlow=DBL_MAX, londonhigh=DBL_MIN, londonlow=DBL_MAX, nyhigh=DBL_MIN, nylow=DBL_MAX;
@@ -286,18 +288,18 @@ void CreateLipstick()
    CreateTrendline(0,appnamespace+"LipstickDay4Low",CornflowerBlue,2,STYLE_DASH,day4low,day4low,day4start,day3start-1,false);
 
    if(lipstickmode<LipStickMode2)
-      return;
+      return true;
 
    MqlRates r2[20];
    if(CopyRates(_Symbol,PERIOD_W1,0,20,r2)<20)
-      return;
+      return false;
    
    for(int i=10;i<=19;i++)
    {
       //CreateTrendline(0,appnamespace+"LipstickNWOGO"+IntegerToString(i),DimGray,2,STYLE_SOLID,r2[i].open,r2[i].open,r2[i].time,r2[i].time+(86400*3));
       //CreateTrendline(0,appnamespace+"LipstickNWOGC"+IntegerToString(i),DimGray,2,STYLE_SOLID,r2[i-1].close,r2[i-1].close,r2[i].time,r2[i].time+(86400*3));
 
-      int cv=250-(i*5);
+      int cv=285-(i*4);
       //cv=248;
       //if(i>=16)
          //cv=180;
@@ -305,6 +307,7 @@ void CreateLipstick()
       double middle=r2[i].open-((r2[i].open-r2[i-1].close)/2);
       CreateTrendline(0,appnamespace+"LipstickNWOGM"+IntegerToString(i),White,1,STYLE_DOT,middle,middle,r2[i].time,r2[i].time+(86400*3));
    }
+   return true;
 }
 
 
@@ -350,6 +353,50 @@ void CreateTrendline(long chartid, string objname, color c, int width, int style
 void DeleteLipstick()
 {
    ObjectsDeleteAll(0,appnamespace+"Lipstick");
+   ChartRedraw();
+}
+
+
+void DrawTimelines(datetime time)
+{
+   long chartid=ChartFirst();
+   while(chartid>-1)
+   {
+      if(chartid!=ChartID() && ChartPeriod(chartid)==Period())
+         DrawTimeline(chartid,time);
+      chartid=ChartNext(chartid);
+   }
+}
+
+
+void DrawTimeline(long chartid, datetime time)
+{
+   string objname=appnamespace+"Timeline";
+   if(ObjectFind(chartid,objname)<0)
+   {
+      ObjectCreate(chartid,objname,OBJ_VLINE,0,0,0);
+      ObjectSetInteger(chartid,objname,OBJPROP_COLOR,ChartGetInteger(chartid,CHART_COLOR_FOREGROUND));
+      ObjectSetInteger(chartid,objname,OBJPROP_WIDTH,1);
+      ObjectSetInteger(chartid,objname,OBJPROP_STYLE,STYLE_SOLID);
+      ObjectSetInteger(chartid,objname,OBJPROP_BACK,true);
+   }
+   ObjectSetInteger(chartid,objname,OBJPROP_TIME,time);
+   ChartRedraw(chartid);
+}
+
+
+void DeleteTimelines()
+{
+   long chartid=ChartFirst();
+   while(chartid>-1)
+   {
+      if(chartid!=ChartID())
+      {
+         ObjectsDeleteAll(chartid,appnamespace+"Timeline");
+         ChartRedraw(chartid);
+      }
+      chartid=ChartNext(chartid);
+   }
 }
 
 
@@ -360,8 +407,25 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       uint state=(uint)sparam;
       if((state&16)==16)
          crosshairon=true;
-      if((state&2)==2 || (state&1)==1)
+      if(((state&2)==2 || (state&1)==1) && crosshairon)
+      {
+         DeleteTimelines();
          crosshairon=false;
+      }
+         
+      if(crosshairon)
+      {
+         int x=(int)lparam;
+         int y=(int)dparam;
+         datetime dt=0;
+         double price=0;
+         int window=0;
+         if(ChartXYToTimePrice(0,x,y,window,dt,price))
+         {
+            //PrintFormat("Window=%d X=%d  Y=%d  =>  Time=%s  Price=%G SParam=%s",window,x,y,TimeToString(dt),price,sparam);
+            DrawTimelines(dt);
+         }
+      }
    }
 
    if(id==CHARTEVENT_CHART_CHANGE)
@@ -372,14 +436,17 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          firstbar=firstvisible-visiblebars+1;
       else
          firstbar=0;
+      
    }
+   
    if(id==CHARTEVENT_KEYDOWN)
    {
       if (lparam == 76)
       {
-         lipstickmode++;
-         if(lipstickmode>LipStickMode2)
+         if((lipstickmode+1)>LipStickMode2)
             lipstickmode=LipStickNone;
+         else
+            lipstickmode++;
       }
    }
 }
@@ -396,6 +463,5 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-
    return(rates_total);
 }
