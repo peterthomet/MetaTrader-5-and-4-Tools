@@ -400,16 +400,69 @@ void DeleteTimelines()
 }
 
 
+void SetAutoScroll(bool value)
+{
+   long chartid=ChartFirst();
+   while(chartid>-1)
+   {
+      if(ChartPeriod(chartid)==Period())
+      {
+         ChartSetInteger(chartid,CHART_AUTOSCROLL,value);
+         ChartRedraw(chartid);
+      }
+      chartid=ChartNext(chartid);
+   }
+}
+
+
+void SyncChartScroll(datetime time)
+{
+   long chartid=ChartFirst();
+   while(chartid>-1)
+   {
+      if(chartid!=ChartID() && ChartPeriod(chartid)==Period())
+      {
+         datetime dt=0;
+         double price=0;
+         int window=0;
+         if(ChartXYToTimePrice(chartid,0,0,window,dt,price))
+         {
+            int bars=Bars(ChartSymbol(chartid),Period(),time,dt);
+            bars-=1;
+            if(time>dt)
+               bars=0-bars;
+
+            bars=-bars;
+
+            //Print(ChartSymbol(chartid)+" Bars:"+bars);
+            
+            if(bars!=0)
+            {
+               ChartNavigate(chartid,CHART_CURRENT_POS,bars);
+               EventChartCustom(chartid,5000,0,0,"");
+            }
+            
+         }
+      }
+      chartid=ChartNext(chartid);
+   }
+}
+
+
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
    if(id==CHARTEVENT_MOUSE_MOVE)
    {
       uint state=(uint)sparam;
       if((state&16)==16)
+      {
+         SetAutoScroll(false);
          crosshairon=true;
+      }
       if(((state&2)==2 || (state&1)==1) && crosshairon)
       {
          DeleteTimelines();
+         SetAutoScroll(true);
          crosshairon=false;
       }
          
@@ -427,8 +480,8 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          }
       }
    }
-
-   if(id==CHARTEVENT_CHART_CHANGE)
+   
+   if(id==CHARTEVENT_CHART_CHANGE || id-CHARTEVENT_CUSTOM==5000)
    {
       long firstvisible=ChartGetInteger(0,CHART_FIRST_VISIBLE_BAR);
       long visiblebars=ChartGetInteger(0,CHART_VISIBLE_BARS);
@@ -436,7 +489,15 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          firstbar=firstvisible-visiblebars+1;
       else
          firstbar=0;
-      
+
+      if(crosshairon)
+      {
+         datetime dt=0;
+         double price=0;
+         int window=0;
+         if(ChartXYToTimePrice(0,0,0,window,dt,price))
+            SyncChartScroll(dt);
+      }
    }
    
    if(id==CHARTEVENT_KEYDOWN)
