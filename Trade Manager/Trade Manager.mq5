@@ -958,8 +958,6 @@ void ManageLipStick()
          DeleteLipstick();
       else
          draw=true;
-
-      currentlipstickmode=lipstickmode;
    }
 
    if(lipstickmode!=LipStickNone)
@@ -969,9 +967,12 @@ void ManageLipStick()
    if(draw)
    {
       DeleteLipstick();
-      CreateLipstick();
-      lastfirstbar=firstbar;
-      lastbartime=(datetime)SeriesInfoInteger(Symbol(),Period(),SERIES_LASTBAR_DATE);
+      if(CreateLipstick())
+      {
+         lastfirstbar=firstbar;
+         lastbartime=(datetime)SeriesInfoInteger(Symbol(),Period(),SERIES_LASTBAR_DATE);
+         currentlipstickmode=lipstickmode;
+      }
    }
 }
 
@@ -2243,17 +2244,17 @@ void ToggleCtrl(bool disable=false)
 }
 
 
-void CreateLipstick()
+bool CreateLipstick()
 {
    datetime dt[1];
    if(CopyTime(_Symbol,_Period,(int)ChartGetInteger(0,CHART_FIRST_VISIBLE_BAR)-((int)ChartGetInteger(0,CHART_VISIBLE_BARS)-1),1,dt)<1)
-      return;
+      return false;
 
    int rcount=1200;
    MqlRates r[];
    ArrayResize(r,rcount);
    if(CopyRates(_Symbol,PERIOD_M5,dt[0],rcount,r)<rcount)
-      return;
+      return false;
 
    datetime asiastart=0, asiaend=0, nymidnight=0, dayend=0, lastdaystart=0, day3start=0, day4start=0;
    double asiahigh=DBL_MIN, asialow=DBL_MAX, nyopen=0, drhigh=DBL_MIN, drlow=DBL_MAX, idrhigh=DBL_MIN, idrlow=DBL_MAX, lastdayhigh=DBL_MIN, lastdaylow=DBL_MAX, day3high=DBL_MIN, day3low=DBL_MAX, day4high=DBL_MIN, day4low=DBL_MAX, pmhigh=DBL_MIN, pmlow=DBL_MAX, lunchhigh=DBL_MIN, lunchlow=DBL_MAX, londonhigh=DBL_MIN, londonlow=DBL_MAX, nyhigh=DBL_MIN, nylow=DBL_MAX;
@@ -2442,18 +2443,18 @@ void CreateLipstick()
    CreateTrendline(0,appnamespace+"LipstickDay4Low",CornflowerBlue,2,STYLE_DASH,day4low,day4low,day4start,day3start-1,false);
 
    if(lipstickmode<LipStickMode2)
-      return;
+      return true;
 
    MqlRates r2[20];
    if(CopyRates(_Symbol,PERIOD_W1,0,20,r2)<20)
-      return;
+      return false;
    
    for(int i=10;i<=19;i++)
    {
       //CreateTrendline(0,appnamespace+"LipstickNWOGO"+IntegerToString(i),DimGray,2,STYLE_SOLID,r2[i].open,r2[i].open,r2[i].time,r2[i].time+(86400*3));
       //CreateTrendline(0,appnamespace+"LipstickNWOGC"+IntegerToString(i),DimGray,2,STYLE_SOLID,r2[i-1].close,r2[i-1].close,r2[i].time,r2[i].time+(86400*3));
 
-      int cv=250-(i*5);
+      int cv=285-(i*4);
       //cv=248;
       //if(i>=16)
          //cv=180;
@@ -2461,6 +2462,7 @@ void CreateLipstick()
       double middle=r2[i].open-((r2[i].open-r2[i-1].close)/2);
       CreateTrendline(0,appnamespace+"LipstickNWOGM"+IntegerToString(i),White,1,STYLE_DOT,middle,middle,r2[i].time,r2[i].time+(86400*3));
    }
+   return true;
 }
 
 
