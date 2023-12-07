@@ -95,3 +95,11 @@ For those who want to install everything in one shot, I have added a zip file of
 
 [![](http://img.youtube.com/vi/ElzsQ5niUTk/maxresdefault.jpg)](http://www.youtube.com/watch?v=ElzsQ5niUTk "Seconds Charts for MetaTrader 5")
 
+<br/>
+<br/>
+
+## Synchronized Chart Scroll and Session Marking for MetaTrader 5
+
+
+[![](http://img.youtube.com/vi/tWLcVPxSsCo/maxresdefault.jpg)](http://www.youtube.com/watch?v=tWLcVPxSsCo "Synchronized Chart Scroll and Session Marking for MetaTrader 5")
+
