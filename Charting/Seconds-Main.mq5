@@ -6,6 +6,7 @@
 #property copyright "Copyright 2023, getYourNet IT Services"
 #property link      "http://www.getyournet.ch"
 #property version   "2.00"
+#property description "Press the key ""Z"" or ""Y"", depending on your keyboard layout, to toggle the chart."
 #property indicator_chart_window
 #property indicator_buffers 5
 #property indicator_plots   1
