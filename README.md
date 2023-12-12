@@ -58,7 +58,7 @@ For those who want to install everything in one shot, I have added a zip file of
 <br/>
 <br/>
 
-MT5 uses the key codes not the characters.
+MT5 uses the key codes not the characters. The characters listed here are based on this QWERTZ keyboard layout. If your keyboard layout is different, be sure you use the same keys, not the corresponding characters.
 
 <br/>
 
