@@ -57,6 +57,13 @@ For those who want to install everything in one shot, I have added a zip file of
 
 <br/>
 <br/>
+MT5 uses the key codes not the characters.
+<br/>
+
+![QWERTZ Keyboard Layout](./docs/images/QWERTZ-2.png)
+
+<br/>
+<br/>
 
 ## Trade Manager Sample, Setup a Basket with balanced Risk
 
