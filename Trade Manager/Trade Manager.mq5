@@ -3152,6 +3152,7 @@ void BuildPendingLevelsText(datetime time=NULL)
 {
       string objname=appnamespace+"PendingLevelText";
       string text="";
+      ENUM_ORDER_TYPE ot;
 
       if(time!=NULL)
          ObjectCreate(0,objname,OBJ_TEXT,0,time,startdragprice);
@@ -3159,15 +3160,20 @@ void BuildPendingLevelsText(datetime time=NULL)
       if(startdragprice<enddragprice)
       {
          text="Sell";
+         ot=ORDER_TYPE_SELL;
          ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_LOWER);
       }
       else
       {
          text="Buy";
+         ot=ORDER_TYPE_BUY;
          ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_RIGHT_UPPER);
       }
 
       double volume=CalculatePendingLevelsVolume();
+      double margin=0;
+      if(OrderCalcMargin(ot,Symbol(),volume,startdragprice,margin))
+         margin=AccountInfoDouble(ACCOUNT_MARGIN_FREE)-margin;
       double tickvalue=CurrentSymbolTickValue();
       int cp=SymbolCommissionPoints();
       double stoppoints=MathAbs(startdragprice-enddragprice)/Point()+cp;
@@ -3182,7 +3188,7 @@ void BuildPendingLevelsText(datetime time=NULL)
       if(AvailableTradingCapital>0)
          riskpercenttradingcapital=" | "+DoubleToString(risk/(AvailableTradingCapital/100),2)+"%";
       
-      text+=" / Risk: "+DoubleToString(risk,2)+" | "+DoubleToString(riskpercent,2)+"%"+riskpercenttradingcapital+" | "+DoubleToString(atrfactor*100,1)+"%ATR";
+      text+=" / Risk: "+DoubleToString(risk,2)+" | "+DoubleToString(riskpercent,2)+"%"+riskpercenttradingcapital+" | "+DoubleToString(atrfactor*100,1)+"%ATR | "+DoubleToString(margin,0);
 
       ObjectSetInteger(0,objname,OBJPROP_COLOR,TextColorInfo);
       ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,FontSize);
