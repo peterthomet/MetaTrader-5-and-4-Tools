@@ -25,7 +25,6 @@ enum Intervals
    S20, // 20 Seconds
    S30 // 30 Seconds
 };
-//input Intervals Seconds=S15;
 input int MaxBars=500; // Maximum Bars
 input string Font="Impact";
 input int FontSize=12; // Font Size
@@ -223,25 +222,31 @@ void OnTimer()
          if(diff!=0 && diff!=PeriodSeconds())
          {
             //_Print("SHIFT INTERNAL Current: "+(string)TimeCurrent()+" Trade Server: "+(string)TimeTradeServer()+" Value: "+(string)diff);
-            int rt=ArraySize(canh);
-            for(int i=rt-maxbars; i<rt-1; i++)
-            {
-               canh[i]=canh[i+1];
-               canl[i]=canl[i+1];
-               cano[i]=cano[i+1];
-               canc[i]=canc[i+1];
-               colors[i]=colors[i+1];
-            }
-            canh[rt-1]=canc[rt-2];
-            canl[rt-1]=canc[rt-2];
-            cano[rt-1]=canc[rt-2];
-            canc[rt-1]=canc[rt-2];
-            colors[rt-1]=0;
+            ShiftBuffers();
             ChartRedraw();
          }
          lasttime=t1.ti;
       }
    }
+}
+
+
+void ShiftBuffers()
+{
+   int rt=ArraySize(canh);
+   for(int i=rt-MaxBars; i<rt-1; i++)
+   {
+      canh[i]=canh[i+1];
+      canl[i]=canl[i+1];
+      cano[i]=cano[i+1];
+      canc[i]=canc[i+1];
+      colors[i]=colors[i+1];
+   }
+   canh[rt-1]=canc[rt-2];
+   canl[rt-1]=canc[rt-2];
+   cano[rt-1]=canc[rt-2];
+   canc[rt-1]=canc[rt-2];
+   colors[rt-1]=0;
 }
 
 
