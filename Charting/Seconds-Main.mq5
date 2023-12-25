@@ -5,13 +5,17 @@
 
 #property copyright "Copyright 2023, getYourNet IT Services"
 #property link      "http://www.getyournet.ch"
-#property version   "2.00"
-#property description "Press the key ""Z"" or ""Y"", depending on your keyboard layout, to toggle the chart."
+#property version   "2.10"
+#property description "Depending on your keyboard layout, press the key ""Z"" or ""Y"" to toggle the chart."
 #property indicator_chart_window
 #property indicator_buffers 5
-#property indicator_plots   1
-#property indicator_type1   DRAW_COLOR_CANDLES
+#property indicator_plots   3
+#property indicator_label1 "Candles"
+#property indicator_label2 "Ticks Bid"
+#property indicator_label3 "Ticks Ask"
 #property indicator_color1  clrNONE, clrNONE
+#property indicator_color2  clrNONE
+#property indicator_color3  clrNONE
 
 enum Intervals
 {
@@ -53,6 +57,7 @@ double d_CHART_FIXED_MAX,d_CHART_FIXED_MIN,maxprice,minprice,maxsave,minsave;
 datetime lasttime, time0, lasttime0, lasthistoryload;
 int intervalseconds[9]={1,2,3,4,5,10,15,20,30};
 Intervals Seconds;
+int currentSeconds;
 string appnamespace="SecondsChartIndicator";
 
 struct TypeTimes
@@ -85,6 +90,7 @@ void OnInit()
    lasttime0=0;
    lasthistoryload=0;
    Seconds=S15;
+   currentSeconds=S15;
    SetIndexBuffer(0,cano,INDICATOR_DATA);
    SetIndexBuffer(1,canh,INDICATOR_DATA);
    SetIndexBuffer(2,canl,INDICATOR_DATA);
@@ -93,10 +99,21 @@ void OnInit()
    PlotIndexSetDouble(0,PLOT_EMPTY_VALUE,0.0);
    PlotIndexSetInteger(0,PLOT_SHOW_DATA,false);
    PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_NONE);
-   if(PlotIndexGetInteger(0,PLOT_LINE_COLOR,0)==clrNONE)
+   PlotIndexSetDouble(1,PLOT_EMPTY_VALUE,0.0);
+   PlotIndexSetInteger(1,PLOT_SHOW_DATA,false);
+   PlotIndexSetInteger(1,PLOT_DRAW_TYPE,DRAW_NONE);
+   PlotIndexSetDouble(2,PLOT_EMPTY_VALUE,0.0);
+   PlotIndexSetInteger(2,PLOT_SHOW_DATA,false);
+   PlotIndexSetInteger(2,PLOT_DRAW_TYPE,DRAW_NONE);
+   if(PlotIndexGetInteger(0,PLOT_LINE_COLOR,0)==-1)
       PlotIndexSetInteger(0,PLOT_LINE_COLOR,0,(int)ChartGetInteger(0,CHART_COLOR_CANDLE_BULL));
-   if(PlotIndexGetInteger(0,PLOT_LINE_COLOR,1)==clrNONE)
+   if(PlotIndexGetInteger(0,PLOT_LINE_COLOR,1)==-1)
       PlotIndexSetInteger(0,PLOT_LINE_COLOR,1,(int)ChartGetInteger(0,CHART_COLOR_CANDLE_BEAR));
+   if(PlotIndexGetInteger(1,PLOT_LINE_COLOR,0)==-1)
+      PlotIndexSetInteger(1,PLOT_LINE_COLOR,0,(int)ChartGetInteger(0,CHART_COLOR_BID));
+   if(PlotIndexGetInteger(2,PLOT_LINE_COLOR,0)==-1)
+      PlotIndexSetInteger(2,PLOT_LINE_COLOR,0,(int)ChartGetInteger(0,CHART_COLOR_ASK));
+
    IndicatorSetString(INDICATOR_SHORTNAME,"Seconds Chart");
 
    if(GlobalVariableCheck(appnamespace+Symbol()+"d_CHART_FIXED_MAX"))
@@ -105,7 +122,7 @@ void OnInit()
       d_CHART_FIXED_MIN=GlobalVariableGet(appnamespace+Symbol()+"d_CHART_FIXED_MIN");
 
    if(GlobalVariableCheck(appnamespace+IntegerToString(ChartID())+"Seconds"))
-      Seconds=GlobalVariableGet(appnamespace+IntegerToString(ChartID())+"Seconds");
+      Seconds=(Intervals)GlobalVariableGet(appnamespace+IntegerToString(ChartID())+"Seconds");
 
    ChartSetInteger(0,CHART_EVENT_MOUSE_MOVE,true);
 
@@ -130,13 +147,37 @@ void OnDeinit(const int reason)
 }
 
 
-void LoadHistory(datetime starttime=0)
+void SetIndicatorView()
+{
+   if(Seconds==currentSeconds)
+      return;
+
+   if(visible)
+   {
+      if(Seconds==-1)
+      {
+         PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_NONE);
+         PlotIndexSetInteger(1,PLOT_DRAW_TYPE,DRAW_LINE);
+         PlotIndexSetInteger(2,PLOT_DRAW_TYPE,DRAW_LINE);
+      }
+      else
+      {
+         PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_COLOR_CANDLES);
+         PlotIndexSetInteger(1,PLOT_DRAW_TYPE,DRAW_NONE);
+         PlotIndexSetInteger(2,PLOT_DRAW_TYPE,DRAW_NONE);
+      }
+   }
+   currentSeconds=Seconds;
+}
+
+
+void LoadHistoryToSeconds(datetime starttime=0)
 {
    datetime dt[];
    int count=(int)MathCeil(MaxBars/(60/intervalseconds[Seconds]));
    if(CopyTime(Symbol(),PERIOD_M1,0,count,dt)<count)
       return;
-   _Print("Starttime: "+dt[0]);
+   _Print("Starttime: "+IntegerToString(dt[0]));
    
    MqlTick ticks[];
    int received=CopyTicksRange(Symbol(),ticks,COPY_TICKS_INFO,dt[0]*1000,0);
@@ -157,11 +198,14 @@ void LoadHistory(datetime starttime=0)
       //Print(MathRound((c-MathFloor(c))*intervalseconds[Seconds]));
       //Print(barstarttime);
       
+      ArrayInitialize(cano,0);
       ArrayInitialize(canh,0);
       ArrayInitialize(canl,0);
-      ArrayInitialize(cano,0);
       ArrayInitialize(canc,0);
       ArrayInitialize(colors,0);
+
+      maxprice=DBL_MIN;
+      minprice=DBL_MAX;
 
       for(int i=rt-1; i>=rt-MaxBars; i--)
       {
@@ -188,20 +232,65 @@ void LoadHistory(datetime starttime=0)
 }
 
 
+void LoadHistoryTicks(datetime starttime=0)
+{
+   MqlTick ticks[];
+   int received=CopyTicks(Symbol(),ticks,COPY_TICKS_INFO,0,MaxBars);
+   historyloadcount++;
+   _Print(Symbol()+" Ticks loaded: "+(string)received);
+   
+   if(received>0&&historyloadcount>1)
+   {
+      _Print("First Tick Time: "+(string)ticks[0].time);
+      _Print("Last Tick Time: "+(string)ticks[received-1].time);
+      
+      int rt=ArraySize(canh);
+      int x=received-1;
+      
+      ArrayInitialize(cano,0);
+      ArrayInitialize(canh,0);
+      ArrayInitialize(canl,0);
+      ArrayInitialize(canc,0);
+      ArrayInitialize(colors,0);
+
+      maxprice=DBL_MIN;
+      minprice=DBL_MAX;
+
+      for(int i=rt-1; i>=rt-MaxBars; i--)
+      {
+         canh[i]=ticks[x].bid;
+         canl[i]=ticks[x].ask;
+         x--;
+
+         maxprice=MathMax(maxprice,canh[i]);
+         minprice=MathMin(minprice,canh[i]);
+      }
+      historyloaded=true;
+   }
+}
+
+
 void OnTimer()
 {
    if(init || TimeTradeServer()<time0)
       return;
 
+   if(!historyloaded && lasthistoryload<TimeTradeServer())
+   {
+      SetIndicatorView();
+      if(Seconds>-1)
+         LoadHistoryToSeconds();
+      else
+         LoadHistoryTicks();
+      lasthistoryload=TimeTradeServer();
+   }
+
+   if(Seconds==-1)
+      return;
+
    TypeTimes t1(TimeTradeServer());
    double c=(double)t1.ts.sec/(double)intervalseconds[Seconds];
    int maxbars=MaxBars;
-
-   if(!historyloaded && lasthistoryload<TimeTradeServer())
-   {
-      LoadHistory();
-      lasthistoryload=TimeTradeServer();
-   }
 
    if(historyloaded)
    {
@@ -233,7 +322,7 @@ void OnTimer()
 
 void ShiftBuffers()
 {
-   int rt=ArraySize(canh);
+   int rt=ArraySize(cano);
    for(int i=rt-MaxBars; i<rt-1; i++)
    {
       canh[i]=canh[i+1];
@@ -247,6 +336,17 @@ void ShiftBuffers()
    cano[rt-1]=canc[rt-2];
    canc[rt-1]=canc[rt-2];
    colors[rt-1]=0;
+}
+
+
+void ShiftBuffersTicks()
+{
+   int rt=ArraySize(canh);
+   for(int i=rt-MaxBars; i<rt-1; i++)
+   {
+      canh[i]=canh[i+1];
+      canl[i]=canl[i+1];
+   }
 }
 
 
@@ -266,18 +366,27 @@ int OnCalculate(const int rates_total,
 
    if(!init && historyloaded)
    {
-      if(canh[i]==0)
+      if(Seconds>-1)
       {
-         canh[i]=close[i];
-         canl[i]=close[i];
-         cano[i]=close[i];
+         if(canh[i]==0)
+         {
+            canh[i]=close[i];
+            canl[i]=close[i];
+            cano[i]=close[i];
+            canc[i]=close[i];
+            colors[i]=0;
+         }
+         canh[i]=MathMax(canh[i],close[i]);
+         canl[i]=MathMin(canl[i],close[i]);
          canc[i]=close[i];
-         colors[i]=0;
+         colors[i]=cano[i]>canc[i] ? 1 : 0;
       }
-      canh[i]=MathMax(canh[i],close[i]);
-      canl[i]=MathMin(canl[i],close[i]);
-      canc[i]=close[i];
-      colors[i]=cano[i]>canc[i] ? 1 : 0;
+      else
+      {
+         ShiftBuffersTicks();
+         canh[i]=SymbolInfoDouble(Symbol(),SYMBOL_BID);
+         canl[i]=SymbolInfoDouble(Symbol(),SYMBOL_ASK);
+      }
       
       if(close[i]==0)
          Print("Invalid Data, Close is 0");
@@ -352,7 +461,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       int f1=StringFind(sparam,"SCButton");
       if(f1>-1)
       {
-         Seconds=StringToInteger(StringSubstr(sparam,f1+8));
+         Seconds=(Intervals)StringToInteger(StringSubstr(sparam,f1+8));
          historyloaded=false;
          DeleteButtons();
          CreateButtons();
@@ -385,6 +494,8 @@ void Enable()
       d_CHART_FIXED_MIN=minprice-((maxprice-minprice)/3);
    }
    double price=canc[ArraySize(canc)-1];
+   if(Seconds==-1)
+      price=canh[ArraySize(canh)-1];
    double centeroffset=price-(d_CHART_FIXED_MAX-((d_CHART_FIXED_MAX-d_CHART_FIXED_MIN)/2));
    if(MathAbs(centeroffset)<(d_CHART_FIXED_MAX-d_CHART_FIXED_MIN)/2)
       centeroffset=0;
@@ -393,7 +504,15 @@ void Enable()
    ChartSetDouble(0,CHART_FIXED_MAX,d_CHART_FIXED_MAX);
    ChartSetDouble(0,CHART_FIXED_MIN,d_CHART_FIXED_MIN);
 
-   PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_COLOR_CANDLES);
+   if(Seconds==-1)
+   {
+      PlotIndexSetInteger(1,PLOT_DRAW_TYPE,DRAW_LINE);
+      PlotIndexSetInteger(2,PLOT_DRAW_TYPE,DRAW_LINE);
+   }
+   else
+   {
+      PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_COLOR_CANDLES);
+   }
    
    CreateButtons();
 }
@@ -402,6 +521,8 @@ void Enable()
 void Disable()
 {
    PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_NONE);
+   PlotIndexSetInteger(1,PLOT_DRAW_TYPE,DRAW_NONE);
+   PlotIndexSetInteger(2,PLOT_DRAW_TYPE,DRAW_NONE);
 
    ChartSetInteger(0,CHART_COLOR_CANDLE_BULL,c_CHART_COLOR_CANDLE_BULL);
    ChartSetInteger(0,CHART_COLOR_CANDLE_BEAR,c_CHART_COLOR_CANDLE_BEAR);
@@ -422,13 +543,9 @@ void Disable()
 
 void CreateButtons()
 {
+   CreateButton(-1,"TI",(Seconds==-1));
    for(int i=0; i<9; i++)
-   {
-      bool selected=false;
-      if(i==Seconds)
-         selected=true;
-      CreateButton(i,"S"+IntegerToString(intervalseconds[i]),selected);
-   }
+      CreateButton(i,"S"+IntegerToString(intervalseconds[i]),(Seconds==i));
 }
 
 
@@ -438,9 +555,10 @@ void CreateButton(int index, string text, bool selected=false)
    ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
    ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_LEFT_LOWER);
    ObjectSetInteger(0,objname,OBJPROP_ANCHOR,ANCHOR_LEFT_LOWER);
+   index++;
    int space=index*25;
    if(index>=6)
-      space+=(8*(index-5));
+      space+=(8*(index-6));
    ObjectSetInteger(0,objname,OBJPROP_XDISTANCE,MarginX+space);
    ObjectSetInteger(0,objname,OBJPROP_YDISTANCE,MarginY);
    color c=Color;
