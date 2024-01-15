@@ -65,6 +65,7 @@ input double AboveBEPercentATR = 4;
 input double StartTrailingPips = 7;
 input double TakeProfitPips = 0;
 input double StopLossPips = 0;
+input bool SetTerminalStopLoss = false;
 input bool HedgeAtStopLoss = false;
 input double HedgeVolumeFactor = 1;
 input double HedgeFlatAtLevel = 5;
@@ -2723,27 +2724,29 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL, doub
       s=symbol;
    string c=appnamespace+IntegerToString(m);
    WS.lastorderexecution=TimeLocal();
-#ifdef __MQL4__
-   int ret=OrderSend(s,OP_BUY,v,AskX(s),5,0,0,c,m);
-   if(ret>-1)
-      NewTradeReference(m,true,sl,tp,sll,tpl);
-   if(ret>-1&&magicnumber==NULL)
-      WS.currentbasemagicnumber++;
-   SetLastError(ret);
-   return (ret>-1);
-#endif
-#ifdef __MQL5__
    CTrade trade;
    trade.SetExpertMagicNumber(m);
-   //bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,AskX(s),NULL,NULL,c);
-   bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,0,NULL,NULL,c);
+   double terminalstoploss=NULL;
+   if(SetTerminalStopLoss && s==Symbol())
+   {
+      if(sll!=NULL)
+         terminalstoploss=sll;
+      if(terminalstoploss==NULL)
+      {
+         double tempslpoints=sl;
+         if(tempslpoints==NULL && _StopLossPips!=DISABLEDPOINTS)
+            tempslpoints=_StopLossPips;
+         if(tempslpoints!=NULL)
+            terminalstoploss=AskX()-((tempslpoints-SymbolCommissionPoints())*Point());
+      }
+   }
+   bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,0,terminalstoploss,NULL,c);
    if(ret)
       NewTradeReference(m,true,sl,tp,sll,tpl);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
    return ret;
-#endif
 }
 
 
@@ -2760,27 +2763,29 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL, dou
       s=symbol;
    string c=appnamespace+IntegerToString(m);
    WS.lastorderexecution=TimeLocal();
-#ifdef __MQL4__
-   int ret=OrderSend(s,OP_SELL,v,BidX(s),5,0,0,c,m);
-   if(ret>-1)
-      NewTradeReference(m,true,sl,tp,sll,tpl);
-   if(ret>-1&&magicnumber==NULL)
-      WS.currentbasemagicnumber++;
-   SetLastError(ret);
-   return (ret>-1);
-#endif
-#ifdef __MQL5__
    CTrade trade;
    trade.SetExpertMagicNumber(m);
-   //bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,BidX(s),NULL,NULL,c);
-   bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,0,NULL,NULL,c);
+   double terminalstoploss=NULL;
+   if(SetTerminalStopLoss && s==Symbol())
+   {
+      if(sll!=NULL)
+         terminalstoploss=sll;
+      if(terminalstoploss==NULL)
+      {
+         double tempslpoints=sl;
+         if(tempslpoints==NULL && _StopLossPips!=DISABLEDPOINTS)
+            tempslpoints=_StopLossPips;
+         if(tempslpoints!=NULL)
+            terminalstoploss=BidX()+((tempslpoints-SymbolCommissionPoints())*Point());
+      }
+   }
+   bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,0,terminalstoploss,NULL,c);
    if(ret)
       NewTradeReference(m,true,sl,tp,sll,tpl);
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
    return ret;
-#endif
 }
 
 
