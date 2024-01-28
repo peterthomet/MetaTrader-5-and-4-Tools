@@ -10,7 +10,16 @@
 //#define SOCKET_LIBRARY_USE_EVENTS
 #include <SocketLibrary.mqh>
 
-input ushort Port = 56789;
+enum TypeRole
+{
+   Sender, // Sender
+   Receiver // Receiver
+};
+
+input ushort InternalPort=51000; // Internal Port (Unique for each Terminal)
+input ushort CommonPort=52000; // Common Port
+input TypeRole Role=Sender;
+input string SenderIP="127.0.0.1"; // Sender IP Address (Used if Role is Receiver)
 
 ServerSocket* Server=NULL;
 ClientSocket* Clients[];
@@ -18,7 +27,7 @@ ClientSocket* Clients[];
 
 void OnStart()
 {
-   Server=new ServerSocket(Port,false);
+   Server=new ServerSocket(CommonPort,false);
    if(!Server.Created())
       return;
 
