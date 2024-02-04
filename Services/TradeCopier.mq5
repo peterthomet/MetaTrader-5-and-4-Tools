@@ -16,19 +16,41 @@ enum TypeRole
    Receiver // Receiver
 };
 
-input ushort InternalPort=51000; // Internal Port (Unique for each Terminal)
-input ushort CommonPort=52000; // Common Port
+enum TypeMessages
+{
+   SERVICE_MSG_ROLE,
+   SERVICE_MSG_PORT
+};
+
+input ushort InternalPort=50000; // Internal Port (Unique for each Terminal)
+input ushort CommonPort=60000; // Common Port
 input TypeRole Role=Sender;
 input string SenderIP="127.0.0.1"; // Sender IP Address (Used if Role is Receiver)
 
+ServerSocket* ServerInternal=NULL;
 ServerSocket* Server=NULL;
 ClientSocket* Clients[];
+long chartid_tm;
 
 
 void OnStart()
 {
+   long chartid=ChartFirst();
+   while(chartid>-1)
+   {
+      if(ChartGetString(chartid,CHART_EXPERT_NAME)=="Trade Manager")
+      {
+         chartid_tm=chartid;
+         break;
+      }
+      chartid=ChartNext(chartid);
+   }
+   EventChartCustom(chartid_tm,6601,SERVICE_MSG_ROLE,0,IntegerToString(Role));
+   EventChartCustom(chartid_tm,6601,SERVICE_MSG_PORT,0,IntegerToString(InternalPort));
+
+   ServerInternal=new ServerSocket(InternalPort,true);
    Server=new ServerSocket(CommonPort,false);
-   if(!Server.Created())
+   if(!Server.Created()||!ServerInternal.Created())
       return;
 
    while(!IsStopped())
@@ -44,6 +66,7 @@ void OnStart()
    for(int i=0;i<ArraySize(Clients);i++)
       delete Clients[i];
 
+   delete ServerInternal;
    delete Server;
 }
 
