@@ -588,6 +588,21 @@ TypeTextObjects TextObjects;
 TypeWorkingState WS;
 TypeBasketInfo BI;
 
+enum TypeRole
+{
+   Sender, // Sender
+   Receiver // Receiver
+};
+
+enum TypeMessages
+{
+   SERVICE_MSG_ROLE,
+   SERVICE_MSG_PORT
+};
+
+int TradeCopierRole;
+string TradeCopierPort;
+
 
 void OnInit()
 {
@@ -612,6 +627,8 @@ void OnInit()
    initerror=false;
    appinit=false;
    working=false;
+   
+   TradeCopierRole=-1;
    
    appnamespace=appname+" "+IntegerToString(Instance)+" ";
 
@@ -3555,6 +3572,20 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       }
    }
    
+   if(id-CHARTEVENT_CUSTOM==6601)
+   {
+      if(lparam==SERVICE_MSG_ROLE)
+      {
+         TradeCopierRole=(int)StringToInteger(sparam);
+         Print("TradeCopier Role: "+sparam);
+      }
+
+      if(lparam==SERVICE_MSG_PORT)
+      {
+         TradeCopierPort=sparam;
+         Print("TradeCopier Port: "+sparam);
+      }
+   }
 }
 
 
