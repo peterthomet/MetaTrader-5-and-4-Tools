@@ -12,8 +12,8 @@
 
 enum TypeRole
 {
-   Sender, // Sender
-   Receiver // Receiver
+   Sender=1, // Sender
+   Receiver=2 // Receiver
 };
 
 enum TypeMessages
