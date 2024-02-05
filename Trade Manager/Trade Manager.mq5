@@ -590,8 +590,8 @@ TypeBasketInfo BI;
 
 enum TypeRole
 {
-   Sender, // Sender
-   Receiver // Receiver
+   Sender=1, // Sender
+   Receiver=2 // Receiver
 };
 
 enum TypeMessages
@@ -627,8 +627,6 @@ void OnInit()
    initerror=false;
    appinit=false;
    working=false;
-   
-   TradeCopierRole=-1;
    
    appnamespace=appname+" "+IntegerToString(Instance)+" ";
 
@@ -769,6 +767,20 @@ void AppInit()
       }
    }
    appinit=true;
+
+
+   //int socket=SocketCreate(SOCKET_DEFAULT);
+   //Print("Trying to Connect");
+   //SocketConnect(socket,"127.0.0.1",50000,10);
+   //if(SocketIsConnected(socket))
+   //{
+   //   Print("Connected");
+   //}
+   //else
+   //   Print("Connection Failed: "+_LastError);
+   //SocketClose(socket);
+
+
 }
 
 
