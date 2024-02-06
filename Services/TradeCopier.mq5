@@ -31,6 +31,7 @@ ServerSocket* ServerInternal=NULL;
 ServerSocket* Server=NULL;
 ClientSocket* Clients[];
 long chartid_tm;
+ulong timer1;
 
 
 void OnStart()
@@ -45,16 +46,16 @@ void OnStart()
       }
       chartid=ChartNext(chartid);
    }
-   EventChartCustom(chartid_tm,6601,SERVICE_MSG_ROLE,0,IntegerToString(Role));
-   EventChartCustom(chartid_tm,6601,SERVICE_MSG_PORT,0,IntegerToString(InternalPort));
 
-   ServerInternal=new ServerSocket(InternalPort,true);
-   Server=new ServerSocket(CommonPort,false);
+   ServerInternal=new ServerSocket(CommonPort,true);
+   Server=new ServerSocket(InternalPort,false);
    if(!Server.Created()||!ServerInternal.Created())
       return;
 
    while(!IsStopped())
    {
+      BroadcastSettings();
+   
       AcceptNewConnections();
       
       for(int i=ArraySize(Clients)-1;i>=0;i--)
@@ -68,6 +69,17 @@ void OnStart()
 
    delete ServerInternal;
    delete Server;
+}
+
+
+void BroadcastSettings()
+{
+   if(GetTickCount64()-timer1>=5000)
+   {
+      EventChartCustom(chartid_tm,6601,SERVICE_MSG_ROLE,0,IntegerToString(Role));
+      EventChartCustom(chartid_tm,6601,SERVICE_MSG_PORT,0,IntegerToString(InternalPort));
+      timer1=GetTickCount64();
+   }
 }
 
 
@@ -152,12 +164,8 @@ void HandleIncomingData(int clientindex)
          }
          
       }
-      else if (command != "")
-      {
-         // Potentially handle other commands etc here.
-         // For example purposes, we'll simply print messages to the Experts log
-         Print("<- ",command);
-      }
+      //else if(command!="")
+      //   Print(command);
    }
    while(command!="");
 
