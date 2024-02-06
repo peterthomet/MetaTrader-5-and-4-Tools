@@ -600,8 +600,15 @@ enum TypeMessages
    SERVICE_MSG_PORT
 };
 
-int TradeCopierRole;
-string TradeCopierPort;
+struct TypeTradeCopier
+{
+   int role;
+   string port;
+   int socket;
+   ulong heartbeattimer;
+};
+
+TypeTradeCopier TC;
 
 
 void OnInit()
@@ -767,20 +774,6 @@ void AppInit()
       }
    }
    appinit=true;
-
-
-   //int socket=SocketCreate(SOCKET_DEFAULT);
-   //Print("Trying to Connect");
-   //SocketConnect(socket,"127.0.0.1",50000,10);
-   //if(SocketIsConnected(socket))
-   //{
-   //   Print("Connected");
-   //}
-   //else
-   //   Print("Connection Failed: "+_LastError);
-   //SocketClose(socket);
-
-
 }
 
 
@@ -865,6 +858,9 @@ void InitStrategies()
 
 void OnDeinit(const int reason)
 {
+   if(reason!=REASON_CHARTCHANGE)
+      SocketClose(TC.socket);
+
    for(int i=ArraySize(strats)-1; i>=0; i--)
       delete strats[i];
 
@@ -919,6 +915,8 @@ void Manage()
       WS.closecommands.commands[closecommandindex].executed=true;
       closecommandindex=WS.closecommands.GetNextCommandIndex();
    }
+
+   ManageTradeCopier();
 
    ManageLipStick();
 
@@ -975,6 +973,38 @@ void SetHardStopMode()
    WS.ResetLocks();
       
    SetGlobalVariables();
+}
+
+
+void ManageTradeCopier()
+{
+   if(TC.role==Sender && TC.port!="")
+   {
+      if(!SocketIsConnected(TC.socket))
+      {
+         if(!TC.socket)
+            TC.socket=SocketCreate(SOCKET_DEFAULT);
+         if(TC.socket)
+            SocketConnect(TC.socket,"127.0.0.1",(uint)TC.port,1);
+      }
+      else
+      {
+         if(GetTickCount64()-TC.heartbeattimer>=5000)
+         {
+            TradeCopierSend("HEARTBEAT");
+            TC.heartbeattimer=GetTickCount64();
+         }
+      }
+   }
+}
+
+
+void TradeCopierSend(string message)
+{
+   message+="\r\n";
+   char cmdarr[];
+   int len=StringToCharArray(message,cmdarr)-1;
+   SocketSend(TC.socket,cmdarr,len);
 }
 
 
@@ -2771,7 +2801,12 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL, doub
    }
    bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,0,terminalstoploss,NULL,c);
    if(ret)
+   {
       NewTradeReference(m,true,sl,tp,sll,tpl);
+
+      if(TC.role==Sender)
+         TradeCopierSend("BUY;"+s+";"+DoubleToString(v)+";"+DoubleToString(sl)+";"+DoubleToString(tp)+";"+DoubleToString(sll)+";"+DoubleToString(tpl));
+   }
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -3588,14 +3623,12 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
    {
       if(lparam==SERVICE_MSG_ROLE)
       {
-         TradeCopierRole=(int)StringToInteger(sparam);
-         Print("TradeCopier Role: "+sparam);
+         TC.role=(int)StringToInteger(sparam);
       }
 
       if(lparam==SERVICE_MSG_PORT)
       {
-         TradeCopierPort=sparam;
-         Print("TradeCopier Port: "+sparam);
+         TC.port=sparam;
       }
    }
 }
