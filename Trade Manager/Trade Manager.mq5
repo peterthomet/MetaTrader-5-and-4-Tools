@@ -401,6 +401,9 @@ struct TypeCloseCommands
       int size=ArraySize(commands);
       ArrayResize(commands,size+1);
       commands[size].filter=filter;
+
+      if(TC.role==Sender)
+         TradeCopierSend("CLOSE;"+filter);
    }
    int GetNextCommandIndex()
    {
@@ -597,7 +600,8 @@ enum TypeRole
 enum TypeMessages
 {
    SERVICE_MSG_ROLE,
-   SERVICE_MSG_PORT
+   SERVICE_MSG_PORT,
+   SERVICE_MSG_COMMAND
 };
 
 struct TypeTradeCopier
@@ -2805,7 +2809,7 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL, doub
       NewTradeReference(m,true,sl,tp,sll,tpl);
 
       if(TC.role==Sender)
-         TradeCopierSend("BUY;"+s+";"+DoubleToString(v)+";"+DoubleToString(sl)+";"+DoubleToString(tp)+";"+DoubleToString(sll)+";"+DoubleToString(tpl));
+         TradeCopierSend("BUY;"+s+";"+DoubleToString(v)+";"+IntegerToString(m)+";"+DoubleToString(sl)+";"+DoubleToString(tp)+";"+DoubleToString(sll)+";"+DoubleToString(tpl));
    }
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
@@ -2845,7 +2849,12 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL, dou
    }
    bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,0,terminalstoploss,NULL,c);
    if(ret)
+   {
       NewTradeReference(m,true,sl,tp,sll,tpl);
+      
+      if(TC.role==Sender)
+         TradeCopierSend("SELL;"+s+";"+DoubleToString(v)+";"+IntegerToString(m)+";"+DoubleToString(sl)+";"+DoubleToString(tp)+";"+DoubleToString(sll)+";"+DoubleToString(tpl));
+   }
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
    SetLastErrorBool(ret);
@@ -3625,10 +3634,25 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       {
          TC.role=(int)StringToInteger(sparam);
       }
-
       if(lparam==SERVICE_MSG_PORT)
       {
          TC.port=sparam;
+      }
+      if(lparam==SERVICE_MSG_COMMAND)
+      {
+         string r[];
+         ushort separator=';';
+         StringSplit(sparam,separator,r);
+         //Print(r[0]+";"+r[1]);
+         if(TC.role!=Sender)
+         {
+            if(r[0]=="BUY")
+               OpenBuy(r[1],StringToDouble(r[2]),StringToInteger(r[3]),StringToDouble(r[4]),StringToDouble(r[5]),StringToDouble(r[6]),StringToDouble(r[7]));
+            if(r[0]=="SELL")
+               OpenSell(r[1],StringToDouble(r[2]),StringToInteger(r[3]),StringToDouble(r[4]),StringToDouble(r[5]),StringToDouble(r[6]),StringToDouble(r[7]));
+            if(r[0]=="CLOSE")
+               WS.closecommands.Add(r[1]);
+         }
       }
    }
 }
