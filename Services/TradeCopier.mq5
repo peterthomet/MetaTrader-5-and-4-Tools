@@ -19,56 +19,145 @@ enum TypeRole
 enum TypeMessages
 {
    SERVICE_MSG_ROLE,
-   SERVICE_MSG_PORT
+   SERVICE_MSG_PORT,
+   SERVICE_MSG_COMMAND
 };
 
-input ushort InternalPort=50000; // Internal Port (Unique for each Terminal)
-input ushort CommonPort=60000; // Common Port
+input ushort Port=50000; // Tcp Port
 input TypeRole Role=Sender;
 input string SenderIP="127.0.0.1"; // Sender IP Address (Used if Role is Receiver)
+input string SymbolTranslation="EURUSDExternal=EURUSD;GBPUSDExternal=GBPUSD"; // Symbol Translation (Used if Role is Receiver)
 
-ServerSocket* ServerInternal=NULL;
 ServerSocket* Server=NULL;
 ClientSocket* Clients[];
+ClientSocket* Client=NULL;
 long chartid_tm;
 ulong timer1;
+string symbolexternal[];
+string symbolinternal[];
 
 
 void OnStart()
 {
-   long chartid=ChartFirst();
-   while(chartid>-1)
-   {
-      if(ChartGetString(chartid,CHART_EXPERT_NAME)=="Trade Manager")
-      {
-         chartid_tm=chartid;
-         break;
-      }
-      chartid=ChartNext(chartid);
-   }
+   if(!GetTradeManagerChartID())
+      return;
+   LoadTranslationTable();      
+   
+   if(Role==Sender)
+      SenderStart();
+   if(Role==Receiver)
+      ReceiverStart();
+}
 
-   ServerInternal=new ServerSocket(CommonPort,true);
-   Server=new ServerSocket(InternalPort,false);
-   if(!Server.Created()||!ServerInternal.Created())
+
+void SenderStart()
+{
+   Server=new ServerSocket(Port,false);
+   if(!Server.Created())
       return;
 
    while(!IsStopped())
    {
       BroadcastSettings();
-   
       AcceptNewConnections();
-      
       for(int i=ArraySize(Clients)-1;i>=0;i--)
-         HandleIncomingData(i);
-
+         BroadcastMessages(i);
       Sleep(1);
    }
 
    for(int i=0;i<ArraySize(Clients);i++)
       delete Clients[i];
 
-   delete ServerInternal;
    delete Server;
+   Server=NULL;
+}
+
+
+void ReceiverStart()
+{
+   while(!IsStopped())
+   {
+      //BroadcastSettings();
+      if(!Client)
+      {
+         Client=new ClientSocket(SenderIP,Port);
+      }
+      else
+      {
+         if(Client.IsSocketConnected())
+         {
+            string message;
+            do
+            {
+               message=Client.Receive("\r\n");
+               if(message!="")
+               {
+                  EventChartCustom(chartid_tm,6601,SERVICE_MSG_COMMAND,0,Translate(message));
+                  //Print(message);
+               }
+            }
+            while(message!="");
+         }
+         else
+         {
+            delete Client;
+            Client=NULL;            
+         }
+      }
+      Sleep(1);
+   }
+
+   if(Client)
+   {
+      delete Client;
+      Client=NULL;            
+   }
+}
+
+
+void LoadTranslationTable()
+{
+   ushort separator=';';
+   StringSplit(SymbolTranslation,separator,symbolexternal);
+   int n=ArraySize(symbolexternal);
+   ArrayResize(symbolinternal,n);
+   for(int i=0;i<n;i++)
+   {
+      int s=symbolexternal[i].Find("=");
+      if(s>0)
+      {
+         symbolinternal[i]=symbolexternal[i].Substr(s+1,-1);
+         symbolexternal[i]=symbolexternal[i].Substr(0,s);
+         //Print(symbolexternal[i]+"="+symbolinternal[i]);
+      }
+   }
+}
+
+
+string Translate(string& str)
+{
+   int n=ArraySize(symbolexternal);
+   for(int i=0;i<n;i++)
+      StringReplace(str,symbolexternal[i],symbolinternal[i]);
+   return str;
+}
+
+
+bool GetTradeManagerChartID()
+{
+   bool found=false;
+   long chartid=ChartFirst();
+   while(chartid>-1)
+   {
+      if(ChartGetString(chartid,CHART_EXPERT_NAME)=="Trade Manager")
+      {
+         chartid_tm=chartid;
+         found=true;
+         break;
+      }
+      chartid=ChartNext(chartid);
+   }
+   return found;
 }
 
 
@@ -77,7 +166,7 @@ void BroadcastSettings()
    if(GetTickCount64()-timer1>=5000)
    {
       EventChartCustom(chartid_tm,6601,SERVICE_MSG_ROLE,0,IntegerToString(Role));
-      EventChartCustom(chartid_tm,6601,SERVICE_MSG_PORT,0,IntegerToString(InternalPort));
+      EventChartCustom(chartid_tm,6601,SERVICE_MSG_PORT,0,IntegerToString(Port));
       timer1=GetTickCount64();
    }
 }
@@ -100,84 +189,35 @@ void AcceptNewConnections()
 }
 
 
-void HandleIncomingData(int clientindex)
+void BroadcastMessages(int clientindex)
 {
    ClientSocket* client=Clients[clientindex];
 
-   bool forceclose = false;
    string command;
-
    do
    {
-      command = client.Receive("\r\n");
-
-      if(command=="quote")
+      command=client.Receive("\r\n");
+      if(command!="" && command!="HEARTBEAT")
       {
-         client.Send(Symbol() + "," + DoubleToString(SymbolInfoDouble(Symbol(), SYMBOL_BID), 6) + "," + DoubleToString(SymbolInfoDouble(Symbol(), SYMBOL_ASK), 6) + "\r\n");
-      }
-      else if(command=="close")
-      {
-         forceclose = true;
-
-      }
-      else if(StringFind(command,"FILE:")==0)
-      {
-         // ** See the example file-send script... **
-      
-         // Extract the base64 file data - the message minus the FILE: header - and 
-         // put it into an array 
-         string strFileData = StringSubstr(command, 5);
-         uchar arrBase64[];
-         StringToCharArray(strFileData, arrBase64, 0, StringLen(strFileData));
-         
-         // Do base64 decoding on the data, converting it to the zipped data 
-         uchar arrZipped[], dummyKey[];
-         if (CryptDecode(CRYPT_BASE64, arrBase64, dummyKey, arrZipped))
+         int cnt=ArraySize(Clients);
+         for(int i=0;i<cnt;i++)
          {
-            
-            // Unzip the data 
-            uchar arrOriginal[];
-            if (CryptDecode(CRYPT_ARCH_ZIP, arrZipped, dummyKey, arrOriginal))
+            if(i!=clientindex)
             {
-               // Okay, we should now have the raw file 
-               int f = FileOpen("receive.dat", FILE_BIN | FILE_WRITE);
-               if (f == INVALID_HANDLE)
-               {
-                  Print("Unable to open receive.dat for writing");
-               }
-               else
-               {
-                  FileWriteArray(f, arrOriginal);
-                  FileClose(f);
-                  
-                  Print("Created receive.dat file");
-               }
-            }
-            else
-            {
-               Print("Unzipping of file data failed");               
+               Clients[i].Send(command+"\r\n");
             }
          }
-         else
-         {
-            Print("Decoding from base64 failed");
-         }
-         
       }
-      //else if(command!="")
-      //   Print(command);
    }
    while(command!="");
 
-   if(!client.IsSocketConnected() || forceclose)
+   if(!client.IsSocketConnected())
    {
-      Print("Client has disconnected");
-
       delete client;
-      int ctClients = ArraySize(Clients);
-      for(int i = clientindex + 1; i < ctClients; i++)
-         Clients[i - 1] = Clients[i];
-      ctClients--;
-      ArrayResize(Clients, ctClients);
+      int cnt=ArraySize(Clients);
+      for(int i=clientindex+1;i<cnt;i++)
+         Clients[i-1]=Clients[i];
+      ArrayResize(Clients,cnt-1);
    }
 }
+
