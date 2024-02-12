@@ -20,7 +20,10 @@ enum TypeMessages
 {
    SERVICE_MSG_ROLE,
    SERVICE_MSG_PORT,
-   SERVICE_MSG_COMMAND
+   SERVICE_MSG_IP,
+   SERVICE_MSG_COMMAND,
+   SERVICE_MSG_CLIENTS,
+   SERVICE_MSG_CONNECTED
 };
 
 input ushort Port=50000; // Tcp Port
@@ -35,18 +38,23 @@ long chartid_tm;
 ulong timer1;
 string symbolexternal[];
 string symbolinternal[];
+const string vc="TradeCopierServiceFlag";
 
 
 void OnStart()
 {
-   if(!GetTradeManagerChartID())
+   if(InstanceCheck() || !GetTradeManagerChartID())
       return;
+   
    LoadTranslationTable();      
    
    if(Role==Sender)
       SenderStart();
+
    if(Role==Receiver)
       ReceiverStart();
+
+   GlobalVariableDel(vc);
 }
 
 
@@ -56,7 +64,7 @@ void SenderStart()
    if(!Server.Created())
       return;
 
-   while(!IsStopped())
+   do
    {
       BroadcastSettings();
       AcceptNewConnections();
@@ -64,6 +72,7 @@ void SenderStart()
          BroadcastMessages(i);
       Sleep(1);
    }
+   while(!IsStopped());
 
    for(int i=0;i<ArraySize(Clients);i++)
       delete Clients[i];
@@ -75,9 +84,10 @@ void SenderStart()
 
 void ReceiverStart()
 {
+   bool isclientconnected=false;
    while(!IsStopped())
    {
-      //BroadcastSettings();
+      BroadcastSettings(isclientconnected);
       if(!Client)
       {
          Client=new ClientSocket(SenderIP,Port);
@@ -86,6 +96,7 @@ void ReceiverStart()
       {
          if(Client.IsSocketConnected())
          {
+            isclientconnected=true;
             string message;
             do
             {
@@ -100,6 +111,7 @@ void ReceiverStart()
          }
          else
          {
+            isclientconnected=false;
             delete Client;
             Client=NULL;            
          }
@@ -112,6 +124,22 @@ void ReceiverStart()
       delete Client;
       Client=NULL;            
    }
+}
+
+
+bool InstanceCheck()
+{
+   if(GlobalVariableCheck(vc))
+   {
+      Print("Terminated, one Instance of this Service already running!");
+      return true;
+   }
+   else
+   {
+      GlobalVariableTemp(vc);
+      GlobalVariableSet(vc,1);
+   }
+   return false;
 }
 
 
@@ -161,12 +189,15 @@ bool GetTradeManagerChartID()
 }
 
 
-void BroadcastSettings()
+void BroadcastSettings(bool isclientconnected=false)
 {
    if(GetTickCount64()-timer1>=5000)
    {
       EventChartCustom(chartid_tm,6601,SERVICE_MSG_ROLE,0,IntegerToString(Role));
       EventChartCustom(chartid_tm,6601,SERVICE_MSG_PORT,0,IntegerToString(Port));
+      EventChartCustom(chartid_tm,6601,SERVICE_MSG_IP,0,SenderIP);
+      EventChartCustom(chartid_tm,6601,SERVICE_MSG_CLIENTS,0,IntegerToString(ArraySize(Clients)-1));
+      EventChartCustom(chartid_tm,6601,SERVICE_MSG_CONNECTED,0,IntegerToString(isclientconnected));
       timer1=GetTickCount64();
    }
 }
@@ -183,6 +214,7 @@ void AcceptNewConnections()
          int sz=ArraySize(Clients);
          ArrayResize(Clients,sz+1);
          Clients[sz]=NewClient;
+         //Print("New Client connected");
       }
    }
    while(NewClient!=NULL);
