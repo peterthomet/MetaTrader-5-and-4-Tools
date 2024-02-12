@@ -601,15 +601,22 @@ enum TypeMessages
 {
    SERVICE_MSG_ROLE,
    SERVICE_MSG_PORT,
-   SERVICE_MSG_COMMAND
+   SERVICE_MSG_IP,
+   SERVICE_MSG_COMMAND,
+   SERVICE_MSG_CLIENTS,
+   SERVICE_MSG_CONNECTED
 };
 
 struct TypeTradeCopier
 {
    int role;
    string port;
+   string ip;
    int socket;
    ulong heartbeattimer;
+   int clients;
+   bool isclientconnected;
+   ulong lastmessagetime;
 };
 
 TypeTradeCopier TC;
@@ -1000,6 +1007,8 @@ void ManageTradeCopier()
          }
       }
    }
+   if(GetTickCount64()-TC.lastmessagetime>6000)
+      TC.role=0;
 }
 
 
@@ -1667,6 +1676,27 @@ void DisplayText()
          CreateLabel(rowindex,FontSize,TextColorMinus,tickchar+" No Market Activity");
       else
          CreateLabel(rowindex,FontSize,TextColorPlus,tickchar+" Running");
+      rowindex++;
+   }
+
+   if(TC.role==Sender)
+   {
+      CreateLabel(rowindex,FontSize,TextColorInfo,"Trade Copier Sender");
+      rowindex++;
+      string terminalstext="No Terminal Connected";
+      if(TC.clients>0)
+         terminalstext=IntegerToString(TC.clients)+" Terminal Connected";
+      CreateLabel(rowindex,FontSize,TextColorInfo,terminalstext);
+      rowindex++;
+   }
+   if(TC.role==Receiver)
+   {
+      CreateLabel(rowindex,FontSize,TextColorInfo,"Trade Copier Receiver");
+      rowindex++;
+      string connectedtext="Not Connected";
+      if(TC.isclientconnected)
+         connectedtext="Connected to "+TC.ip+":"+TC.port;
+      CreateLabel(rowindex,FontSize,TextColorInfo,connectedtext);
       rowindex++;
    }
    
@@ -2806,10 +2836,18 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL, doub
    bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,0,terminalstoploss,NULL,c);
    if(ret)
    {
-      NewTradeReference(m,true,sl,tp,sll,tpl);
+      NewTradeReference(m,(s==Symbol()),sl,tp,sll,tpl);
 
       if(TC.role==Sender)
-         TradeCopierSend("BUY;"+s+";"+DoubleToString(v)+";"+IntegerToString(m)+";"+DoubleToString(sl)+";"+DoubleToString(tp)+";"+DoubleToString(sll)+";"+DoubleToString(tpl));
+      {
+         double slsend=sl;
+         double tpsend=tp;
+         if(sl==NULL && sll==NULL && _StopLossPips!=DISABLEDPOINTS && s==Symbol())
+            slsend=_StopLossPips;
+         if(tp==NULL && tpl==NULL && _TakeProfitPips!=DISABLEDPOINTS && s==Symbol())
+            tpsend=_TakeProfitPips;
+         TradeCopierSend("BUY;"+s+";"+DoubleToString(v)+";"+IntegerToString(m)+";"+DoubleToString(slsend)+";"+DoubleToString(tpsend)+";"+DoubleToString(sll)+";"+DoubleToString(tpl));
+      }
    }
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
@@ -2850,10 +2888,18 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL, dou
    bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,0,terminalstoploss,NULL,c);
    if(ret)
    {
-      NewTradeReference(m,true,sl,tp,sll,tpl);
+      NewTradeReference(m,(s==Symbol()),sl,tp,sll,tpl);
       
       if(TC.role==Sender)
-         TradeCopierSend("SELL;"+s+";"+DoubleToString(v)+";"+IntegerToString(m)+";"+DoubleToString(sl)+";"+DoubleToString(tp)+";"+DoubleToString(sll)+";"+DoubleToString(tpl));
+      {
+         double slsend=sl;
+         double tpsend=tp;
+         if(sl==NULL && sll==NULL && _StopLossPips!=DISABLEDPOINTS && s==Symbol())
+            slsend=_StopLossPips;
+         if(tp==NULL && tpl==NULL && _TakeProfitPips!=DISABLEDPOINTS && s==Symbol())
+            tpsend=_TakeProfitPips;
+         TradeCopierSend("SELL;"+s+";"+DoubleToString(v)+";"+IntegerToString(m)+";"+DoubleToString(slsend)+";"+DoubleToString(tpsend)+";"+DoubleToString(sll)+";"+DoubleToString(tpl));
+      }
    }
    if(ret&&magicnumber==NULL)
       WS.currentbasemagicnumber++;
@@ -3633,11 +3679,16 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       if(lparam==SERVICE_MSG_ROLE)
       {
          TC.role=(int)StringToInteger(sparam);
+         TC.lastmessagetime=GetTickCount64();
       }
       if(lparam==SERVICE_MSG_PORT)
-      {
          TC.port=sparam;
-      }
+      if(lparam==SERVICE_MSG_IP)
+         TC.ip=sparam;
+      if(lparam==SERVICE_MSG_CLIENTS)
+         TC.clients=(int)StringToInteger(sparam);
+      if(lparam==SERVICE_MSG_CONNECTED)
+         TC.isclientconnected=(int)StringToInteger(sparam);
       if(lparam==SERVICE_MSG_COMMAND)
       {
          string r[];
