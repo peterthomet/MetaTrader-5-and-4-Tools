@@ -111,6 +111,7 @@ input int PendingOrdersSplit = 3;
 input double PendingOrdersRiskFactor = 3;
 input double PendingOrdersFirstTPStep = 5;
 input double PendingOrdersNextTPSteps = 1;
+input double TradeCopierRiskFactor = 1;
 input int StartHour = 0;
 input int StartMinute = 0;
 input int MinPoints1 = 0;
@@ -1007,7 +1008,7 @@ void ManageTradeCopier()
          }
       }
    }
-   if(GetTickCount64()-TC.lastmessagetime>6000)
+   if(GetTickCount64()-TC.lastmessagetime>7000)
       TC.role=0;
 }
 
@@ -2846,7 +2847,9 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL, doub
             slsend=_StopLossPips;
          if(tp==NULL && tpl==NULL && _TakeProfitPips!=DISABLEDPOINTS && s==Symbol())
             tpsend=_TakeProfitPips;
-         TradeCopierSend("BUY;"+s+";"+DoubleToString(v)+";"+IntegerToString(m)+";"+DoubleToString(slsend)+";"+DoubleToString(tpsend)+";"+DoubleToString(sll)+";"+DoubleToString(tpl));
+
+         double pointvalue=SymbolInfoDouble(s,SYMBOL_TRADE_TICK_VALUE)*(SymbolInfoDouble(s,SYMBOL_POINT)/SymbolInfoDouble(s,SYMBOL_TRADE_TICK_SIZE));
+         TradeCopierSend("BUY;"+s+";"+DoubleToString(v)+";"+IntegerToString(m)+";"+DoubleToString(slsend)+";"+DoubleToString(tpsend)+";"+DoubleToString(sll)+";"+DoubleToString(tpl)+";"+DoubleToString((pointvalue*v)/AccountInfoDouble(ACCOUNT_BALANCE),-16));
       }
    }
    if(ret&&magicnumber==NULL)
@@ -2898,7 +2901,9 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL, dou
             slsend=_StopLossPips;
          if(tp==NULL && tpl==NULL && _TakeProfitPips!=DISABLEDPOINTS && s==Symbol())
             tpsend=_TakeProfitPips;
-         TradeCopierSend("SELL;"+s+";"+DoubleToString(v)+";"+IntegerToString(m)+";"+DoubleToString(slsend)+";"+DoubleToString(tpsend)+";"+DoubleToString(sll)+";"+DoubleToString(tpl));
+         
+         double pointvalue=SymbolInfoDouble(s,SYMBOL_TRADE_TICK_VALUE)*(SymbolInfoDouble(s,SYMBOL_POINT)/SymbolInfoDouble(s,SYMBOL_TRADE_TICK_SIZE));
+         TradeCopierSend("SELL;"+s+";"+DoubleToString(v)+";"+IntegerToString(m)+";"+DoubleToString(slsend)+";"+DoubleToString(tpsend)+";"+DoubleToString(sll)+";"+DoubleToString(tpl)+";"+DoubleToString((pointvalue*v)/AccountInfoDouble(ACCOUNT_BALANCE),-16));
       }
    }
    if(ret&&magicnumber==NULL)
@@ -3697,10 +3702,18 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
          //Print(r[0]+";"+r[1]);
          if(TC.role!=Sender)
          {
+            double openvolume=0;
+            if(r[0]=="BUY"||r[0]=="SELL")
+            {
+               double pointvalue=SymbolInfoDouble(r[1],SYMBOL_TRADE_TICK_VALUE)*(SymbolInfoDouble(r[1],SYMBOL_POINT)/SymbolInfoDouble(r[1],SYMBOL_TRADE_TICK_SIZE));
+               openvolume=((StringToDouble(r[8])*AccountInfoDouble(ACCOUNT_BALANCE))/pointvalue)*TradeCopierRiskFactor;
+               double volumestep=SymbolInfoDouble(r[1],SYMBOL_VOLUME_STEP);
+               openvolume=MathRound(openvolume/volumestep)*volumestep;
+            }
             if(r[0]=="BUY")
-               OpenBuy(r[1],StringToDouble(r[2]),StringToInteger(r[3]),StringToDouble(r[4]),StringToDouble(r[5]),StringToDouble(r[6]),StringToDouble(r[7]));
+               OpenBuy(r[1],openvolume,StringToInteger(r[3]),StringToDouble(r[4]),StringToDouble(r[5]),StringToDouble(r[6]),StringToDouble(r[7]));
             if(r[0]=="SELL")
-               OpenSell(r[1],StringToDouble(r[2]),StringToInteger(r[3]),StringToDouble(r[4]),StringToDouble(r[5]),StringToDouble(r[6]),StringToDouble(r[7]));
+               OpenSell(r[1],openvolume,StringToInteger(r[3]),StringToDouble(r[4]),StringToDouble(r[5]),StringToDouble(r[6]),StringToDouble(r[7]));
             if(r[0]=="CLOSE")
                WS.closecommands.Add(r[1]);
          }
