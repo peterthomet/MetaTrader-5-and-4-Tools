@@ -112,3 +112,12 @@ MT5 uses the key codes not the characters. The characters listed here are based 
 
 [![](http://img.youtube.com/vi/tWLcVPxSsCo/maxresdefault.jpg)](http://www.youtube.com/watch?v=tWLcVPxSsCo "Synchronized Chart Scroll and Session Marking for MetaTrader 5")
 
+<br/>
+<br/>
+
+## Trade Copier Service for Trade Manager for MetaTrader 5
+
+
+[![](http://img.youtube.com/vi/wVk4FK8SvyU/maxresdefault.jpg)](http://www.youtube.com/watch?v=wVk4FK8SvyU "Trade Copier Service for Trade Manager for MetaTrader 5")
+
+
