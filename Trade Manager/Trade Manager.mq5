@@ -121,6 +121,7 @@ input bool Harvester_CSGBP45MinStrength = false;
 input bool Harvester_CSFollow = false;
 input bool Harvester_GBPWeek = false;
 input bool Harvester_CSEmergingTrends = false;
+input bool Harvester_CookieCutter = false;
 input bool UseCurrencyStrengthDatabase = false;
 input group "Trading Hours";
 input bool Hour0 = true;
@@ -863,6 +864,12 @@ void InitStrategies()
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyCSEmergingTrends;
+      i++;
+   }
+   if(Harvester_CookieCutter)
+   {
+      ArrayResize(strats,i+1);
+      strats[i]=new StrategyCookieCutter;
       i++;
    }
 }
@@ -5639,6 +5646,28 @@ public:
       }
 
       lastminute=times.t1;
+   }
+};
+
+
+class StrategyCookieCutter : public Strategy
+{
+   string Name;
+
+public:
+   string GetName() {return Name;}
+
+   StrategyCookieCutter()
+   {
+      Name="Harvester Cookie Cutter";
+   }
+
+   void IdleCalculate()
+   {
+   }
+
+   void Calculate()
+   {
    }
 };
 
