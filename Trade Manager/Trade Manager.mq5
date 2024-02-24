@@ -4080,6 +4080,43 @@ double ATR()
 
 
 
+// --------------------------------------------------------------
+// Patterns
+// --------------------------------------------------------------
+
+
+struct MarketStructureShift
+{
+   ENUM_TIMEFRAMES tf;
+   matrix m;
+   datetime lastminute;
+   void Update()
+   {
+      tf=PERIOD_M1;
+      if(!m.CopyRates(Symbol(),tf,COPY_RATES_OHLCT,1,20))
+         return;
+      Print(m);      
+   
+   }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -5657,13 +5694,21 @@ class StrategyCookieCutter : public Strategy
 public:
    string GetName() {return Name;}
 
+   MarketStructureShift mss1;
+
    StrategyCookieCutter()
    {
       Name="Harvester Cookie Cutter";
+
+      if(istesting)
+      {
+         WS.StopMode=None;
+      }
    }
 
    void IdleCalculate()
    {
+      mss1.Update();
    }
 
    void Calculate()
@@ -5673,15 +5718,6 @@ public:
 
 
 Strategy* strats[];
-
-
-
-
-
-
-
-
-
 
 
 
