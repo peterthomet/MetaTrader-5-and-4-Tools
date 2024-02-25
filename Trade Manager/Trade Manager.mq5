@@ -4093,10 +4093,32 @@ struct MarketStructureShift
    void Update()
    {
       tf=PERIOD_M1;
-      if(!m.CopyRates(Symbol(),tf,COPY_RATES_OHLCT,1,20))
+      if(!m.CopyRates(Symbol(),tf,COPY_RATES_OHLCT,1,50))
          return;
-      Print(m);      
-   
+
+      ulong c=m.Cols();
+      int currenttime=(int)m[4][c-1];
+      int count1=0, count2=0;
+
+      if(lastminute!=currenttime)
+      {
+         for(ulong i=c-1;i>1;i--)
+         {
+            if(m[1][i]<m[2][i-2] && count1<2)
+            {
+               CreateRectangle(0,appnamespace+"MSSRect1"+IntegerToString(count1),LightSalmon,m[2][i-2],m[1][i],(int)m[4][i-2],(int)m[4][c-1]);
+               count1++;
+            }
+            if(m[2][i]>m[1][i-2] && count2<2)
+            {
+               CreateRectangle(0,appnamespace+"MSSRect2"+IntegerToString(count2),PaleTurquoise,m[1][i-2],m[2][i],(int)m[4][i-2],(int)m[4][c-1]);
+               count2++;
+            }
+            if(count1==1&&count2==2)
+               break;
+         }
+      }
+      lastminute=currenttime;
    }
 };
 
