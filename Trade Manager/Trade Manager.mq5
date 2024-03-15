@@ -6,6 +6,8 @@
 #property copyright "Copyright 2023, getYourNet.ch"
 #property link "http://shop.getyournet.ch/trademanager"
 
+#define DB(time) if(IsServerTime(time)) DebugBreak()
+
 #ifdef __MQL4__
    #include <..\Libraries\stdlib.mq4>
 #endif
@@ -79,6 +81,7 @@ input int CloseTradesBeforeMidnightMinute = 00;
 input bool ActivateTrailing = false;
 input double TrailingFactor = 0.6;
 input double OpenLots = 0.01;
+input bool ExecutionTest = false;
 input bool ShowInfo = true;
 input color TextColor = Gray;
 input color TextColorBold = Black;
@@ -1564,7 +1567,7 @@ void ManageBasket()
    }
 
    if(closeall)
-      CloseAllInternal();
+      CloseAll();
       
    if(tradelevelsvisible)
    {
@@ -2841,7 +2844,16 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL, doub
             terminalstoploss=AskX()-((tempslpoints-SymbolCommissionPoints())*Point());
       }
    }
-   bool ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,0,terminalstoploss,NULL,c);
+   bool ret;
+   if(ExecutionTest)
+   {
+      PrintFormat("Testing Open Buy %s %.2f",s,v);
+      ret=true;
+   }
+   else
+   {
+      ret=trade.PositionOpen(s,ORDER_TYPE_BUY,v,0,terminalstoploss,NULL,c);
+   }
    if(ret)
    {
       NewTradeReference(m,(s==Symbol()),sl,tp,sll,tpl);
@@ -2895,7 +2907,16 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL, dou
             terminalstoploss=BidX()+((tempslpoints-SymbolCommissionPoints())*Point());
       }
    }
-   bool ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,0,terminalstoploss,NULL,c);
+   bool ret;
+   if(ExecutionTest)
+   {
+      PrintFormat("Testing Open Sell %s %.2f",s,v);
+      ret=true;
+   }
+   else
+   {
+      ret=trade.PositionOpen(s,ORDER_TYPE_SELL,v,0,terminalstoploss,NULL,c);
+   }
    if(ret)
    {
       NewTradeReference(m,(s==Symbol()),sl,tp,sll,tpl);
@@ -3182,6 +3203,15 @@ void WriteToClose()
 }
 
 
+void CloseAll(string filter="")
+{
+   if(TC.role==Sender)
+      TradeCopierSend("CLOSE;"+filter);
+
+   CloseAllInternal(filter);
+}
+
+
 void CloseAllInternal(string filter="")
 {
    bool closeall=StringLen(filter)==0;
@@ -3213,7 +3243,7 @@ void CloseAllInternal(string filter="")
                      && magicstart==0 )
                   || (magicstart>0 && (PositionGetInteger(POSITION_MAGIC)>=magicstart && PositionGetInteger(POSITION_MAGIC)<=magicend))
                )
-               if(CloseSelectedOrder())
+               if(CloseSelectedOrderInternal())
                   delcnt++;
    }
    if(delcnt>0)
@@ -3222,6 +3252,17 @@ void CloseAllInternal(string filter="")
 
 
 bool CloseSelectedOrder()
+{
+   if(TC.role==Sender)
+   {
+      string magic=IntegerToString(PositionGetInteger(POSITION_MAGIC),12,'0');
+      TradeCopierSend("CLOSE;"+magic+magic);
+   }
+   return CloseSelectedOrderInternal();
+}
+
+
+bool CloseSelectedOrderInternal()
 {
    bool ret;
 #ifdef __MQL4__
@@ -3239,6 +3280,37 @@ bool CloseSelectedOrder()
    SetLastErrorBool(ret);
 #endif
    return ret;
+}
+
+
+bool IsServerTime(long time) // Number formats YYMMDDhhmm, MMDDhhmm, DDhhmm, hhmm, mm
+{
+   string stime=IntegerToString(time,10,' ');
+   MqlDateTime t;
+   TimeCurrent(t);
+   int year=NULL,month=NULL,day=NULL,hour=NULL,minute=NULL;
+   string el;
+   el=stime.Substr(0,2);
+   if(el!="  ")
+      year=(int)StringToInteger("20"+el);
+   el=stime.Substr(2,2);
+   if(el!="  ")
+      month=(int)StringToInteger(el);
+   el=stime.Substr(4,2);
+   if(el!="  ")
+      day=(int)StringToInteger(el);
+   el=stime.Substr(6,2);
+   if(el!="  ")
+      hour=(int)StringToInteger(el);
+   el=stime.Substr(8,2);
+   if(el!="  ")
+      minute=(int)StringToInteger(el);
+   if(year!=NULL && year!=t.year) return false;
+   if(month!=NULL && month!=t.mon) return false;
+   if(day!=NULL && day!=t.day) return false;
+   if(hour!=NULL && hour!=t.hour) return false;
+   if(minute!=NULL && minute!=t.min) return false;
+   return true;
 }
 
 
@@ -3614,7 +3686,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       {
          if (lparam == 48)
          {
-            string magic=IntegerToString(WS.tradereference[selectedtradeindex].magicnumber,12,'0');
+             string magic=IntegerToString(WS.tradereference[selectedtradeindex].magicnumber,12,'0');
              WS.closecommands.Add(magic+magic);
          }
          if (lparam == 65)
@@ -4116,6 +4188,8 @@ struct MarketStructureShift
             }
             if(count1==1&&count2==2)
                break;
+               
+            DB(1630);
          }
       }
       lastminute=currenttime;
@@ -5374,11 +5448,11 @@ public:
       //openlots=_OpenLots;
 
       //if((daytrend==OP_BUY && row.D3<0) || (daytrend==OP_SELL && row.D3>0))
-      //   CloseAllInternal();
+      //   CloseAll();
 
       //if(dtcurrent.hour==22)
       //{
-      //   CloseAllInternal();
+      //   CloseAll();
       //   return;
       //}
 
@@ -5454,11 +5528,11 @@ public:
       //openlots=_OpenLots;
 
       //if((daytrend==OP_BUY && row.D3<0) || (daytrend==OP_SELL && row.D3>0))
-      //   CloseAllInternal();
+      //   CloseAll();
 
       //if(dtcurrent.hour==22)
       //{
-      //   CloseAllInternal();
+      //   CloseAll();
       //   return;
       //}
 
@@ -5473,12 +5547,12 @@ public:
             //   oi[z].LastHighTurnLevel>125 &&
             //   false
             //)
-            //   CloseAllInternal("Buys-"+IndexToCurrency(z));
+            //   CloseAll("Buys-"+IndexToCurrency(z));
             //if(oi[z].LastLowTurnBar==1 &&
             //   oi[z].LastLowTurnLevel<-125 &&
             //   false
             //)
-            //   CloseAllInternal("Sells"+IndexToCurrency(z));
+            //   CloseAll("Sells"+IndexToCurrency(z));
    
             for(int y=0; y<8; y++)
             {
@@ -5550,7 +5624,7 @@ public:
          true
       )
       {
-         CloseAllInternal();
+         CloseAll();
          lastday=times.t2.day_of_year;
       }
 
@@ -5565,12 +5639,12 @@ public:
       {
          if(r[0][2][2]>=250)
          {
-            CloseAllInternal("Buys-"+IndexToCurrency(2));
+            CloseAll("Buys-"+IndexToCurrency(2));
             OpenBasket(2,openlots,OP_SELL);
          }
          else
          {
-            CloseAllInternal("Sells"+IndexToCurrency(2));
+            CloseAll("Sells"+IndexToCurrency(2));
             OpenBasket(2,openlots,OP_BUY);
          }
          
