@@ -449,6 +449,19 @@ void SyncChartScroll(datetime time)
 }
 
 
+void BroadcastMode(int _lipstickmode)
+{
+   long chartid=ChartFirst();
+   while(chartid>-1)
+   {
+      if(chartid!=ChartID())
+         EventChartCustom(chartid,5001,_lipstickmode,0,"");
+
+      chartid=ChartNext(chartid);
+   }
+}
+
+
 void OnChartEvent(const int id, const long& lparam, const double& dparam, const string& sparam)
 {
    if(id==CHARTEVENT_MOUSE_MOVE)
@@ -499,6 +512,12 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             SyncChartScroll(dt);
       }
    }
+
+   if(id-CHARTEVENT_CUSTOM==5001)
+   {
+      lipstickmode=(int)lparam;
+   }
+
    
    if(id==CHARTEVENT_KEYDOWN)
    {
@@ -508,6 +527,8 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             lipstickmode=LipStickNone;
          else
             lipstickmode++;
+            
+         BroadcastMode(lipstickmode);
       }
    }
 }
