@@ -59,6 +59,7 @@ enum Command
    MN
 };
 string CommandText[MN+1]={"Clean","PivotsY1","PivotsMN","PivotsW1","PivotsD1","PivotsH4","PivotsH1","Chandelier Exit","Pivot Chart","Murrey","ZigZag","Engulfing","Heiken Ashi","Line","Candles","+","-","<",">","M1","M2","M3","M4","M5","M6","M10","M12","M15","M20","M30","H1","H2","H3","H4","H6","H8","H12","D1","W1","MN"};
+string CommandToolTip[MN+1]={"Empty Small.tpl","Forex PivotsY1.tpl","Forex PivotsMN.tpl","Forex PivotsW1.tpl","Forex PivotsD1.tpl","Forex PivotsH4.tpl","Forex PivotsH1.tpl","Forex Chandelier Exit.tpl","Forex Pivot Chart.tpl","Forex Murrey Math Small.tpl","Forex ZigZag Small.tpl","Engulfing.tpl","HeikenAshi.tpl","","","","","","","","","","","","","","","","","","","","","","","","","","",""};
 int CommandPeriod[MN+1]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,PERIOD_M1,PERIOD_M2,PERIOD_M3,PERIOD_M4,PERIOD_M5,PERIOD_M6,PERIOD_M10,PERIOD_M12,PERIOD_M15,PERIOD_M20,PERIOD_M30,PERIOD_H1,PERIOD_H2,PERIOD_H3,PERIOD_H4,PERIOD_H6,PERIOD_H8,PERIOD_H12,PERIOD_D1,PERIOD_W1,PERIOD_MN1};
 
 
@@ -117,6 +118,7 @@ void OnInit()
 void CreateButton(int xPos, int yPos, int command)
 {
    string text=CommandText[command];
+   string tooltip=CommandToolTip[command];
    string objname=appnamespace+"Command"+IntegerToString(command);
    ObjectCreate(0,objname,OBJ_LABEL,0,0,0,0,0);
    ObjectSetInteger(0,objname,OBJPROP_CORNER,CORNER_LEFT_UPPER);
@@ -127,6 +129,7 @@ void CreateButton(int xPos, int yPos, int command)
    ObjectSetInteger(0,objname,OBJPROP_FONTSIZE,11);
    ObjectSetString(0,objname,OBJPROP_FONT,"Arial");
    ObjectSetString(0,objname,OBJPROP_TEXT," "+text+" ");
+   ObjectSetString(0,objname,OBJPROP_TOOLTIP,tooltip);
 }
 
 
