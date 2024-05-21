@@ -109,6 +109,7 @@ void OnStart()
          if(LoadCS(CS.bars-1,true))
          {
             InitState=InitialCSLoaded;
+            Print("Ready");
          }
       }
 
@@ -137,6 +138,7 @@ void OnStart()
                LoadCS(3,false);
             }
             
+            secondinit=true;
             if(!secondinit)
             {
                Print("First Init done, we wait one minute and run the second Init");
@@ -156,14 +158,14 @@ void OnStart()
 
 void AddTick(double price, datetime time, string symbol)
 {
-   if(lasttick[IdBySymbol(symbol)]==0)
-   {
-      lasttick[IdBySymbol(symbol)]=price;
-      return;
-   }
-
-   if(lasttick[IdBySymbol(symbol)]==price)
-      return;
+//   if(lasttick[IdBySymbol(symbol)]==0)
+//   {
+//      lasttick[IdBySymbol(symbol)]=price;
+//      return;
+//   }
+//
+//   if(lasttick[IdBySymbol(symbol)]==price)
+//      return;
 
    MqlTick t[1];
    t[0].time_msc=time*1000;
@@ -171,9 +173,11 @@ void AddTick(double price, datetime time, string symbol)
    t[0].bid=t[0].last;
    t[0].ask=t[0].last;
    t[0].volume=0;
+   //Print("Add Tick "+time);
    CustomTicksAdd(symbol,t);
    //CustomTicksReplace(symbol,t[0].time_msc-(PeriodSeconds(PERIOD_MN1)*1000),t[0].time_msc,t);
-   lasttick[IdBySymbol(symbol)]=price;
+
+//   lasttick[IdBySymbol(symbol)]=price;
 }
 
 
@@ -233,10 +237,11 @@ void ClearSymbolRates(string symbol)
 void UpdateRates(MqlRates& rates[], string symbol, bool deleteall)
 {
    if(deleteall)
+   {
       ClearSymbolRates(symbol);
+      CustomRatesUpdate(symbol,rates);
+   }
 
-   CustomRatesUpdate(symbol,rates);
-   
    int s=ArraySize(rates);
    AddTick(rates[s-1].close,rates[s-1].time,symbol);
 }
