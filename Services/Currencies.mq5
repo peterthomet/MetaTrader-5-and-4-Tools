@@ -176,6 +176,7 @@ void OnStart()
          Sleep(1000);
    }
 
+   //DeleteSymbols();
 }
 
 
