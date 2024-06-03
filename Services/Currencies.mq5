@@ -14,6 +14,8 @@ input bool FillGaps = false; // Fill Gaps
 
 enum States
 {
+   Prep1,
+   Prep2,
    Initial,
    InitialCSReady,
    InitialCSLoaded,
@@ -51,8 +53,9 @@ struct TypeCurrenciesRates
 };
 
 TypeCurrencyStrength CS;
-States InitState=Initial;
+States InitState=Prep1;
 datetime lastm1bar=0;
+datetime m1initbar=0;
 double lasttick[8];
 bool secondinit=false;
 
@@ -93,6 +96,26 @@ void OnStart()
    while(!IsStopped())
    {
       bool reset=false;
+
+      if(InitState==Prep1 || InitState==Prep2)
+      {
+         Sleep(3000);
+         TypePairs p;
+         datetime dt[1];
+         for(int i=0; i<28; i++)
+         {
+            if(CopyTime(p.Pair[i].name,PERIOD_M1,0,1,dt)==1)
+            {
+               if(i==0)
+               {
+                  Print("Prep M1 Bar Time: "+TimeToString(dt[0]));
+                  if(m1initbar==dt[0])
+                     InitState++;
+                  m1initbar=dt[0];
+               }
+            }
+         }
+      }
 
       if(InitState==Initial)
       {
