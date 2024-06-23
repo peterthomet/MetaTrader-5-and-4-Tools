@@ -203,6 +203,7 @@ double _StartTrailingPips;
 double _TakeProfitPips;
 double _StopLossPips;
 double _OpenLots;
+double _OpenLotsBasket;
 bool _TradingHours[24];
 bool _TradingWeekdays[7];
 bool ctrlon;
@@ -683,6 +684,7 @@ void OnInit()
       _StopLossPips=DISABLEDPOINTS;
    _StartTrailingPips=StartTrailingPips*pipsfactor;
    _OpenLots=OpenLots;
+   _OpenLotsBasket=OpenLots;
 
    _TradingHours[0]=Hour0;
    _TradingHours[1]=Hour1;
@@ -1115,6 +1117,7 @@ void SetGlobalVariables()
    pv["peakgain"]=WS.peakgain;
    pv["peakpips"]=WS.peakpips;
    pv["OpenLots"]=_OpenLots;
+   pv["OpenLotsBasket"]=_OpenLotsBasket;
    pv["OpenLots-"+Symbol()]=_OpenLots;
    pv["StopLossPips"]=_StopLossPips;
    pv["StopLossPips-"+Symbol()]=_StopLossPips;
@@ -1156,6 +1159,7 @@ void GetGlobalVariables()
       WS.peakgain=pv["peakgain"].double_();
       WS.peakpips=pv["peakpips"].double_();
       _OpenLots=pv["OpenLots"].double_();
+      _OpenLotsBasket=pv["OpenLotsBasket"].double_()>0 ? pv["OpenLotsBasket"].double_() : _OpenLots;
       _OpenLots=pv["OpenLots-"+Symbol()].double_()>0 ? pv["OpenLots-"+Symbol()].double_() : _OpenLots;
       _StopLossPips=pv["StopLossPips"].double_();
       _StopLossPips=pv["StopLossPips-"+Symbol()].double_()>0 ? pv["StopLossPips-"+Symbol()].double_() : _StopLossPips;
@@ -1781,19 +1785,24 @@ void DisplayText()
 
    if(ctrlon)
    {
-      CreateLabel(rowindex,FontSize,TextColorInfo,"Open Volume: "+DoubleToString(_OpenLots,2));
-      rowindex++;
-      
       if(InstrumentSelected!=CurrentPair)
       {
-         CreateLabel(rowindex,FontSize,TextColorInfo,"Open all "+currencies[InstrumentSelected]+" Pairs");
+         CreateLabel(rowindex,FontSize,TextColorInfo,"Open Volume: "+DoubleToString(_OpenLotsBasket,2));
+         rowindex++;
+
+         CreateLabel(rowindex,FontSize,TextColorMinus,"Open all "+currencies[InstrumentSelected]+" Pairs");
+         rowindex++;
+      }
+      else
+      {
+         CreateLabel(rowindex,FontSize,TextColorInfo,"Open Volume: "+DoubleToString(_OpenLots,2));
          rowindex++;
       }
    }
 
    double tickvalue=CurrentSymbolTickValue();
    int spreadpoints=(int)MathRound((AskX()-BidX())/Point());
-   if((_StopLossPips!=DISABLEDPOINTS&&ctrlon)||tradelevelsvisible)
+   if((_StopLossPips!=DISABLEDPOINTS && InstrumentSelected==CurrentPair && ctrlon)||tradelevelsvisible)
    {
       color c=TextColorInfo;
       double risk=_StopLossPips*_OpenLots*tickvalue;
@@ -1819,7 +1828,7 @@ void DisplayText()
          rowindex++;
       }
    }
-   if((_TakeProfitPips!=DISABLEDPOINTS&&ctrlon)||tradelevelsvisible)
+   if((_TakeProfitPips!=DISABLEDPOINTS && InstrumentSelected==CurrentPair && ctrlon)||tradelevelsvisible)
    {
       color c=TextColorInfo;
       double reward=_TakeProfitPips*_OpenLots*tickvalue;
@@ -2603,12 +2612,12 @@ void DrawLevels(long chartid)
 
    int cp=SymbolCommissionPoints();
 
-   if(_StopLossPips!=DISABLEDPOINTS)
+   if(_StopLossPips!=DISABLEDPOINTS  && InstrumentSelected==CurrentPair)
    {
       CreateLevel(chartid,appnamespace+"Level1",DeepPink,BidX()+((_StopLossPips-cp)*Point()));
       CreateLevel(chartid,appnamespace+"Level2",DeepPink,AskX()-((_StopLossPips-cp)*Point()));
    }
-   if(_TakeProfitPips!=DISABLEDPOINTS)
+   if(_TakeProfitPips!=DISABLEDPOINTS  && InstrumentSelected==CurrentPair)
    {
       CreateLevel(chartid,appnamespace+"Level3",SeaGreen,BidX()+((_TakeProfitPips+cp)*Point()));
       CreateLevel(chartid,appnamespace+"Level4",SeaGreen,AskX()-((_TakeProfitPips+cp)*Point()));
@@ -3567,9 +3576,9 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
                {
                   bool isbase=(StringFind(pairs[InstrumentSelected][i],currencies[InstrumentSelected])==0);
                   if((isbase&&lparam==49) || (!isbase&&lparam==51))
-                     OpenBuy(pairs[InstrumentSelected][i]);
+                     OpenBuy(pairs[InstrumentSelected][i],_OpenLotsBasket,NULL,DISABLEDPOINTS,DISABLEDPOINTS);
                   else
-                     OpenSell(pairs[InstrumentSelected][i]);
+                     OpenSell(pairs[InstrumentSelected][i],_OpenLotsBasket,NULL,DISABLEDPOINTS,DISABLEDPOINTS);
                }
             }
          }
@@ -3595,17 +3604,23 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             SetHardStopMode();
          if (lparam == 188)
          {
-            _OpenLots=MathRound(MathMax(_OpenLots-(vstep*ExtendedRepeatingFactor()),SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MIN))/vstep)*vstep;
+            if(InstrumentSelected==CurrentPair)
+               _OpenLots=MathRound(MathMax(_OpenLots-(vstep*ExtendedRepeatingFactor()),SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MIN))/vstep)*vstep;
+            else
+               _OpenLotsBasket=MathRound(MathMax(_OpenLotsBasket-(0.01*ExtendedRepeatingFactor()),0.01)/0.01)*0.01;
             if(crosshairon&&leftmousebutton)
                BuildPendingLevelsText();
          }
          if (lparam == 190)
          {
-            _OpenLots=MathRound(MathMin(_OpenLots+(vstep*ExtendedRepeatingFactor()),SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MAX))/vstep)*vstep;
+            if(InstrumentSelected==CurrentPair)
+               _OpenLots=MathRound(MathMin(_OpenLots+(vstep*ExtendedRepeatingFactor()),SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_MAX))/vstep)*vstep;
+            else
+               _OpenLotsBasket=MathRound(MathMin(_OpenLotsBasket+(0.01*ExtendedRepeatingFactor()),200)/0.01)*0.01;
             if(crosshairon&&leftmousebutton)
                BuildPendingLevelsText();
          }
-         if (lparam == 65)
+         if (lparam == 65 && InstrumentSelected==CurrentPair)
          {
             double breach=0+(SymbolCommissionPoints()+marginsmall);
             if(_StopLossPips==DISABLEDPOINTS)
@@ -3620,7 +3635,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             if(crosshairon&&leftmousebutton)
                BuildPendingLevelsText();
          }
-         if (lparam == 83)
+         if (lparam == 83 && InstrumentSelected==CurrentPair)
          {
             double breach=0+(SymbolCommissionPoints()+marginsmall);
             if(_StopLossPips==DISABLEDPOINTS)
@@ -3630,7 +3645,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             if(crosshairon&&leftmousebutton)
                BuildPendingLevelsText();
          }
-         if (lparam == 68)
+         if (lparam == 68 && InstrumentSelected==CurrentPair)
          {
             double breach=0-(SymbolCommissionPoints()-marginsmall);
             if(_TakeProfitPips==DISABLEDPOINTS)
@@ -3643,7 +3658,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             }
             DrawLevels();
          }
-         if (lparam == 70)
+         if (lparam == 70 && InstrumentSelected==CurrentPair)
          {
             double breach=0-(SymbolCommissionPoints()-marginsmall);
             if(_TakeProfitPips==DISABLEDPOINTS)
@@ -3657,6 +3672,7 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             InstrumentSelected+=1;
             if(InstrumentSelected>NZD)
                InstrumentSelected=USD;
+            DeleteLevels();
          }
          if (lparam == 89)
          {
