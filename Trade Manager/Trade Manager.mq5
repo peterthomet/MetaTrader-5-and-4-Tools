@@ -3673,10 +3673,13 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
             if(InstrumentSelected>NZD)
                InstrumentSelected=USD;
             DeleteLevels();
+            DrawLevels();
          }
          if (lparam == 89)
          {
-            InstrumentSelected=-1;
+            InstrumentSelected=CurrentPair;
+            DeleteLevels();
+            DrawLevels();
          }
 
          if (lparam == 86)
