@@ -514,6 +514,8 @@ void Enable()
       PlotIndexSetInteger(0,PLOT_DRAW_TYPE,DRAW_COLOR_CANDLES);
    }
    
+   EventChartCustom(0,3333,0,0,""); // Message to other indicators to hide
+   
    CreateButtons();
 }
 
@@ -536,6 +538,8 @@ void Disable()
    ChartSetInteger(0,CHART_SCALEFIX,scalefixsave);
    ChartSetDouble(0,CHART_FIXED_MAX,maxsave);
    ChartSetDouble(0,CHART_FIXED_MIN,minsave);
+
+   EventChartCustom(0,3333,1,0,""); // Message to other indicators to show
    
    DeleteButtons();
 }
