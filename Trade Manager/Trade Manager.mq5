@@ -125,6 +125,7 @@ input bool Harvester_CSFollow = false;
 input bool Harvester_GBPWeek = false;
 input bool Harvester_CSEmergingTrends = false;
 input bool Harvester_CookieCutter = false;
+input bool Harvester_RepeatingPattern = false;
 input bool UseCurrencyStrengthDatabase = false;
 input group "Trading Hours";
 input bool Hour0 = true;
@@ -180,6 +181,8 @@ input double P17 = 0;
 input double P18 = 0;
 input double P19 = 0;
 input double P20 = 0;
+input bool P21 = 0;
+input bool P22 = 0;
 
 string appname="Trade Manager";
 string appnamespace="";
@@ -875,6 +878,12 @@ void InitStrategies()
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyCookieCutter;
+      i++;
+   }
+   if(Harvester_RepeatingPattern)
+   {
+      ArrayResize(strats,i+1);
+      strats[i]=new StrategyRepeatingPattern;
       i++;
    }
 }
@@ -4208,7 +4217,7 @@ struct MarketStructureShift
             if(count1==1&&count2==2)
                break;
                
-            DB(1630);
+            DB(1630);  // 23.2.2014 US500 M1 Real Ticks, MarketStructureShift_Test1.ini
          }
       }
       lastminute=currenttime;
@@ -5824,6 +5833,75 @@ public:
    void IdleCalculate()
    {
       mss1.Update();
+   }
+
+   void Calculate()
+   {
+   }
+};
+
+
+class StrategyRepeatingPattern : public Strategy
+{
+   string Name;
+   
+   double rangehigh, rangelow;
+   bool rangeset;
+
+public:
+   string GetName() {return Name;}
+
+   StrategyRepeatingPattern()
+   {
+      Name="Harvester Repeating Pattern";
+
+      rangeset=false;
+      
+      if(istesting)
+      {
+         WS.StopMode=None;
+      }
+   }
+
+   void IdleCalculate()
+   {
+      MqlDateTime dtcurrent;
+      TimeCurrent(dtcurrent);
+
+//      if(_TradingHours[dtcurrent.hour])
+      if(P1==dtcurrent.hour)
+      {
+         MqlRates rates[];
+         ArraySetAsSeries(rates,true);
+         int bars=2;
+         int copied=CopyRates(Symbol(),PERIOD_M5,0,bars,rates);
+
+         if(copied==bars)
+         {
+            if(((P21 && dtcurrent.min==20) || (P22 && dtcurrent.min==50)) && !rangeset)
+            {
+               rangehigh=rates[1].high;
+               rangelow=rates[1].low;
+               rangeset=true;
+            }
+            
+            if(rangeset)
+            {
+               if(rates[0].close>rangehigh)
+               {
+                  OpenBuy(NULL,0.1,0,NULL,NULL,rangelow,rangehigh+(rangehigh-rangelow));
+                  rangeset=false;
+               }
+               if(rates[0].close<rangelow)
+               {
+                  OpenSell(NULL,0.1,0,NULL,NULL,rangehigh,rangelow-(rangehigh-rangelow));
+                  rangeset=false;
+               }
+            }
+         }
+      }
+      else
+         rangeset=false;
    }
 
    void Calculate()
