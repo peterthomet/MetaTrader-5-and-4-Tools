@@ -5869,7 +5869,7 @@ public:
       TimeCurrent(dtcurrent);
 
 //      if(_TradingHours[dtcurrent.hour])
-      if(P1==dtcurrent.hour)
+      if(P1==dtcurrent.hour || rangeset)
       {
          MqlRates rates[];
          ArraySetAsSeries(rates,true);
@@ -5878,30 +5878,43 @@ public:
 
          if(copied==bars)
          {
-            if(((P21 && dtcurrent.min==20) || (P22 && dtcurrent.min==50)) && !rangeset)
+            if(P1==dtcurrent.hour)
             {
-               rangehigh=rates[1].high;
-               rangelow=rates[1].low;
-               rangeset=true;
+               if(((P21 && (dtcurrent.min>=20 && dtcurrent.min<25)) || (P22 && (dtcurrent.min>=50 && dtcurrent.min<55))) && !rangeset)
+               {
+                  rangehigh=rates[1].high;
+                  rangelow=rates[1].low;
+                  rangeset=true;
+               }
             }
             
             if(rangeset)
             {
-               if(rates[0].close>rangehigh)
+               bool openbuy=(rates[0].close>rangehigh);
+               bool opensell=(rates[0].close<rangelow);
+               
+               if(openbuy || opensell)
                {
-                  OpenBuy(NULL,0.1,0,NULL,NULL,rangelow,rangehigh+(rangehigh-rangelow));
-                  rangeset=false;
-               }
-               if(rates[0].close<rangelow)
-               {
-                  OpenSell(NULL,0.1,0,NULL,NULL,rangehigh,rangelow-(rangehigh-rangelow));
+                  double tickvalue=CurrentSymbolTickValue();
+                  double percentbalance=2;
+                  double range=rangehigh-rangelow;
+                  double ticksize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_SIZE);
+                  double contractsize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_CONTRACT_SIZE);
+                  double volumestep=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_STEP);
+                  double v=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*(range/ticksize)),2);
+                  v=MathRound(v/volumestep)*volumestep;
+                  
+                  if(openbuy)
+                     OpenBuy(NULL,v,0,NULL,NULL,rangelow,rangehigh+range);
+
+                  if(opensell)
+                     OpenSell(NULL,v,0,NULL,NULL,rangehigh,rangelow-range);
+
                   rangeset=false;
                }
             }
          }
       }
-      else
-         rangeset=false;
    }
 
    void Calculate()
