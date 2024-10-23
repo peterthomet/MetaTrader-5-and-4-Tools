@@ -5845,8 +5845,8 @@ class StrategyRepeatingPattern : public Strategy
 {
    string Name;
    
-   double rangehigh, rangelow;
-   bool rangeset;
+   double rangehigh1, rangelow1, rangehigh2, rangelow2;
+   int state1, state2, lastday;
 
 public:
    string GetName() {return Name;}
@@ -5855,7 +5855,9 @@ public:
    {
       Name="Harvester Repeating Pattern";
 
-      rangeset=false;
+      state1=0;
+      state2=0;
+      lastday=0;
       
       if(istesting)
       {
@@ -5863,61 +5865,74 @@ public:
       }
    }
 
-   void IdleCalculate()
+   void Calculate()
    {
-      MqlDateTime dtcurrent;
-      TimeCurrent(dtcurrent);
-
-//      if(_TradingHours[dtcurrent.hour])
-      if(P1==dtcurrent.hour || rangeset)
+      MqlRates rates[];
+      ArraySetAsSeries(rates,true);
+      int bars=2;
+      int copied=CopyRates(Symbol(),PERIOD_M5,0,bars,rates);
+      if(copied!=bars)
+         return;
+         
+      MqlDateTime t;
+      TimeToStruct(rates[0].time,t);
+      
+//      if(_TradingHours[t.hour])
+      if(t.hour==P1)
       {
-         MqlRates rates[];
-         ArraySetAsSeries(rates,true);
-         int bars=2;
-         int copied=CopyRates(Symbol(),PERIOD_M5,0,bars,rates);
-
-         if(copied==bars)
+         if(t.min==20 && P21 && state1==0)
          {
-            if(P1==dtcurrent.hour)
-            {
-               if(((P21 && (dtcurrent.min>=20 && dtcurrent.min<25)) || (P22 && (dtcurrent.min>=50 && dtcurrent.min<55))) && !rangeset)
-               {
-                  rangehigh=rates[1].high;
-                  rangelow=rates[1].low;
-                  rangeset=true;
-               }
-            }
-            
-            if(rangeset)
-            {
-               bool openbuy=(rates[0].close>rangehigh);
-               bool opensell=(rates[0].close<rangelow);
-               
-               if(openbuy || opensell)
-               {
-                  double tickvalue=CurrentSymbolTickValue();
-                  double percentbalance=2;
-                  double range=rangehigh-rangelow;
-                  double ticksize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_SIZE);
-                  double contractsize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_CONTRACT_SIZE);
-                  double volumestep=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_STEP);
-                  double v=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*(range/ticksize)),2);
-                  v=MathRound(v/volumestep)*volumestep;
-                  
-                  if(openbuy)
-                     OpenBuy(NULL,v,0,NULL,NULL,rangelow,rangehigh+range);
-
-                  if(opensell)
-                     OpenSell(NULL,v,0,NULL,NULL,rangehigh,rangelow-range);
-
-                  rangeset=false;
-               }
-            }
+            rangehigh1=rates[1].high;
+            rangelow1=rates[1].low;
+            state1=1;
+            lastday=t.day;
+         }
+         if(t.min==50 && P22 && state2==0)
+         {
+            rangehigh2=rates[1].high;
+            rangelow2=rates[1].low;
+            state2=1;
+            lastday=t.day;
          }
       }
+      
+      if(state1==1)
+         OpenTrade(rangehigh1,rangelow1,rates[0].close>rangehigh1,rates[0].close<rangelow1,state1);
+
+      if(state2==1)
+         OpenTrade(rangehigh2,rangelow2,rates[0].close>rangehigh2,rates[0].close<rangelow2,state2);
+         
+      if(state1==2 && t.day!=lastday)
+         state1=0;
+
+      if(state2==2 && t.day!=lastday)
+         state2=0;
+   }
+   
+   void OpenTrade(double rangehigh, double rangelow, bool openbuy, bool opensell, int &state)
+   {
+      if(!openbuy && !opensell)
+         return;
+
+      double tickvalue=CurrentSymbolTickValue();
+      double percentbalance=0.5;
+      double range=rangehigh-rangelow;
+      double ticksize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_SIZE);
+      double contractsize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_CONTRACT_SIZE);
+      double volumestep=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_STEP);
+      double v=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*(range/ticksize)),2);
+      v=MathRound(v/volumestep)*volumestep;
+      
+      if(openbuy)
+         OpenBuy(NULL,v,0,NULL,NULL,rangelow,rangehigh+range);
+
+      if(opensell)
+         OpenSell(NULL,v,0,NULL,NULL,rangehigh,rangelow-range);
+
+      state=2;
    }
 
-   void Calculate()
+   void IdleCalculate()
    {
    }
 };
