@@ -634,7 +634,7 @@ TypeTradeCopier TC;
 void OnInit()
 {
    ChartSetInteger(0,CHART_EVENT_MOUSE_MOVE,1);
-   
+
    atr=0;
    atrday=-1;
    
