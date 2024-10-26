@@ -243,6 +243,7 @@ string pairs[8][7]={
 color currencycolor[8];
 string symbollist;
 string inifilename;
+string logfilename;
 long firstbar=0;
 long lastfirstbar=-1;
 datetime lastbartime=-1;
@@ -734,6 +735,7 @@ void OnInit()
    symbollist="";
    
    inifilename=AccountInfoString(ACCOUNT_SERVER)+" "+IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN))+" "+appnamespace+".ini";
+   logfilename=AccountInfoString(ACCOUNT_SERVER)+" "+IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN))+" "+appnamespace+"Log.txt";
 
    WS.Init();
    
@@ -4166,6 +4168,25 @@ double ATR()
 }
 
 
+void Log(string message1, string message2=NULL, string message3=NULL, string message4=NULL, string message5=NULL)
+{
+   string m=TimeToString(TimeCurrent(),TIME_DATE|TIME_SECONDS)+" | "+message1;
+
+   m+= (message2!=NULL) ? " | "+message2 : "";
+   m+= (message3!=NULL) ? " | "+message3 : "";
+   m+= (message4!=NULL) ? " | "+message4 : "";
+   m+= (message5!=NULL) ? " | "+message5 : "";
+   m+="\n";
+
+   int handle=FileOpen(logfilename,FILE_WRITE|FILE_READ|FILE_TXT);
+   if(handle!=INVALID_HANDLE)
+   {
+      FileSeek(handle,0,SEEK_END);
+      FileWriteString(handle,m);
+      FileClose(handle);
+   }
+}
+
 
 
 
@@ -5873,7 +5894,7 @@ public:
       int copied=CopyRates(Symbol(),PERIOD_M5,0,bars,rates);
       if(copied!=bars)
          return;
-         
+
       MqlDateTime t;
       TimeToStruct(rates[0].time,t);
       
