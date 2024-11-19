@@ -5865,9 +5865,19 @@ public:
 class StrategyRepeatingPattern : public Strategy
 {
    string Name;
-   
    double rangehigh1, rangelow1, rangehigh2, rangelow2;
    int state1, state2, lastday;
+   int scanday;
+
+   struct TypeResult
+   {
+      int hour;
+      int min;
+      double rangehigh;
+      double rangelow;
+   };
+   
+   TypeResult result[];
 
 public:
    string GetName() {return Name;}
@@ -5879,11 +5889,51 @@ public:
       state1=0;
       state2=0;
       lastday=0;
+      scanday=0;
       
       if(istesting)
       {
          WS.StopMode=None;
       }
+   }
+   
+   void Scan()
+   {
+      MqlRates rates[];
+      ArraySetAsSeries(rates,true);
+      int bars=576;
+      int copied=CopyRates(Symbol(),PERIOD_M5,0,bars,rates);
+      if(copied!=bars)
+         return;
+
+      MqlDateTime t;
+      MqlDateTime reft;
+      TimeToStruct(rates[0].time,reft);
+      
+      datetime tdays[];
+      if(CopyTime(Symbol(),PERIOD_D1,0,3,tdays)<3)
+         return;
+         
+      ArrayResize(result,0,1000);
+         
+      for(int i=(bars-1);i>=0;i--)
+      {
+         TimeToStruct(rates[i].time,t);
+         if(rates[i].time>=tdays[0] && rates[i].time<tdays[2] && t.hour<23 && t.hour>=1)
+         {
+            if(t.min==20 || t.min==50)
+            {
+               int s=ArraySize(result);
+               ArrayResize(result,s+1,1000);
+               result[s].hour=t.hour;
+               result[s].min=t.min;
+               result[s].rangehigh=rates[i+1].high;
+               result[s].rangelow=rates[i+1].low;
+            }
+         }
+      }
+
+      scanday=reft.day_of_year;
    }
 
    void Calculate()
@@ -5897,6 +5947,9 @@ public:
 
       MqlDateTime t;
       TimeToStruct(rates[0].time,t);
+
+      if(scanday!=t.day_of_year)
+         Scan();
       
 //      if(_TradingHours[t.hour])
       if(t.hour==P1)
