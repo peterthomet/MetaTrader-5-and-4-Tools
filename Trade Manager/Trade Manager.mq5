@@ -2968,8 +2968,10 @@ int NewTradeReference(long magicnumber, bool InitWithCurrentSettings, double sl=
    WS.tradereference[asize].magicnumber=magicnumber;
    if(InitWithCurrentSettings)
    {
-      WS.tradereference[asize].stoplosspips=_StopLossPips;
-      WS.tradereference[asize].takeprofitpips=_TakeProfitPips;
+      if(sll!=NULL)
+         WS.tradereference[asize].stoplosspips=_StopLossPips;
+      if(tpl!=NULL)
+         WS.tradereference[asize].takeprofitpips=_TakeProfitPips;
    }
    if(sl!=NULL)
       WS.tradereference[asize].stoplosspips=sl;
@@ -5901,7 +5903,8 @@ public:
    {
       MqlRates rates[];
       ArraySetAsSeries(rates,true);
-      int bars=576;
+      int daysback=3;
+      int bars=(daysback-1)*24*12;
       int copied=CopyRates(Symbol(),PERIOD_M5,0,bars,rates);
       if(copied!=bars)
          return;
@@ -5911,15 +5914,15 @@ public:
       TimeToStruct(rates[0].time,reft);
       
       datetime tdays[];
-      if(CopyTime(Symbol(),PERIOD_D1,0,3,tdays)<3)
+      if(CopyTime(Symbol(),PERIOD_D1,0,daysback,tdays)<daysback)
          return;
          
       ArrayResize(result,0,1000);
          
-      for(int i=(bars-1);i>=0;i--)
+      for(int i=(bars-2);i>=0;i--)
       {
          TimeToStruct(rates[i].time,t);
-         if(rates[i].time>=tdays[0] && rates[i].time<tdays[2] && t.hour<23 && t.hour>=1)
+         if(rates[i].time>=tdays[0] && rates[i].time<tdays[daysback-1] && t.hour<23 && t.hour>=1)
          {
             if(t.min==20 || t.min==50)
             {
@@ -5952,7 +5955,7 @@ public:
          Scan();
       
 //      if(_TradingHours[t.hour])
-      if(t.hour==P1)
+      if(t.hour==P1 || true)
       {
          if(t.min==20 && P21 && state1==0)
          {
@@ -5987,6 +5990,9 @@ public:
    {
       if(!openbuy && !opensell)
          return;
+         
+      Print("Range High: ",rangehigh);
+      Print("Range Low: ",rangelow);
 
       double tickvalue=CurrentSymbolTickValue();
       double percentbalance=0.5;
