@@ -2968,9 +2968,9 @@ int NewTradeReference(long magicnumber, bool InitWithCurrentSettings, double sl=
    WS.tradereference[asize].magicnumber=magicnumber;
    if(InitWithCurrentSettings)
    {
-      if(sll!=NULL)
+      if(sll==NULL)
          WS.tradereference[asize].stoplosspips=_StopLossPips;
-      if(tpl!=NULL)
+      if(tpl==NULL)
          WS.tradereference[asize].takeprofitpips=_TakeProfitPips;
    }
    if(sl!=NULL)
