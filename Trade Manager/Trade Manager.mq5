@@ -6003,10 +6003,14 @@ public:
       double v=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*(range/ticksize)),2);
       v=MathRound(v/volumestep)*volumestep;
       
+      double rangepoints=range/Point();
+      
       if(openbuy)
+         //OpenBuy(NULL,v,0,rangepoints,rangepoints);
          OpenBuy(NULL,v,0,NULL,NULL,rangelow,rangehigh+range);
 
       if(opensell)
+         //OpenSell(NULL,v,0,rangepoints,rangepoints);
          OpenSell(NULL,v,0,NULL,NULL,rangehigh,rangelow-range);
 
       state=2;
