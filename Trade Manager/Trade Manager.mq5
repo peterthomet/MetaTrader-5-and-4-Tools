@@ -5951,20 +5951,22 @@ public:
       MqlDateTime t;
       TimeToStruct(rates[0].time,t);
 
-      if(scanday!=t.day_of_year)
-         Scan();
+      //if(scanday!=t.day_of_year)
+      //   Scan();
       
 //      if(_TradingHours[t.hour])
-      if(t.hour==P1 || true)
+      if(t.hour==P1 
+//         || true
+         )
       {
-         if(t.min==20 && P21 && state1==0)
+         if(t.min==20 && P2==1 && state1==0)
          {
             rangehigh1=rates[1].high;
             rangelow1=rates[1].low;
             state1=1;
             lastday=t.day;
          }
-         if(t.min==50 && P22 && state2==0)
+         if(t.min==50 && P2==2 && state2==0)
          {
             rangehigh2=rates[1].high;
             rangelow2=rates[1].low;
