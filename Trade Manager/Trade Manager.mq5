@@ -4170,6 +4170,15 @@ double ATR()
 }
 
 
+bool WhileTesting(bool condition)
+{
+   if(istesting)
+      return condition;
+   else
+      return true;
+}
+
+
 void Log(string message1, string message2=NULL, string message3=NULL, string message4=NULL, string message5=NULL)
 {
    string m=TimeToString(TimeCurrent(),TIME_DATE|TIME_SECONDS)+" | "+message1;
@@ -5888,15 +5897,13 @@ public:
    {
       Name="Harvester Repeating Pattern";
 
+      if(istesting)
+         WS.StopMode=None;
+
       state1=0;
       state2=0;
       lastday=0;
       scanday=0;
-      
-      if(istesting)
-      {
-         WS.StopMode=None;
-      }
    }
    
    void Scan()
@@ -5953,20 +5960,17 @@ public:
 
       //if(scanday!=t.day_of_year)
       //   Scan();
-      
-//      if(_TradingHours[t.hour])
-      if(t.hour==P1 
-//         || true
-         )
+
+      if(WhileTesting(t.hour==P1)) // _TradingHours[t.hour]
       {
-         if(t.min==20 && P2==1 && state1==0)
+         if(t.min==20 && state1==0 && WhileTesting(P2==1))
          {
             rangehigh1=rates[1].high;
             rangelow1=rates[1].low;
             state1=1;
             lastday=t.day;
          }
-         if(t.min==50 && P2==2 && state2==0)
+         if(t.min==50 && state2==0 && WhileTesting(P2==2))
          {
             rangehigh2=rates[1].high;
             rangelow2=rates[1].low;
