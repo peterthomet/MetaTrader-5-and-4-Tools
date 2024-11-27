@@ -2876,6 +2876,17 @@ bool OpenBuy(string symbol=NULL, double volume=NULL, long magicnumber=NULL, doub
    }
    if(ret)
    {
+      if(sll!=NULL)
+      {
+         sl=(trade.ResultPrice()-sll)/SymbolInfoDouble(s,SYMBOL_POINT);
+         sll=NULL;
+      }
+      if(tpl!=NULL)
+      {
+         tp=(tpl-trade.ResultPrice())/SymbolInfoDouble(s,SYMBOL_POINT);
+         tpl=NULL;
+      }
+      
       NewTradeReference(m,(s==Symbol()),sl,tp,sll,tpl);
 
       if(TC.role==Sender)
@@ -2939,6 +2950,17 @@ bool OpenSell(string symbol=NULL, double volume=NULL, long magicnumber=NULL, dou
    }
    if(ret)
    {
+      if(sll!=NULL)
+      {
+         sl=(sll-trade.ResultPrice())/SymbolInfoDouble(s,SYMBOL_POINT);
+         sll=NULL;
+      }
+      if(tpl!=NULL)
+      {
+         tp=(trade.ResultPrice()-tpl)/SymbolInfoDouble(s,SYMBOL_POINT);
+         tpl=NULL;
+      }
+
       NewTradeReference(m,(s==Symbol()),sl,tp,sll,tpl);
       
       if(TC.role==Sender)
