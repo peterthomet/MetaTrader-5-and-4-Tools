@@ -5902,7 +5902,7 @@ class StrategyRepeatingPattern : public Strategy
    int state1, state2, lastday;
    int scanday;
 
-   struct TypeResult
+   struct TypeRange
    {
       int hour;
       int min;
@@ -5910,7 +5910,8 @@ class StrategyRepeatingPattern : public Strategy
       double rangelow;
    };
    
-   TypeResult result[];
+   TypeRange result[];
+   TypeRange range[];
 
 public:
    string GetName() {return Name;}
