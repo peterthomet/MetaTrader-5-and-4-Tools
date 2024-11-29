@@ -1155,6 +1155,9 @@ void SetGlobalVariables()
    ManageSymbolList();
    pv["symbollist"]=symbollist;
 
+//   for(int i=ArraySize(strats)-1; i>=0; i--)
+//      strats[i].Calculate();
+
    pv.save();
 }
 
@@ -4306,8 +4309,29 @@ interface Strategy
 {
 public:
    string GetName();
+   void SetName(string Name);
+   int GetID();
+   void SetID(int ID);
    void IdleCalculate();
    void Calculate();
+};
+
+
+class StrategyBase : public Strategy
+{
+   string name;
+   int id;
+
+public:
+   string GetName() {return name;};
+   void SetName(string Name)
+   {
+      name=Name;
+      if(UseCurrencyStrengthDatabase)
+         Name+=" DB";
+   };
+   int GetID() {return id;};
+   void SetID(int ID) {id=ID;};
 };
 
 
@@ -4709,14 +4733,10 @@ public:
 };
 
 
-class StrategyCSBase : public Strategy
+class StrategyCSBase : public StrategyBase
 {
 public:
-
-   string Name;
    string Namespace;
-
-   string GetName() {return Name;}
 
    int db;
    int request;
@@ -5430,9 +5450,7 @@ public:
 
    StrategyCSFollow()
    {
-      Name="Harvester CSFollow";
-      if(UseCurrencyStrengthDatabase)
-         Name+=" DB";
+      SetName("Harvester CSFollow");
       Namespace="HARVCSFollow";
       Init();
    }
@@ -5499,9 +5517,7 @@ public:
 
    StrategyCSGBPReversal()
    {
-      Name="Harvester CSGBPReversal";
-      if(UseCurrencyStrengthDatabase)
-         Name+=" DB";
+      SetName("Harvester CSGBPReversal");
       Namespace="HARVCSGBPReversal";
       Init();
    }
@@ -5579,9 +5595,7 @@ public:
 
    StrategyCSEmergingTrends()
    {
-      Name="Harvester CSEmergingTrends";
-      if(UseCurrencyStrengthDatabase)
-         Name+=" DB";
+      SetName("Harvester CSEmergingTrends");
       Namespace="HARVCSEmergingTrends";
       Init();
    }
@@ -5668,9 +5682,7 @@ public:
 
    StrategyGBPWeek()
    {
-      Name="Harvester GBPWeek";
-      if(UseCurrencyStrengthDatabase)
-         Name+=" DB";
+      SetName("Harvester GBPWeek");
       Namespace="HARVGBPWeek";
       Init();
    }
@@ -5762,9 +5774,7 @@ public:
 
    StrategyCSGBP45MinStrength()
    {
-      Name="Harvester CSGBP45MinStrength";
-      if(UseCurrencyStrengthDatabase)
-         Name+=" DB";
+      SetName("Harvester CSGBP45MinStrength");
       Namespace="HARVCSGBP45MinStrength";
       Init();
       
@@ -5865,18 +5875,14 @@ public:
 };
 
 
-class StrategyCookieCutter : public Strategy
+class StrategyCookieCutter : public StrategyBase
 {
-   string Name;
-
 public:
-   string GetName() {return Name;}
-
    MarketStructureShift mss1;
 
    StrategyCookieCutter()
    {
-      Name="Harvester Cookie Cutter";
+      SetName("Harvester Cookie Cutter");
 
       if(istesting)
       {
@@ -5895,9 +5901,8 @@ public:
 };
 
 
-class StrategyRepeatingPattern : public Strategy
+class StrategyRepeatingPattern : public StrategyBase
 {
-   string Name;
    double rangehigh1, rangelow1, rangehigh2, rangelow2;
    int state1, state2, lastday;
    int scanday;
@@ -5914,11 +5919,9 @@ class StrategyRepeatingPattern : public Strategy
    TypeRange range[];
 
 public:
-   string GetName() {return Name;}
-
    StrategyRepeatingPattern()
    {
-      Name="Harvester Repeating Pattern";
+      SetName("Harvester Repeating Pattern");
 
       if(istesting)
          WS.StopMode=None;
@@ -6025,22 +6028,22 @@ public:
 
       double tickvalue=CurrentSymbolTickValue();
       double percentbalance=0.5;
-      double range=rangehigh-rangelow;
+      double prange=rangehigh-rangelow;
       double ticksize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_SIZE);
       double contractsize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_CONTRACT_SIZE);
       double volumestep=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_STEP);
-      double v=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*(range/ticksize)),2);
+      double v=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*(prange/ticksize)),2);
       v=MathRound(v/volumestep)*volumestep;
       
-      double rangepoints=range/Point();
+      double rangepoints=prange/Point();
       
       if(openbuy)
          //OpenBuy(NULL,v,0,rangepoints,rangepoints);
-         OpenBuy(NULL,v,0,NULL,NULL,rangelow,rangehigh+range);
+         OpenBuy(NULL,v,0,NULL,NULL,rangelow,rangehigh+prange);
 
       if(opensell)
          //OpenSell(NULL,v,0,rangepoints,rangepoints);
-         OpenSell(NULL,v,0,NULL,NULL,rangehigh,rangelow-range);
+         OpenSell(NULL,v,0,NULL,NULL,rangehigh,rangelow-prange);
 
       state=2;
    }
