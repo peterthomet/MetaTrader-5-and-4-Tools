@@ -5987,8 +5987,14 @@ public:
       //if(scanday!=t.day_of_year)
       //   Scan();
 
-      if(WhileTesting(t.hour==P1)) // _TradingHours[t.hour]
+      if(true)
+      //if(WhileTesting(t.hour==P1)) // _TradingHours[t.hour]
       {
+         if((t.min==20 && WhileTesting(P2==1)) || (t.min==50 && WhileTesting(P2==2)))
+         {
+            AddRange(t,rates[1]);
+         }
+
          if(t.min==20 && state1==0 && WhileTesting(P2==1))
          {
             rangehigh1=rates[1].high;
@@ -6016,6 +6022,28 @@ public:
 
       if(state2==2 && t.day!=lastday)
          state2=0;
+   }
+   
+   void AddRange(MqlDateTime& t, MqlRates& r)
+   {
+      int s=ArraySize(range);
+      int index=-1;
+      for(int i=0; i<s; i++)
+      {
+         if(range[i].hour==t.hour && range[i].min==t.min)
+         {
+            index=i;
+            break;
+         }
+      }
+      if(index==-1)
+      {
+         ArrayResize(range,s+1,1000);
+         range[s].hour=t.hour;
+         range[s].min=t.min;
+         range[s].rangehigh=r.high;
+         range[s].rangelow=r.low;
+      }
    }
    
    void OpenTrade(double rangehigh, double rangelow, bool openbuy, bool opensell, int &state)
