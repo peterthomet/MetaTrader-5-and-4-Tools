@@ -5991,9 +5991,7 @@ public:
       //if(WhileTesting(t.hour==P1)) // _TradingHours[t.hour]
       {
          if((t.min==20 && WhileTesting(P2==1)) || (t.min==50 && WhileTesting(P2==2)))
-         {
             AddRange(t,rates[1]);
-         }
 
          if(t.min==20 && state1==0 && WhileTesting(P2==1))
          {
@@ -6026,6 +6024,19 @@ public:
    
    void AddRange(MqlDateTime& t, MqlRates& r)
    {
+      if(GetRangeIndex(t)==-1)
+      {
+         int s=ArraySize(range);
+         ArrayResize(range,s+1,1000);
+         range[s].hour=t.hour;
+         range[s].min=t.min;
+         range[s].rangehigh=r.high;
+         range[s].rangelow=r.low;
+      }
+   }
+   
+   int GetRangeIndex(MqlDateTime& t)
+   {
       int s=ArraySize(range);
       int index=-1;
       for(int i=0; i<s; i++)
@@ -6036,14 +6047,7 @@ public:
             break;
          }
       }
-      if(index==-1)
-      {
-         ArrayResize(range,s+1,1000);
-         range[s].hour=t.hour;
-         range[s].min=t.min;
-         range[s].rangehigh=r.high;
-         range[s].rangelow=r.low;
-      }
+      return index;
    }
    
    void OpenTrade(double rangehigh, double rangelow, bool openbuy, bool opensell, int &state)
