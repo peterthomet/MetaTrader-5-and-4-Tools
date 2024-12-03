@@ -5913,6 +5913,8 @@ class StrategyRepeatingPattern : public StrategyBase
       int min;
       double rangehigh;
       double rangelow;
+      bool buydone;
+      bool selldone;
    };
    
    TypeRange result[];
@@ -5992,40 +5994,34 @@ public:
       {
          if((t.min==20 && WhileTesting(P2==1)) || (t.min==50 && WhileTesting(P2==2)))
             AddRange(t,rates[1]);
+      }
 
-         if(t.min==20 && state1==0 && WhileTesting(P2==1))
+      int s=ArraySize(range);
+      for(int i=0; i<s; i++)
+      {
+         if(!range[i].buydone && !range[i].selldone)
          {
-            rangehigh1=rates[1].high;
-            rangelow1=rates[1].low;
-            state1=1;
-            lastday=t.day;
-         }
-         if(t.min==50 && state2==0 && WhileTesting(P2==2))
-         {
-            rangehigh2=rates[1].high;
-            rangelow2=rates[1].low;
-            state2=1;
-            lastday=t.day;
+            if(rates[0].close>range[i].rangehigh)
+            {
+               OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_BUY);
+               range[i].buydone=true;
+            }
+
+            if(rates[0].close<range[i].rangelow)
+            {
+               OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_SELL);
+               range[i].selldone=true;
+            }
          }
       }
-      
-      if(state1==1)
-         OpenTrade(rangehigh1,rangelow1,rates[0].close>rangehigh1,rates[0].close<rangelow1,state1);
-
-      if(state2==1)
-         OpenTrade(rangehigh2,rangelow2,rates[0].close>rangehigh2,rates[0].close<rangelow2,state2);
-         
-      if(state1==2 && t.day!=lastday)
-         state1=0;
-
-      if(state2==2 && t.day!=lastday)
-         state2=0;
    }
    
    void AddRange(MqlDateTime& t, MqlRates& r)
    {
       if(GetRangeIndex(t)==-1)
       {
+         Print("Add Range: ",t.min);
+
          int s=ArraySize(range);
          ArrayResize(range,s+1,1000);
          range[s].hour=t.hour;
@@ -6049,12 +6045,9 @@ public:
       }
       return index;
    }
-   
-   void OpenTrade(double rangehigh, double rangelow, bool openbuy, bool opensell, int &state)
+
+   void OpenTrade(double rangehigh, double rangelow, ENUM_ORDER_TYPE ot)
    {
-      if(!openbuy && !opensell)
-         return;
-         
       Print("Range High: ",rangehigh);
       Print("Range Low: ",rangelow);
 
@@ -6069,17 +6062,15 @@ public:
       
       double rangepoints=prange/Point();
       
-      if(openbuy)
+      if(ot==ORDER_TYPE_BUY)
          //OpenBuy(NULL,v,0,rangepoints,rangepoints);
          OpenBuy(NULL,v,0,NULL,NULL,rangelow,rangehigh+prange);
 
-      if(opensell)
+      if(ot==ORDER_TYPE_SELL)
          //OpenSell(NULL,v,0,rangepoints,rangepoints);
          OpenSell(NULL,v,0,NULL,NULL,rangehigh,rangelow-prange);
-
-      state=2;
    }
-
+   
    void IdleCalculate()
    {
    }
