@@ -6028,6 +6028,8 @@ public:
          range[s].min=t.min;
          range[s].rangehigh=r.high;
          range[s].rangelow=r.low;
+         range[s].buydone=false;
+         range[s].selldone=false;
       }
    }
    
