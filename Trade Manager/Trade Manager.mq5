@@ -5903,12 +5903,11 @@ public:
 
 class StrategyRepeatingPattern : public StrategyBase
 {
-   double rangehigh1, rangelow1, rangehigh2, rangelow2;
-   int state1, state2, lastday;
-   int scanday;
+   int lastday;
 
    struct TypeRange
    {
+      int day_of_year;
       int hour;
       int min;
       double rangehigh;
@@ -5928,10 +5927,7 @@ public:
       if(istesting)
          WS.StopMode=None;
 
-      state1=0;
-      state2=0;
       lastday=0;
-      scanday=0;
    }
    
    void Scan()
@@ -5970,8 +5966,6 @@ public:
             }
          }
       }
-
-      scanday=reft.day_of_year;
    }
 
    void Calculate()
@@ -5986,11 +5980,15 @@ public:
       MqlDateTime t;
       TimeToStruct(rates[0].time,t);
 
-      //if(scanday!=t.day_of_year)
-      //   Scan();
+      if(lastday!=t.day_of_year)
+      {
+         ArrayResize(range,0,1000);
+         //Scan();
+         lastday=t.day_of_year;
+      }
 
-      if(true)
-      //if(WhileTesting(t.hour==P1)) // _TradingHours[t.hour]
+      //if(true)
+      if(WhileTesting(t.hour==P1)) // _TradingHours[t.hour]
       {
          if((t.min==20 && WhileTesting(P2==1)) || (t.min==50 && WhileTesting(P2==2)))
             AddRange(t,rates[1]);
@@ -5999,7 +5997,7 @@ public:
       int s=ArraySize(range);
       for(int i=0; i<s; i++)
       {
-         if(!range[i].buydone && !range[i].selldone)
+         if(!range[i].buydone && !range[i].selldone && range[i].day_of_year==t.day_of_year)
          {
             if(rates[0].close>range[i].rangehigh)
             {
@@ -6024,6 +6022,7 @@ public:
 
          int s=ArraySize(range);
          ArrayResize(range,s+1,1000);
+         range[s].day_of_year=t.day_of_year;
          range[s].hour=t.hour;
          range[s].min=t.min;
          range[s].rangehigh=r.high;
@@ -6039,7 +6038,7 @@ public:
       int index=-1;
       for(int i=0; i<s; i++)
       {
-         if(range[i].hour==t.hour && range[i].min==t.min)
+         if(range[i].day_of_year==t.day_of_year && range[i].hour==t.hour && range[i].min==t.min)
          {
             index=i;
             break;
@@ -6054,7 +6053,7 @@ public:
       Print("Range Low: ",rangelow);
 
       double tickvalue=CurrentSymbolTickValue();
-      double percentbalance=0.5;
+      double percentbalance=P3;
       double prange=rangehigh-rangelow;
       double ticksize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_SIZE);
       double contractsize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_CONTRACT_SIZE);
