@@ -5988,7 +5988,7 @@ public:
       }
 
       //if(true)
-      if(WhileTesting(t.hour==P1)) // _TradingHours[t.hour]
+      if(WhileTesting(t.hour==P1) /*&& t.day_of_week==2*/ ) // _TradingHours[t.hour]
       {
          if((t.min==20 && WhileTesting(P2==1)) || (t.min==50 && WhileTesting(P2==2)))
             AddRange(t,rates[1]);
@@ -6065,11 +6065,11 @@ public:
       
       if(ot==ORDER_TYPE_BUY)
          //OpenBuy(NULL,v,0,rangepoints,rangepoints);
-         OpenBuy(NULL,v,0,NULL,NULL,rangelow,rangehigh+prange);
+         OpenBuy(NULL,v,0,NULL,NULL,rangelow,rangehigh+(prange*1));
 
       if(ot==ORDER_TYPE_SELL)
          //OpenSell(NULL,v,0,rangepoints,rangepoints);
-         OpenSell(NULL,v,0,NULL,NULL,rangehigh,rangelow-prange);
+         OpenSell(NULL,v,0,NULL,NULL,rangehigh,rangelow-(prange*1));
    }
    
    void IdleCalculate()
