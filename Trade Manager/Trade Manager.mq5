@@ -850,42 +850,49 @@ void InitStrategies()
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyCSGBPReversal;
+      strats[i].SetID(1);
       i++;
    }
    if(Harvester_CSGBP45MinStrength)
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyCSGBP45MinStrength;
+      strats[i].SetID(2);
       i++;
    }
    if(Harvester_CSFollow)
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyCSFollow;
+      strats[i].SetID(3);
       i++;
    }
    if(Harvester_GBPWeek)
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyGBPWeek;
+      strats[i].SetID(4);
       i++;
    }
    if(Harvester_CSEmergingTrends)
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyCSEmergingTrends;
+      strats[i].SetID(5);
       i++;
    }
    if(Harvester_CookieCutter)
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyCookieCutter;
+      strats[i].SetID(6);
       i++;
    }
    if(Harvester_RepeatingPattern)
    {
       ArrayResize(strats,i+1);
       strats[i]=new StrategyRepeatingPattern;
+      strats[i].SetID(7);
       i++;
    }
 }
@@ -1155,8 +1162,8 @@ void SetGlobalVariables()
    ManageSymbolList();
    pv["symbollist"]=symbollist;
 
-//   for(int i=ArraySize(strats)-1; i>=0; i--)
-//      strats[i].Calculate();
+   for(int i=ArraySize(strats)-1; i>=0; i--)
+      strats[i].GlobalVariablesSet(pv);
 
    pv.save();
 }
@@ -1210,6 +1217,10 @@ void GetGlobalVariables()
 
       symbollist=pv["symbollist"].string_();
       ManageSymbolList();
+
+      for(int i=ArraySize(strats)-1; i>=0; i--)
+         strats[i].GlobalVariablesGet(pv);
+
    }
    else
    {
@@ -4300,6 +4311,199 @@ struct MarketStructureShift
 
 
 
+
+
+// --------------------------------------------------------------
+// Variables INI File Classes
+// --------------------------------------------------------------
+
+
+#include <Arrays\List.mqh>
+
+
+class VariableData : public CObject
+{
+protected:
+   string m_name;
+   string m_value;
+   bool deleted;
+
+public:
+   VariableData(){ deleted=false; }
+   VariableData(string name):m_name(name){ deleted=false; }
+   template<typename T>
+   void operator=(T value){ m_value=(string)value;}
+   template<typename T>
+   T value() {return (T)m_value;}
+   int int_() {return (int)m_value;}
+   double double_() {return (double)m_value;}
+   string string_() {return m_value;}
+   bool bool_() {return (m_value=="true") ? true : false;}
+   string name() {return m_name;}
+   void deleteit() {deleted=true;}
+   bool isdeleted() {return deleted;}
+
+   virtual bool Save(const int file_handle) override
+   {
+      if(file_handle==INVALID_HANDLE)
+         return(false);
+      if(!deleted)
+         FileWriteString(file_handle,m_name+"="+m_value+"\r\n");
+      return true;
+   }
+
+   virtual bool Load(const int file_handle) override
+   {
+      if(file_handle==INVALID_HANDLE)
+         return(false);
+      string r=FileReadString(file_handle);
+      int d=r.Find("=");
+      if(d<1)
+         return false;
+      m_name=r.Substr(0,d);
+      m_value=r.Substr(d+1,-1);
+      return true;
+   }
+};
+
+
+class VariableList : public CList
+{
+   public: virtual CObject *CreateElement(void) { return new VariableData(); }
+
+   bool Save(const int file_handle) override
+   {
+      CObject *node;
+      bool     result=true;
+      if(!CheckPointer(m_curr_node) || file_handle==INVALID_HANDLE)
+         return(false);
+      node=m_first_node;
+      while(node!=NULL)
+      {
+         result&=node.Save(file_handle);
+         node=node.Next();
+      }
+      return(result);
+   }
+
+   bool Load(const int file_handle) override
+   {
+      CObject *node;
+      bool result=true;
+      if(file_handle==INVALID_HANDLE)
+         return(false);
+      Clear();
+      while(result)
+      {
+         node=CreateElement();
+         result=node.Load(file_handle);
+         if(result)
+            Add(node);
+         else
+            delete node;
+      }
+      return(result);
+   }
+};
+
+
+class PersistentVariables : public CObject
+{
+   VariableList m_list;
+   string m_file_name;
+   string m_group;
+public:
+   PersistentVariables(string file_name):m_file_name(file_name){}
+
+   VariableData *GroupNext(VariableData *vd)
+   {
+      //VariableData *vd = m_list.GetNextNode();
+      vd=vd.Next();
+      for(;CheckPointer(vd); vd=vd.Next())
+         if(StringFind(vd.name(),m_group) == 0)
+            return vd;
+      return NULL;
+   }
+
+   VariableData *GroupFirst(string name)
+   {
+      m_group=name;
+      VariableData *vd = m_list.GetFirstNode();
+      for(;CheckPointer(vd); vd=vd.Next())
+         if(StringFind(vd.name(),name) == 0)
+            return vd;
+      return NULL;
+   }
+
+   void ClearGroup(string name)
+   {
+      VariableData *vd = m_list.GetFirstNode();
+      for(;CheckPointer(vd); vd=vd.Next())
+         if(StringFind(vd.name(),name) == 0)
+            vd.deleteit();
+   }
+   
+   string Group()
+   {
+      return m_group;
+   }
+
+   VariableData *operator[](string name)
+   {
+      VariableData *vd = m_list.GetFirstNode();
+      for(;CheckPointer(vd); vd=vd.Next())
+         if(vd.name() == name && !vd.isdeleted())
+            return vd;
+      vd = new VariableData(name);
+      m_list.Add(vd);
+      return vd;
+   }
+
+   bool load()
+   {
+      int h = FileOpen(m_file_name, FILE_READ|FILE_TXT);
+      m_list.Clear();
+      bool res = m_list.Load(h);
+      FileClose(h);
+      return res;
+   }
+
+   bool save()
+   {
+      int h = FileOpen(m_file_name, FILE_WRITE|FILE_TXT);
+      bool res = m_list.Save(h);
+      FileClose(h);
+      return res;
+   }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ////////////////////////////////////////////////////////////////////////////////////
 // STRATEGIES
 ////////////////////////////////////////////////////////////////////////////////////
@@ -4312,6 +4516,8 @@ public:
    void SetName(string Name);
    int GetID();
    void SetID(int ID);
+   void GlobalVariablesSet(PersistentVariables &pv);
+   void GlobalVariablesGet(PersistentVariables &pv);
    void IdleCalculate();
    void Calculate();
 };
@@ -4330,6 +4536,8 @@ public:
       if(UseCurrencyStrengthDatabase)
          Name+=" DB";
    };
+   void GlobalVariablesSet(PersistentVariables &pv) {};
+   void GlobalVariablesGet(PersistentVariables &pv) {};
    int GetID() {return id;};
    void SetID(int ID) {id=ID;};
 };
@@ -5929,6 +6137,14 @@ public:
 
       lastday=0;
    }
+
+   void GlobalVariablesSet(PersistentVariables &pv)
+   {
+   };
+
+   void GlobalVariablesGet(PersistentVariables &pv)
+   {
+   };
    
    void Scan()
    {
@@ -6083,170 +6299,3 @@ Strategy* strats[];
 
 
 
-
-
-
-
-// --------------------------------------------------------------
-// Variables INI File Classes
-// --------------------------------------------------------------
-
-
-#include <Arrays\List.mqh>
-
-
-class VariableData : public CObject
-{
-protected:
-   string m_name;
-   string m_value;
-   bool deleted;
-
-public:
-   VariableData(){ deleted=false; }
-   VariableData(string name):m_name(name){ deleted=false; }
-   template<typename T>
-   void operator=(T value){ m_value=(string)value;}
-   template<typename T>
-   T value() {return (T)m_value;}
-   int int_() {return (int)m_value;}
-   double double_() {return (double)m_value;}
-   string string_() {return m_value;}
-   bool bool_() {return (m_value=="true") ? true : false;}
-   string name() {return m_name;}
-   void deleteit() {deleted=true;}
-   bool isdeleted() {return deleted;}
-
-   virtual bool Save(const int file_handle) override
-   {
-      if(file_handle==INVALID_HANDLE)
-         return(false);
-      if(!deleted)
-         FileWriteString(file_handle,m_name+"="+m_value+"\r\n");
-      return true;
-   }
-
-   virtual bool Load(const int file_handle) override
-   {
-      if(file_handle==INVALID_HANDLE)
-         return(false);
-      string r=FileReadString(file_handle);
-      int d=r.Find("=");
-      if(d<1)
-         return false;
-      m_name=r.Substr(0,d);
-      m_value=r.Substr(d+1,-1);
-      return true;
-   }
-};
-
-
-class VariableList : public CList
-{
-   public: virtual CObject *CreateElement(void) { return new VariableData(); }
-
-   bool Save(const int file_handle) override
-   {
-      CObject *node;
-      bool     result=true;
-      if(!CheckPointer(m_curr_node) || file_handle==INVALID_HANDLE)
-         return(false);
-      node=m_first_node;
-      while(node!=NULL)
-      {
-         result&=node.Save(file_handle);
-         node=node.Next();
-      }
-      return(result);
-   }
-
-   bool Load(const int file_handle) override
-   {
-      CObject *node;
-      bool result=true;
-      if(file_handle==INVALID_HANDLE)
-         return(false);
-      Clear();
-      while(result)
-      {
-         node=CreateElement();
-         result=node.Load(file_handle);
-         if(result)
-            Add(node);
-         else
-            delete node;
-      }
-      return(result);
-   }
-};
-
-
-class PersistentVariables : public CObject
-{
-   VariableList m_list;
-   string m_file_name;
-   string m_group;
-public:
-   PersistentVariables(string file_name):m_file_name(file_name){}
-
-   VariableData *GroupNext(VariableData *vd)
-   {
-      //VariableData *vd = m_list.GetNextNode();
-      vd=vd.Next();
-      for(;CheckPointer(vd); vd=vd.Next())
-         if(StringFind(vd.name(),m_group) == 0)
-            return vd;
-      return NULL;
-   }
-
-   VariableData *GroupFirst(string name)
-   {
-      m_group=name;
-      VariableData *vd = m_list.GetFirstNode();
-      for(;CheckPointer(vd); vd=vd.Next())
-         if(StringFind(vd.name(),name) == 0)
-            return vd;
-      return NULL;
-   }
-
-   void ClearGroup(string name)
-   {
-      VariableData *vd = m_list.GetFirstNode();
-      for(;CheckPointer(vd); vd=vd.Next())
-         if(StringFind(vd.name(),name) == 0)
-            vd.deleteit();
-   }
-   
-   string Group()
-   {
-      return m_group;
-   }
-
-   VariableData *operator[](string name)
-   {
-      VariableData *vd = m_list.GetFirstNode();
-      for(;CheckPointer(vd); vd=vd.Next())
-         if(vd.name() == name && !vd.isdeleted())
-            return vd;
-      vd = new VariableData(name);
-      m_list.Add(vd);
-      return vd;
-   }
-
-   bool load()
-   {
-      int h = FileOpen(m_file_name, FILE_READ|FILE_TXT);
-      m_list.Clear();
-      bool res = m_list.Load(h);
-      FileClose(h);
-      return res;
-   }
-
-   bool save()
-   {
-      int h = FileOpen(m_file_name, FILE_WRITE|FILE_TXT);
-      bool res = m_list.Save(h);
-      FileClose(h);
-      return res;
-   }
-};
