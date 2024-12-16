@@ -110,9 +110,9 @@ input color BackgroundPanelColor = clrNONE;
 input int SymbolListSize = 10;
 input bool MT5CommissionPerDeal = true;
 input int AvailableTradingCapital = 0;
-input int PendingOrdersSplit = 3;
-input double PendingOrdersRiskFactor = 3;
-input double PendingOrdersFirstTPStep = 5;
+input int PendingOrdersSplit = 1;
+input double PendingOrdersRiskFactor = 1;
+input double PendingOrdersFirstTPStep = 1;
 input double PendingOrdersNextTPSteps = 1;
 input double TradeCopierRiskFactor = 1;
 input int StartHour = 0;
@@ -739,6 +739,8 @@ void OnInit()
 
    WS.Init();
    
+   InitStrategies();
+
    if(!istesting)
       GetGlobalVariables();
 
@@ -764,8 +766,6 @@ void OnInit()
 
    DisplaySymbolList();
 
-   InitStrategies();
-   
    InitTesting();
 
    if(!istesting)
@@ -903,9 +903,6 @@ void OnDeinit(const int reason)
    if(reason!=REASON_CHARTCHANGE)
       SocketClose(TC.socket);
 
-   for(int i=ArraySize(strats)-1; i>=0; i--)
-      delete strats[i];
-
    EventKillTimer();
 #ifdef __MQL5__
    if(istesting)
@@ -921,6 +918,9 @@ void OnDeinit(const int reason)
       ToggleCtrl(true);
       ToggleTradeLevels(true);
    }
+
+   for(int i=ArraySize(strats)-1; i>=0; i--)
+      delete strats[i];
 }
 
 
