@@ -6136,16 +6136,47 @@ public:
          WS.StopMode=None;
 
       lastday=0;
+      ArrayResize(result,0,1000);
+      ArrayResize(range,0,1000);
    }
 
    void GlobalVariablesSet(PersistentVariables &pv)
    {
+      string group="HARV"+IntegerToString(GetID(),8,'0')+".";
+      pv.ClearGroup(group);
+      int asize=ArraySize(range);
+      for(int i=0; i<asize; i++)
+      {
+         string iid=IntegerToString(range[i].day_of_year,3,'0')+IntegerToString(range[i].hour,2,'0')+IntegerToString(range[i].min,2,'0');
+         pv[group+"rangehigh"+iid]=range[i].rangehigh;
+         pv[group+"rangelow"+iid]=range[i].rangelow;
+         pv[group+"buydone"+iid]=range[i].buydone;
+         pv[group+"selldone"+iid]=range[i].selldone;
+      }
    };
 
    void GlobalVariablesGet(PersistentVariables &pv)
    {
+      VariableData *vd;
+      string group="HARV"+IntegerToString(GetID(),8,'0')+".";
+     
+      vd=pv.GroupFirst(group+"rangehigh");
+      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
+         UpdateRange(vd.name(),pv.Group(),vd.double_());
+
+      vd=pv.GroupFirst(group+"rangelow");
+      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
+         UpdateRange(vd.name(),pv.Group(),NULL,vd.double_());
+
+      vd=pv.GroupFirst(group+"buydone");
+      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
+         UpdateRange(vd.name(),pv.Group(),NULL,NULL,vd.bool_());
+
+      vd=pv.GroupFirst(group+"selldone");
+      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
+         UpdateRange(vd.name(),pv.Group(),NULL,NULL,NULL,vd.bool_());
    };
-   
+
    void Scan()
    {
       MqlRates rates[];
@@ -6198,7 +6229,7 @@ public:
 
       if(lastday!=t.day_of_year)
       {
-         ArrayResize(range,0,1000);
+         //ArrayResize(range,0,1000);
          //Scan();
          lastday=t.day_of_year;
       }
@@ -6261,6 +6292,35 @@ public:
          }
       }
       return index;
+   }
+
+   void UpdateRange(string _name, string group, double rangehigh=NULL, double rangelow=NULL, bool buydone=NULL, bool selldone=NULL)
+   {
+      string _id=StringSubstr(_name,StringLen(group));
+      MqlDateTime t;
+      t.day_of_year=(int)StringToInteger(StringSubstr(_id,0,3));
+      t.hour=(int)StringToInteger(StringSubstr(_id,3,2));
+      t.min=(int)StringToInteger(StringSubstr(_id,5,2));
+
+      int i=GetRangeIndex(t);
+      if(i==-1)
+      {
+         int s=ArraySize(range);
+         ArrayResize(range,s+1,1000);
+         i=s;
+         range[i].day_of_year=t.day_of_year;
+         range[i].hour=t.hour;
+         range[i].min=t.min;
+      }
+      
+      if(rangehigh!=NULL)
+         range[i].rangehigh=rangehigh;
+      if(rangelow!=NULL)
+         range[i].rangelow=rangelow;
+      if(buydone!=NULL)
+         range[i].buydone=buydone;
+      if(selldone!=NULL)
+         range[i].selldone=selldone;
    }
 
    void OpenTrade(double rangehigh, double rangelow, ENUM_ORDER_TYPE ot)
