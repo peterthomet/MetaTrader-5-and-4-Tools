@@ -1152,11 +1152,12 @@ void SetGlobalVariables()
    int asize=ArraySize(WS.tradereference);
    for(int i=0; i<asize; i++)
    {
-      pv["TradeReference.gain"+IntegerToString(WS.tradereference[i].magicnumber)]=WS.tradereference[i].gain;
-      pv["TradeReference.stoplosspips"+IntegerToString(WS.tradereference[i].magicnumber)]=WS.tradereference[i].stoplosspips;
-      pv["TradeReference.stoplosslevel"+IntegerToString(WS.tradereference[i].magicnumber)]=WS.tradereference[i].stoplosslevel;
-      pv["TradeReference.takeprofitpips"+IntegerToString(WS.tradereference[i].magicnumber)]=WS.tradereference[i].takeprofitpips;
-      pv["TradeReference.takeprofitlevel"+IntegerToString(WS.tradereference[i].magicnumber)]=WS.tradereference[i].takeprofitlevel;
+      string id=IntegerToString(WS.tradereference[i].magicnumber,12,'0');
+      pv["TradeReference."+id+".gain"]=WS.tradereference[i].gain;
+      pv["TradeReference."+id+".stoplosspips"]=WS.tradereference[i].stoplosspips;
+      pv["TradeReference."+id+".stoplosslevel"]=WS.tradereference[i].stoplosslevel;
+      pv["TradeReference."+id+".takeprofitpips"]=WS.tradereference[i].takeprofitpips;
+      pv["TradeReference."+id+".takeprofitlevel"]=WS.tradereference[i].takeprofitlevel;
    }
    
    ManageSymbolList();
@@ -1174,142 +1175,54 @@ void GetGlobalVariables()
    PersistentVariables pv(inifilename);
    pv.load();
    
-   if(pv["StopMode"].int_()!=NULL)
+   WS.StopMode=(BEStopModes)pv["StopMode"].int_();
+   WS.peakgain=pv["peakgain"].double_();
+   WS.peakpips=pv["peakpips"].double_();
+   _OpenLots=pv["OpenLots"].double_();
+   _OpenLotsBasket=pv["OpenLotsBasket"].double_()>0 ? pv["OpenLotsBasket"].double_() : _OpenLots;
+   _OpenLots=pv["OpenLots-"+Symbol()].double_()>0 ? pv["OpenLots-"+Symbol()].double_() : _OpenLots;
+   _StopLossPips=pv["StopLossPips"].double_();
+   _StopLossPips=pv["StopLossPips-"+Symbol()].double_()>0 ? pv["StopLossPips-"+Symbol()].double_() : _StopLossPips;
+   _TakeProfitPips=pv["TakeProfitPips"].double_();
+   _TakeProfitPips=pv["TakeProfitPips-"+Symbol()].double_()>0 ? pv["TakeProfitPips-"+Symbol()].double_() : _TakeProfitPips;
+   WS.currentbasemagicnumber=pv["currentbasemagicnumber"].int_();
+   WS.ManualBEStopLocked=pv["ManualBEStopLocked"].bool_();
+   WS.closebasketatBE=pv["closebasketatBE"].bool_();
+   lipstickmode=pv["lipstickmode"].int_();
+   InstrumentSelected=pv["InstrumentSelected"].int_();
+   TradesViewSelected=pv["TradesViewSelected"].int_();
+
+   VariableData *vd;
+
+   vd=pv.GroupFirst("TradeReference.");
+   for(;CheckPointer(vd);vd=pv.GroupNext(vd))
    {
-      WS.StopMode=(BEStopModes)pv["StopMode"].int_();
-      WS.peakgain=pv["peakgain"].double_();
-      WS.peakpips=pv["peakpips"].double_();
-      _OpenLots=pv["OpenLots"].double_();
-      _OpenLotsBasket=pv["OpenLotsBasket"].double_()>0 ? pv["OpenLotsBasket"].double_() : _OpenLots;
-      _OpenLots=pv["OpenLots-"+Symbol()].double_()>0 ? pv["OpenLots-"+Symbol()].double_() : _OpenLots;
-      _StopLossPips=pv["StopLossPips"].double_();
-      _StopLossPips=pv["StopLossPips-"+Symbol()].double_()>0 ? pv["StopLossPips-"+Symbol()].double_() : _StopLossPips;
-      _TakeProfitPips=pv["TakeProfitPips"].double_();
-      _TakeProfitPips=pv["TakeProfitPips-"+Symbol()].double_()>0 ? pv["TakeProfitPips-"+Symbol()].double_() : _TakeProfitPips;
-      WS.currentbasemagicnumber=pv["currentbasemagicnumber"].int_();
-      WS.ManualBEStopLocked=pv["ManualBEStopLocked"].bool_();
-      WS.closebasketatBE=pv["closebasketatBE"].bool_();
-      lipstickmode=pv["lipstickmode"].int_();
-      InstrumentSelected=pv["InstrumentSelected"].int_();
-      TradesViewSelected=pv["TradesViewSelected"].int_();
+      TypeTradeReference tr;
+      tr.magicnumber=StringToInteger(StringSubstr(vd.name(),StringLen(pv.Group()),12));
+      tr.gain=vd.double_();
+      vd=pv.GroupNext(vd);
+      if(CheckPointer(vd))
+         tr.stoplosspips=vd.double_();
+      vd=pv.GroupNext(vd);
+      if(CheckPointer(vd))
+         tr.stoplosslevel=vd.double_();
+      vd=pv.GroupNext(vd);
+      if(CheckPointer(vd))
+         tr.takeprofitpips=vd.double_();
+      vd=pv.GroupNext(vd);
+      if(CheckPointer(vd))
+         tr.takeprofitlevel=vd.double_();
 
-      VariableData *vd;
-      
-      vd=pv.GroupFirst("TradeReference.gain");
-      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
-         UpdateTradeReference(vd.name(),pv.Group(),vd.double_());
-
-      vd=pv.GroupFirst("TradeReference.stoplosspips");
-      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
-         UpdateTradeReference(vd.name(),pv.Group(),NULL,vd.double_());
-
-      vd=pv.GroupFirst("TradeReference.stoplosslevel");
-      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
-         UpdateTradeReference(vd.name(),pv.Group(),NULL,NULL,NULL,vd.double_());
-
-      vd=pv.GroupFirst("TradeReference.takeprofitpips");
-      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
-         UpdateTradeReference(vd.name(),pv.Group(),NULL,NULL,vd.double_());
-
-      vd=pv.GroupFirst("TradeReference.takeprofitlevel");
-      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
-         UpdateTradeReference(vd.name(),pv.Group(),NULL,NULL,NULL,NULL,vd.double_());
-
-      symbollist=pv["symbollist"].string_();
-      ManageSymbolList();
-
-      for(int i=ArraySize(strats)-1; i>=0; i--)
-         strats[i].GlobalVariablesGet(pv);
-
+      int asize=ArraySize(WS.tradereference);
+      ArrayResize(WS.tradereference,asize+1);
+      WS.tradereference[asize]=tr;
    }
-   else
-   {
-      string varname=appnamespace+"StopMode";
-      if(GlobalVariableCheck(varname))
-         WS.StopMode=(BEStopModes)GlobalVariableGet(varname);
-      varname=appnamespace+"peakgain";
-      if(GlobalVariableCheck(varname))
-         WS.peakgain=GlobalVariableGet(varname);
-      varname=appnamespace+"peakpips";
-      if(GlobalVariableCheck(varname))
-         WS.peakpips=GlobalVariableGet(varname);
-      varname=appnamespace+"OpenLots";
-      if(GlobalVariableCheck(varname))
-         _OpenLots=GlobalVariableGet(varname);
-      varname=appnamespace+"StopLossPips";
-      if(GlobalVariableCheck(varname))
-         _StopLossPips=GlobalVariableGet(varname);
-      varname=appnamespace+"TakeProfitPips";
-      if(GlobalVariableCheck(varname))
-         _TakeProfitPips=GlobalVariableGet(varname);
-      varname=appnamespace+"currentbasemagicnumber";
-      if(GlobalVariableCheck(varname))
-         WS.currentbasemagicnumber=(int)GlobalVariableGet(varname);
-      varname=appnamespace+"ManualBEStopLocked";
-      if(GlobalVariableCheck(varname))
-         WS.ManualBEStopLocked=true;
-      varname=appnamespace+"closebasketatBE";
-      if(GlobalVariableCheck(varname))
-         WS.closebasketatBE=true;
-      varname=appnamespace+"lipstickmode";
-      if(GlobalVariableCheck(varname))
-         lipstickmode=(int)GlobalVariableGet(varname);
-      varname=appnamespace+"InstrumentSelected";
-      if(GlobalVariableCheck(varname))
-         InstrumentSelected=(int)GlobalVariableGet(varname);
-      varname=appnamespace+"TradesViewSelected";
-      if(GlobalVariableCheck(varname))
-         TradesViewSelected=(int)GlobalVariableGet(varname);
-         
-      int varcount=GlobalVariablesTotal();
-      for(int i=0; i<varcount; i++)
-      {
-         string n=GlobalVariableName(i);
-         string s;
-         long magicnumber;
-         int p;
-   
-         s=appnamespace+"TradeReference.gain";
-         p=StringFind(n,s);
-         if(p==0)
-         {
-            magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
-            UpdateTradeReference(magicnumber,GlobalVariableGet(n));
-         }
-   
-         s=appnamespace+"TradeReference.stoplosspips";
-         p=StringFind(n,s);
-         if(p==0)
-         {
-            magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
-            UpdateTradeReference(magicnumber,NULL,GlobalVariableGet(n));
-         }
-   
-         s=appnamespace+"TradeReference.stoplosslevel";
-         p=StringFind(n,s);
-         if(p==0)
-         {
-            magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
-            UpdateTradeReference(magicnumber,NULL,NULL,NULL,GlobalVariableGet(n));
-         }
-   
-         s=appnamespace+"TradeReference.takeprofitpips";
-         p=StringFind(n,s);
-         if(p==0)
-         {
-            magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
-            UpdateTradeReference(magicnumber,NULL,NULL,GlobalVariableGet(n));
-         }
-   
-         s=appnamespace+"TradeReference.takeprofitlevel";
-         p=StringFind(n,s);
-         if(p==0)
-         {
-            magicnumber=StringToInteger(StringSubstr(n,StringLen(s)));
-            UpdateTradeReference(magicnumber,NULL,NULL,NULL,NULL,GlobalVariableGet(n));
-         }
-      }
-   }
+
+   symbollist=pv["symbollist"].string_();
+   ManageSymbolList();
+
+   for(int i=ArraySize(strats)-1; i>=0; i--)
+      strats[i].GlobalVariablesGet(pv);
 }
 
 
@@ -3035,32 +2948,6 @@ void UpdateTradeReference(TypePairsTradesInfo& piti, TypeTradeInfo& tiin)
    WS.tradereference[index].volume=tiin.volume;
    WS.tradereference[index].commissionpoints=tiin.commissionpoints;
    WS.tradereference[index].lastupdate=TimeLocal();
-}
-
-
-void UpdateTradeReference(string name, string group, double gain=NULL, double stoplosspips=NULL, double takeprofitpips=NULL, double stoplosslevel=NULL, double takeprofitlevel=NULL)
-{
-   long magicnumber;
-   magicnumber=StringToInteger(StringSubstr(name,StringLen(group)));
-   UpdateTradeReference(magicnumber,gain,stoplosspips,takeprofitpips,stoplosslevel,takeprofitlevel);
-}
-
-
-void UpdateTradeReference(long magicnumber, double gain=NULL, double stoplosspips=NULL, double takeprofitpips=NULL, double stoplosslevel=NULL, double takeprofitlevel=NULL)
-{
-   int index=TradeReferenceIndex(magicnumber);
-   if(index==-1)
-      index=NewTradeReference(magicnumber,false);
-   if(gain!=NULL)
-      WS.tradereference[index].gain=gain;
-   if(stoplosspips!=NULL)
-      WS.tradereference[index].stoplosspips=stoplosspips;
-   if(stoplosslevel!=NULL)
-      WS.tradereference[index].stoplosslevel=stoplosslevel;
-   if(takeprofitpips!=NULL)
-      WS.tradereference[index].takeprofitpips=takeprofitpips;
-   if(takeprofitlevel!=NULL)
-      WS.tradereference[index].takeprofitlevel=takeprofitlevel;
 }
 
 
@@ -6115,13 +6002,19 @@ class StrategyRepeatingPattern : public StrategyBase
 
    struct TypeRange
    {
-      int day_of_year;
-      int hour;
-      int min;
+      long time;
       double rangehigh;
       double rangelow;
       bool buydone;
       bool selldone;
+      TypeRange()
+      {
+         time=0;
+         rangehigh=0;
+         rangelow=0;
+         buydone=false;
+         selldone=false;
+      }
    };
    
    TypeRange result[];
@@ -6147,34 +6040,38 @@ public:
       int asize=ArraySize(range);
       for(int i=0; i<asize; i++)
       {
-         string iid=IntegerToString(range[i].day_of_year,3,'0')+IntegerToString(range[i].hour,2,'0')+IntegerToString(range[i].min,2,'0');
-         pv[group+"rangehigh"+iid]=range[i].rangehigh;
-         pv[group+"rangelow"+iid]=range[i].rangelow;
-         pv[group+"buydone"+iid]=range[i].buydone;
-         pv[group+"selldone"+iid]=range[i].selldone;
+         string iid=IntegerToString(range[i].time,12,'0');
+         pv[group+iid+".rangehigh"]=range[i].rangehigh;
+         pv[group+iid+".rangelow"]=range[i].rangelow;
+         pv[group+iid+".buydone"]=range[i].buydone;
+         pv[group+iid+".selldone"]=range[i].selldone;
       }
    };
 
    void GlobalVariablesGet(PersistentVariables &pv)
    {
       VariableData *vd;
-      string group="HARV"+IntegerToString(GetID(),8,'0')+".";
-     
-      vd=pv.GroupFirst(group+"rangehigh");
-      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
-         UpdateRange(vd.name(),pv.Group(),vd.double_());
 
-      vd=pv.GroupFirst(group+"rangelow");
+      vd=pv.GroupFirst("HARV"+IntegerToString(GetID(),8,'0')+".");
       for(;CheckPointer(vd);vd=pv.GroupNext(vd))
-         UpdateRange(vd.name(),pv.Group(),NULL,vd.double_());
-
-      vd=pv.GroupFirst(group+"buydone");
-      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
-         UpdateRange(vd.name(),pv.Group(),NULL,NULL,vd.bool_());
-
-      vd=pv.GroupFirst(group+"selldone");
-      for(;CheckPointer(vd);vd=pv.GroupNext(vd))
-         UpdateRange(vd.name(),pv.Group(),NULL,NULL,NULL,vd.bool_());
+      {
+         TypeRange r;
+         r.time=(int)StringToInteger(StringSubstr(vd.name(),StringLen(pv.Group()),12));
+         r.rangehigh=vd.double_();
+         vd=pv.GroupNext(vd);
+         if(CheckPointer(vd))
+            r.rangelow=vd.double_();
+         vd=pv.GroupNext(vd);
+         if(CheckPointer(vd))
+            r.buydone=vd.bool_();
+         vd=pv.GroupNext(vd);
+         if(CheckPointer(vd))
+            r.selldone=vd.bool_();
+   
+         int asize=ArraySize(range);
+         ArrayResize(range,asize+1);
+         range[asize]=r;
+      }
    };
 
    void Scan()
@@ -6206,8 +6103,7 @@ public:
             {
                int s=ArraySize(result);
                ArrayResize(result,s+1,1000);
-               result[s].hour=t.hour;
-               result[s].min=t.min;
+               result[s].time=(int)rates[i].time;
                result[s].rangehigh=rates[i+1].high;
                result[s].rangelow=rates[i+1].low;
             }
@@ -6238,13 +6134,13 @@ public:
       if(WhileTesting(t.hour==P1) /*&& t.day_of_week==2*/ ) // _TradingHours[t.hour]
       {
          if((t.min==20 && WhileTesting(P2==1)) || (t.min==50 && WhileTesting(P2==2)))
-            AddRange(t,rates[1]);
+            AddRange(rates[0].time,rates[1]);
       }
 
       int s=ArraySize(range);
       for(int i=0; i<s; i++)
       {
-         if(!range[i].buydone && !range[i].selldone && range[i].day_of_year==t.day_of_year)
+         if(!range[i].buydone && !range[i].selldone)
          {
             if(rates[0].close>range[i].rangehigh)
             {
@@ -6261,17 +6157,13 @@ public:
       }
    }
    
-   void AddRange(MqlDateTime& t, MqlRates& r)
+   void AddRange(long t, MqlRates& r)
    {
       if(GetRangeIndex(t)==-1)
       {
-         Print("Add Range: ",t.min);
-
          int s=ArraySize(range);
          ArrayResize(range,s+1,1000);
-         range[s].day_of_year=t.day_of_year;
-         range[s].hour=t.hour;
-         range[s].min=t.min;
+         range[s].time=t;
          range[s].rangehigh=r.high;
          range[s].rangelow=r.low;
          range[s].buydone=false;
@@ -6279,48 +6171,19 @@ public:
       }
    }
    
-   int GetRangeIndex(MqlDateTime& t)
+   int GetRangeIndex(long t)
    {
       int s=ArraySize(range);
       int index=-1;
       for(int i=0; i<s; i++)
       {
-         if(range[i].day_of_year==t.day_of_year && range[i].hour==t.hour && range[i].min==t.min)
+         if(range[i].time==t)
          {
             index=i;
             break;
          }
       }
       return index;
-   }
-
-   void UpdateRange(string _name, string group, double rangehigh=NULL, double rangelow=NULL, bool buydone=NULL, bool selldone=NULL)
-   {
-      string _id=StringSubstr(_name,StringLen(group));
-      MqlDateTime t;
-      t.day_of_year=(int)StringToInteger(StringSubstr(_id,0,3));
-      t.hour=(int)StringToInteger(StringSubstr(_id,3,2));
-      t.min=(int)StringToInteger(StringSubstr(_id,5,2));
-
-      int i=GetRangeIndex(t);
-      if(i==-1)
-      {
-         int s=ArraySize(range);
-         ArrayResize(range,s+1,1000);
-         i=s;
-         range[i].day_of_year=t.day_of_year;
-         range[i].hour=t.hour;
-         range[i].min=t.min;
-      }
-      
-      if(rangehigh!=NULL)
-         range[i].rangehigh=rangehigh;
-      if(rangelow!=NULL)
-         range[i].rangelow=rangelow;
-      if(buydone!=NULL)
-         range[i].buydone=buydone;
-      if(selldone!=NULL)
-         range[i].selldone=selldone;
    }
 
    void OpenTrade(double rangehigh, double rangelow, ENUM_ORDER_TYPE ot)
