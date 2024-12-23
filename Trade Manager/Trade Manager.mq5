@@ -6048,7 +6048,7 @@ public:
 
    void GlobalVariablesSet(PersistentVariables &pv)
    {
-      string group="HARV"+IntegerToString(GetID(),8,'0')+".";
+      string group="HARV"+IntegerToString(GetID(),8,'0')+".range.";
       pv.ClearGroup(group);
       int asize=ArraySize(range);
       for(int i=0; i<asize; i++)
@@ -6066,7 +6066,7 @@ public:
    {
       VariableData *vd;
 
-      vd=pv.GroupFirst("HARV"+IntegerToString(GetID(),8,'0')+".");
+      vd=pv.GroupFirst("HARV"+IntegerToString(GetID(),8,'0')+".range.");
       for(;CheckPointer(vd);vd=pv.GroupNext(vd))
       {
          TypeRange r;
