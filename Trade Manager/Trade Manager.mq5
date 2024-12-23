@@ -248,6 +248,17 @@ long firstbar=0;
 long lastfirstbar=-1;
 datetime lastbartime=-1;
 
+struct TypeTimes
+{
+   MqlDateTime ts;
+   datetime ti;
+   TypeTimes(datetime time)
+   {
+      ti=time;
+      TimeToStruct(ti,ts);
+   }
+};
+
 struct TypeTextObjects
 {
    string objects[][2];
@@ -6003,6 +6014,7 @@ class StrategyRepeatingPattern : public StrategyBase
    struct TypeRange
    {
       long time;
+      string symbol;
       double rangehigh;
       double rangelow;
       bool buydone;
@@ -6010,6 +6022,7 @@ class StrategyRepeatingPattern : public StrategyBase
       TypeRange()
       {
          time=0;
+         symbol="";
          rangehigh=0;
          rangelow=0;
          buydone=false;
@@ -6041,6 +6054,7 @@ public:
       for(int i=0; i<asize; i++)
       {
          string iid=IntegerToString(range[i].time,12,'0');
+         pv[group+iid+".symbol"]=range[i].symbol;
          pv[group+iid+".rangehigh"]=range[i].rangehigh;
          pv[group+iid+".rangelow"]=range[i].rangelow;
          pv[group+iid+".buydone"]=range[i].buydone;
@@ -6057,7 +6071,10 @@ public:
       {
          TypeRange r;
          r.time=(int)StringToInteger(StringSubstr(vd.name(),StringLen(pv.Group()),12));
-         r.rangehigh=vd.double_();
+         r.symbol=vd.string_();
+         vd=pv.GroupNext(vd);
+         if(CheckPointer(vd))
+            r.rangehigh=vd.double_();
          vd=pv.GroupNext(vd);
          if(CheckPointer(vd))
             r.rangelow=vd.double_();
@@ -6125,6 +6142,7 @@ public:
 
       if(lastday!=t.day_of_year)
       {
+         CleanUpRange(rates[0].time);
          //ArrayResize(range,0,1000);
          //Scan();
          lastday=t.day_of_year;
@@ -6164,6 +6182,7 @@ public:
          int s=ArraySize(range);
          ArrayResize(range,s+1,1000);
          range[s].time=t;
+         range[s].symbol=Symbol();
          range[s].rangehigh=r.high;
          range[s].rangelow=r.low;
          range[s].buydone=false;
@@ -6186,11 +6205,26 @@ public:
       return index;
    }
 
+   void CleanUpRange(long t)
+   {
+      TypeTimes t1(t);
+      int idx=-1;
+      int s=ArraySize(range);
+      for(int i=s-1; i>=0; i--)
+      {
+         TypeTimes t2(range[i].time);
+         if(t2.ts.day_of_year!=t1.ts.day_of_year)
+         {
+            idx=i;
+            break;
+         }
+      }
+      if(idx>-1)
+         ArrayRemove(range,0,idx+1);
+   }
+
    void OpenTrade(double rangehigh, double rangelow, ENUM_ORDER_TYPE ot)
    {
-      Print("Range High: ",rangehigh);
-      Print("Range Low: ",rangelow);
-
       double tickvalue=CurrentSymbolTickValue();
       double percentbalance=P3;
       double prange=rangehigh-rangelow;
