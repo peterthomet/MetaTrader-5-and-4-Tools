@@ -6234,14 +6234,10 @@ public:
       double v=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*(prange/ticksize)),2);
       v=MathRound(v/volumestep)*volumestep;
       
-      double rangepoints=prange/Point();
-      
       if(ot==ORDER_TYPE_BUY)
-         //OpenBuy(NULL,v,0,rangepoints,rangepoints);
          OpenBuy(NULL,v,0,NULL,NULL,rangelow,rangehigh+(prange*1));
 
       if(ot==ORDER_TYPE_SELL)
-         //OpenSell(NULL,v,0,rangepoints,rangepoints);
          OpenSell(NULL,v,0,NULL,NULL,rangehigh,rangelow-(prange*1));
    }
    
