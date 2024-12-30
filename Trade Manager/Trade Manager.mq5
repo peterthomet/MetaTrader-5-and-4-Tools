@@ -6017,6 +6017,8 @@ class StrategyRepeatingPattern : public StrategyBase
       string symbol;
       double rangehigh;
       double rangelow;
+      double highesthigh;
+      double lowestlow;
       bool buydone;
       bool selldone;
       TypeRange()
@@ -6025,6 +6027,8 @@ class StrategyRepeatingPattern : public StrategyBase
          symbol="";
          rangehigh=0;
          rangelow=0;
+         highesthigh=0;
+         lowestlow=DBL_MAX;
          buydone=false;
          selldone=false;
       }
@@ -6057,6 +6061,8 @@ public:
          pv[group+iid+".symbol"]=range[i].symbol;
          pv[group+iid+".rangehigh"]=range[i].rangehigh;
          pv[group+iid+".rangelow"]=range[i].rangelow;
+         pv[group+iid+".highesthigh"]=range[i].highesthigh;
+         pv[group+iid+".lowestlow"]=range[i].lowestlow;
          pv[group+iid+".buydone"]=range[i].buydone;
          pv[group+iid+".selldone"]=range[i].selldone;
       }
@@ -6078,6 +6084,12 @@ public:
          vd=pv.GroupNext(vd);
          if(CheckPointer(vd))
             r.rangelow=vd.double_();
+         vd=pv.GroupNext(vd);
+         if(CheckPointer(vd))
+            r.highesthigh=vd.double_();
+         vd=pv.GroupNext(vd);
+         if(CheckPointer(vd))
+            r.lowestlow=vd.double_();
          vd=pv.GroupNext(vd);
          if(CheckPointer(vd))
             r.buydone=vd.bool_();
@@ -6158,6 +6170,9 @@ public:
       int s=ArraySize(range);
       for(int i=0; i<s; i++)
       {
+         range[i].highesthigh=MathMax(range[i].highesthigh,rates[0].high);
+         range[i].lowestlow=MathMin(range[i].lowestlow,rates[0].low);
+      
          if(!range[i].buydone && !range[i].selldone)
          {
             if(rates[0].close>range[i].rangehigh)
