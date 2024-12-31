@@ -6172,20 +6172,25 @@ public:
       {
          range[i].highesthigh=MathMax(range[i].highesthigh,rates[0].high);
          range[i].lowestlow=MathMin(range[i].lowestlow,rates[0].low);
+         
+         if(range[i].symbol != Symbol()) continue; // Not this Symbol
+         //if(range[i].buydone || range[i].selldone) continue; // ENABLE FOR NO REVERSE TRADES
+         if(range[i].buydone && range[i].selldone) continue; // Buy and Sell done
+         if(rates[0].close<=range[i].rangehigh && rates[0].close>=range[i].rangelow) continue; // Inside the range
+         double r=range[i].rangehigh-range[i].rangelow;
+         if(range[i].buydone && range[i].highesthigh>=range[i].rangehigh+r) continue; // Buy completed
+         if(range[i].selldone && range[i].lowestlow<=range[i].rangelow-r) continue; // Sell completed
       
-         if(!range[i].buydone && !range[i].selldone)
+         if(rates[0].close>range[i].rangehigh && !range[i].buydone)
          {
-            if(rates[0].close>range[i].rangehigh)
-            {
-               OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_BUY);
-               range[i].buydone=true;
-            }
+            OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_BUY);
+            range[i].buydone=true;
+         }
 
-            if(rates[0].close<range[i].rangelow)
-            {
-               OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_SELL);
-               range[i].selldone=true;
-            }
+         if(rates[0].close<range[i].rangelow && !range[i].selldone)
+         {
+            OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_SELL);
+            range[i].selldone=true;
          }
       }
    }
@@ -6211,7 +6216,7 @@ public:
       int index=-1;
       for(int i=0; i<s; i++)
       {
-         if(range[i].time==t)
+         if(range[i].time==t && range[i].symbol==Symbol())
          {
             index=i;
             break;
