@@ -6010,6 +6010,7 @@ public:
 class StrategyRepeatingPattern : public StrategyBase
 {
    int lastday;
+   string currentsymbol;
 
    struct TypeRange
    {
@@ -6046,6 +6047,7 @@ public:
          WS.StopMode=None;
 
       lastday=0;
+      currentsymbol=Symbol();
       ArrayResize(result,0,1000);
       ArrayResize(range,0,1000);
    }
@@ -6103,6 +6105,13 @@ public:
       }
    };
 
+   
+   string CurrentSymbol()
+   {
+      return currentsymbol;
+   }
+
+
    void Scan()
    {
       MqlRates rates[];
@@ -6142,10 +6151,20 @@ public:
 
    void Calculate()
    {
+      currentsymbol="US30";
+      CalculateInternal();
+      //currentsymbol="USTEC";
+      //CalculateInternal();
+      //currentsymbol="USDJPY";
+      //CalculateInternal();
+   }
+   
+   void CalculateInternal()
+   {
       MqlRates rates[];
       ArraySetAsSeries(rates,true);
       int bars=2;
-      int copied=CopyRates(Symbol(),PERIOD_M5,0,bars,rates);
+      int copied=CopyRates(CurrentSymbol(),PERIOD_M5,0,bars,rates);
       if(copied!=bars)
          return;
 
@@ -6173,8 +6192,8 @@ public:
          range[i].highesthigh=MathMax(range[i].highesthigh,rates[0].high);
          range[i].lowestlow=MathMin(range[i].lowestlow,rates[0].low);
          
-         if(range[i].symbol != Symbol()) continue; // Not this Symbol
-         //if(range[i].buydone || range[i].selldone) continue; // ENABLE FOR NO REVERSE TRADES
+         if(range[i].buydone || range[i].selldone) continue; // ENABLE FOR NO REVERSE TRADES
+         if(range[i].symbol != CurrentSymbol()) continue; // Not this Symbol
          if(range[i].buydone && range[i].selldone) continue; // Buy and Sell done
          if(rates[0].close<=range[i].rangehigh && rates[0].close>=range[i].rangelow) continue; // Inside the range
          double r=range[i].rangehigh-range[i].rangelow;
@@ -6202,7 +6221,7 @@ public:
          int s=ArraySize(range);
          ArrayResize(range,s+1,1000);
          range[s].time=t;
-         range[s].symbol=Symbol();
+         range[s].symbol=CurrentSymbol();
          range[s].rangehigh=r.high;
          range[s].rangelow=r.low;
          range[s].buydone=false;
@@ -6216,7 +6235,7 @@ public:
       int index=-1;
       for(int i=0; i<s; i++)
       {
-         if(range[i].time==t && range[i].symbol==Symbol())
+         if(range[i].time==t && range[i].symbol==CurrentSymbol())
          {
             index=i;
             break;
@@ -6245,20 +6264,20 @@ public:
 
    void OpenTrade(double rangehigh, double rangelow, ENUM_ORDER_TYPE ot)
    {
-      double tickvalue=CurrentSymbolTickValue();
+      double tickvalue=SymbolInfoDouble(CurrentSymbol(),SYMBOL_TRADE_TICK_VALUE);
       double percentbalance=P3;
       double prange=rangehigh-rangelow;
-      double ticksize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_TICK_SIZE);
-      double contractsize=SymbolInfoDouble(Symbol(),SYMBOL_TRADE_CONTRACT_SIZE);
-      double volumestep=SymbolInfoDouble(Symbol(),SYMBOL_VOLUME_STEP);
+      double ticksize=SymbolInfoDouble(CurrentSymbol(),SYMBOL_TRADE_TICK_SIZE);
+      double contractsize=SymbolInfoDouble(CurrentSymbol(),SYMBOL_TRADE_CONTRACT_SIZE);
+      double volumestep=SymbolInfoDouble(CurrentSymbol(),SYMBOL_VOLUME_STEP);
       double v=NormalizeDouble(((AccountBalanceX()/100)*percentbalance)/(tickvalue*(prange/ticksize)),2);
       v=MathRound(v/volumestep)*volumestep;
       
       if(ot==ORDER_TYPE_BUY)
-         OpenBuy(NULL,v,0,NULL,NULL,rangelow,rangehigh+(prange*1));
+         OpenBuy(CurrentSymbol(),v,0,NULL,NULL,rangelow,rangehigh+(prange*1));
 
       if(ot==ORDER_TYPE_SELL)
-         OpenSell(NULL,v,0,NULL,NULL,rangehigh,rangelow-(prange*1));
+         OpenSell(CurrentSymbol(),v,0,NULL,NULL,rangehigh,rangelow-(prange*1));
    }
    
    void IdleCalculate()
