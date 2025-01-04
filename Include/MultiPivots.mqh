@@ -685,7 +685,7 @@ TypePivotsTimeRange PivotsCalculatePivotRange(TypePivotsData& PD, TypePivotsPeri
    }
    if(period==MONTH)
    {
-      MqlDateTime h1time, startdisplay, enddisplay, start, end, temp1;
+      MqlDateTime h1time, startdisplay, enddisplay, start, temp1;
       TimeToStruct(PD.Settings.currenth1time,h1time);
 
       startdisplay.hour=0;
@@ -740,7 +740,7 @@ TypePivotsTimeRange PivotsCalculatePivotRange(TypePivotsData& PD, TypePivotsPeri
    }
    if(period==YEAR)
    {
-      MqlDateTime h1time, startdisplay, enddisplay, start, end;
+      MqlDateTime h1time, startdisplay, enddisplay, start;
       TimeToStruct(PD.Settings.currenth1time,h1time);
 
       startdisplay.hour=0;
