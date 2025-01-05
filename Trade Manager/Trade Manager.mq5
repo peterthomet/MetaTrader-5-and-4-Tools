@@ -6151,7 +6151,8 @@ public:
 
    void Calculate()
    {
-      currentsymbol="US30";
+      currentsymbol=Symbol();
+      //currentsymbol="US30";
       CalculateInternal();
       //currentsymbol="USTEC";
       //CalculateInternal();
