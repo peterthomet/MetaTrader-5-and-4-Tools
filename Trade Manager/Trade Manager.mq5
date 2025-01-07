@@ -6172,6 +6172,9 @@ public:
       MqlDateTime t;
       TimeToStruct(rates[0].time,t);
 
+      if(TimeCurrent()-rates[0].time>PeriodSeconds(PERIOD_M5)) // old crap
+         return;
+
       if(lastday!=t.day_of_year)
       {
          CleanUpRange(rates[0].time);
@@ -6193,7 +6196,7 @@ public:
          range[i].highesthigh=MathMax(range[i].highesthigh,rates[0].high);
          range[i].lowestlow=MathMin(range[i].lowestlow,rates[0].low);
          
-         if(range[i].buydone || range[i].selldone) continue; // ENABLE FOR NO REVERSE TRADES
+         //if(range[i].buydone || range[i].selldone) continue; // ENABLE FOR NO REVERSE TRADES
          if(range[i].symbol != CurrentSymbol()) continue; // Not this Symbol
          if(range[i].buydone && range[i].selldone) continue; // Buy and Sell done
          if(rates[0].close<=range[i].rangehigh && rates[0].close>=range[i].rangelow) continue; // Inside the range
