@@ -1670,10 +1670,13 @@ void DisplayText()
 
       MqlDateTime tc;
       TimeCurrent(tc);
-      if(!_TradingHours[tc.hour]||!_TradingWeekdays[tc.day_of_week])
+      if(!_TradingHours[tc.hour]||!_TradingWeekdays[tc.day_of_week]||!strats[i].IsEnabled())
          c=TextColorMinus;
    
-      CreateLabel(rowindex,FontSize,c,strats[i].GetName());
+      string name=strats[i].GetName();
+      if(!strats[i].IsEnabled())
+         name+=" (X)";
+      CreateLabel(rowindex,FontSize,c,name,"-TMHarvester-"+IntegerToString(i,5,'0'));
       rowindex++;
    }
 
@@ -3477,6 +3480,12 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       if(StringFind(sparam,"-TMSymbolButton")>-1 || StringFind(sparam,"-TMSymbolListButton")>-1)
          SwitchSymbol(ObjectGetString(0,sparam,OBJPROP_TEXT));
 
+      if(StringFind(sparam,"-TMHarvester-")>-1)
+      {
+         int i=StringToInteger(StringSubstr(sparam,StringFind(sparam,"-TMHarvester-")+13));
+         strats[i].Enable(!strats[i].IsEnabled());
+      }
+
       if(ctrlon)
       {
          int f1=StringFind(sparam,"-TMCC-");
@@ -4418,6 +4427,8 @@ public:
    void GlobalVariablesGet(PersistentVariables &pv);
    void IdleCalculate();
    void Calculate();
+   void Enable(bool enable);
+   bool IsEnabled();
 };
 
 
@@ -4425,8 +4436,10 @@ class StrategyBase : public Strategy
 {
    string name;
    int id;
+   bool enabled;
 
 public:
+   void StrategyBase() {enabled=true;};
    string GetName() {return name;};
    void SetName(string Name)
    {
@@ -4438,6 +4451,8 @@ public:
    void GlobalVariablesGet(PersistentVariables &pv) {};
    int GetID() {return id;};
    void SetID(int ID) {id=ID;};
+   void Enable(bool enable) {enabled=enable;};
+   bool IsEnabled() {return enabled;};
 };
 
 
@@ -6268,6 +6283,9 @@ public:
 
    void OpenTrade(double rangehigh, double rangelow, ENUM_ORDER_TYPE ot)
    {
+      if(!IsEnabled())
+         return;
+   
       double tickvalue=SymbolInfoDouble(CurrentSymbol(),SYMBOL_TRADE_TICK_VALUE);
       double percentbalance=P3;
       double prange=rangehigh-rangelow;
