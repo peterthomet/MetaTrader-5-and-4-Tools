@@ -1676,7 +1676,7 @@ void DisplayText()
       string name=strats[i].GetName();
       if(!strats[i].IsEnabled())
          name+=" (X)";
-      CreateLabel(rowindex,FontSize,c,name,"-TMHarvester-"+IntegerToString(i,5,'0'));
+      CreateLabel(rowindex,FontSize,c,name,"-TMHarvester-"+IntegerToString(strats[i].GetID(),5,'0'));
       rowindex++;
    }
 
@@ -3482,8 +3482,10 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
 
       if(StringFind(sparam,"-TMHarvester-")>-1)
       {
-         int i=StringToInteger(StringSubstr(sparam,StringFind(sparam,"-TMHarvester-")+13));
-         strats[i].Enable(!strats[i].IsEnabled());
+         int i=(int)StringToInteger(StringSubstr(sparam,StringFind(sparam,"-TMHarvester-")+13));
+         for(int x=ArraySize(strats)-1;i>=0;i--)
+            if(strats[x].GetID()==i)
+               strats[x].Enable(!strats[x].IsEnabled());
       }
 
       if(ctrlon)
@@ -4447,8 +4449,16 @@ public:
       if(UseCurrencyStrengthDatabase)
          Name+=" DB";
    };
-   void GlobalVariablesSet(PersistentVariables &pv) {};
-   void GlobalVariablesGet(PersistentVariables &pv) {};
+   void GlobalVariablesSet(PersistentVariables &pv)
+   {
+      string ns="HARV"+IntegerToString(GetID(),8,'0')+".";
+      pv[ns+"enabled"]=enabled;
+   };
+   void GlobalVariablesGet(PersistentVariables &pv)
+   {
+      string ns="HARV"+IntegerToString(GetID(),8,'0')+".";
+      enabled=pv[ns+"enabled"].bool_();
+   };
    int GetID() {return id;};
    void SetID(int ID) {id=ID;};
    void Enable(bool enable) {enabled=enable;};
@@ -6069,6 +6079,8 @@ public:
 
    void GlobalVariablesSet(PersistentVariables &pv)
    {
+      StrategyBase::GlobalVariablesSet(pv);
+      
       string group="HARV"+IntegerToString(GetID(),8,'0')+".range.";
       pv.ClearGroup(group);
       int asize=ArraySize(range);
@@ -6087,6 +6099,8 @@ public:
 
    void GlobalVariablesGet(PersistentVariables &pv)
    {
+      StrategyBase::GlobalVariablesGet(pv);
+
       VariableData *vd;
 
       vd=pv.GroupFirst("HARV"+IntegerToString(GetID(),8,'0')+".range.");
