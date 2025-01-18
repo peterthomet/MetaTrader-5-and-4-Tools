@@ -4124,6 +4124,12 @@ bool WhileTesting(bool condition)
 }
 
 
+bool WhileTestingX(bool condition)
+{
+   return true;
+}
+
+
 void Log(string message1, string message2=NULL, string message3=NULL, string message4=NULL, string message5=NULL)
 {
    string m=TimeToString(TimeCurrent(),TIME_DATE|TIME_SECONDS)+" | "+message1;
@@ -6213,9 +6219,9 @@ public:
       }
 
       //if(true)
-      if(WhileTesting(t.hour==P1) /*&& t.day_of_week==2*/ ) // _TradingHours[t.hour]
+      if(WhileTestingX(t.hour==P1) /*&& t.day_of_week==2*/ ) // _TradingHours[t.hour]
       {
-         if((t.min==20 && WhileTesting(P2==1)) || (t.min==50 && WhileTesting(P2==2)))
+         if((t.min==20 && WhileTestingX(P2==1)) || (t.min==50 && WhileTestingX(P2==2)))
             AddRange(rates[0].time,rates[1]);
       }
 
@@ -6225,7 +6231,7 @@ public:
          range[i].highesthigh=MathMax(range[i].highesthigh,rates[0].high);
          range[i].lowestlow=MathMin(range[i].lowestlow,rates[0].low);
          
-         //if(range[i].buydone || range[i].selldone) continue; // ENABLE FOR NO REVERSE TRADES
+         if(range[i].buydone || range[i].selldone) continue; // ENABLE FOR NO REVERSE TRADES
          if(range[i].symbol != CurrentSymbol()) continue; // Not this Symbol
          if(range[i].buydone && range[i].selldone) continue; // Buy and Sell done
          if(rates[0].close<=range[i].rangehigh && rates[0].close>=range[i].rangelow) continue; // Inside the range
