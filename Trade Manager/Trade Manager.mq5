@@ -6234,20 +6234,29 @@ public:
          if(range[i].buydone || range[i].selldone) continue; // ENABLE FOR NO REVERSE TRADES
          if(range[i].symbol != CurrentSymbol()) continue; // Not this Symbol
          if(range[i].buydone && range[i].selldone) continue; // Buy and Sell done
-         if(rates[0].close<=range[i].rangehigh && rates[0].close>=range[i].rangelow) continue; // Inside the range
+         //if(rates[0].close<=range[i].rangehigh && rates[0].close>=range[i].rangelow) continue; // Inside the range
          double r=range[i].rangehigh-range[i].rangelow;
          if(range[i].buydone && range[i].highesthigh>=range[i].rangehigh+r) continue; // Buy completed
          if(range[i].selldone && range[i].lowestlow<=range[i].rangelow-r) continue; // Sell completed
+
+         double _50percent=NormalizeDouble(range[i].rangehigh-(r/2),(int)SymbolInfoInteger(CurrentSymbol(),SYMBOL_DIGITS));
+         bool upbreak=range[i].highesthigh>range[i].rangehigh;
+         bool downbreak=range[i].lowestlow<range[i].rangelow;
+         if(upbreak && downbreak) continue; // Ranging
       
-         if(rates[0].close>range[i].rangehigh && !range[i].buydone)
+         if(upbreak && rates[0].close<=_50percent && !range[i].buydone)
+         //if(rates[0].close>range[i].rangehigh && !range[i].buydone)
          {
-            OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_BUY);
+            OpenTrade(_50percent,range[i].rangelow,ORDER_TYPE_BUY);
+            //OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_BUY);
             range[i].buydone=true;
          }
 
-         if(rates[0].close<range[i].rangelow && !range[i].selldone)
+         if(downbreak && rates[0].close>=_50percent && !range[i].selldone)
+         //if(rates[0].close<range[i].rangelow && !range[i].selldone)
          {
-            OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_SELL);
+            OpenTrade(range[i].rangehigh,_50percent,ORDER_TYPE_SELL);
+            //OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_SELL);
             range[i].selldone=true;
          }
       }
