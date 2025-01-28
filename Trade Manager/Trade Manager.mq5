@@ -6186,16 +6186,18 @@ public:
 
    void Calculate()
    {
-      currentsymbol=Symbol();
-      //currentsymbol="US30";
-      CalculateInternal();
-      //currentsymbol="USTEC";
-      //CalculateInternal();
-      //currentsymbol="USDJPY";
-      //CalculateInternal();
+      int runs=1;
+      string symbols[]={Symbol(),"US30","USTEC","USDJPY"};
+      runs=MathMin(ArraySize(symbols),runs);
+      for(int i=0; i<=(runs-1); i++)
+      {
+         currentsymbol=symbols[i];
+         CalculateInternal1();
+         //CalculateInternal2();
+      }
    }
    
-   void CalculateInternal()
+   void CalculateInternal2()
    {
       MqlRates rates[];
       ArraySetAsSeries(rates,true);
@@ -6236,8 +6238,8 @@ public:
          if(range[i].buydone && range[i].selldone) continue; // Buy and Sell done
          //if(rates[0].close<=range[i].rangehigh && rates[0].close>=range[i].rangelow) continue; // Inside the range
          double r=range[i].rangehigh-range[i].rangelow;
-         if(range[i].buydone && range[i].highesthigh>=range[i].rangehigh+r) continue; // Buy completed
-         if(range[i].selldone && range[i].lowestlow<=range[i].rangelow-r) continue; // Sell completed
+         if(range[i].highesthigh>=range[i].rangehigh+r) continue; // One Standard deviation completed
+         if(range[i].lowestlow<=range[i].rangelow-r) continue; // One Standard deviation completed
 
          double _50percent=NormalizeDouble(range[i].rangehigh-(r/2),(int)SymbolInfoInteger(CurrentSymbol(),SYMBOL_DIGITS));
          bool upbreak=range[i].highesthigh>range[i].rangehigh;
@@ -6245,22 +6247,76 @@ public:
          if(upbreak && downbreak) continue; // Ranging
       
          if(upbreak && rates[0].close<=_50percent && !range[i].buydone)
-         //if(rates[0].close>range[i].rangehigh && !range[i].buydone)
          {
             OpenTrade(_50percent,range[i].rangelow,ORDER_TYPE_BUY);
-            //OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_BUY);
             range[i].buydone=true;
          }
 
          if(downbreak && rates[0].close>=_50percent && !range[i].selldone)
-         //if(rates[0].close<range[i].rangelow && !range[i].selldone)
          {
             OpenTrade(range[i].rangehigh,_50percent,ORDER_TYPE_SELL);
-            //OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_SELL);
             range[i].selldone=true;
          }
       }
    }
+   
+   void CalculateInternal1()
+   {
+      MqlRates rates[];
+      ArraySetAsSeries(rates,true);
+      int bars=2;
+      int copied=CopyRates(CurrentSymbol(),PERIOD_M5,0,bars,rates);
+      if(copied!=bars)
+         return;
+
+      MqlDateTime t;
+      TimeToStruct(rates[0].time,t);
+
+      if(TimeCurrent()-rates[0].time>PeriodSeconds(PERIOD_M5)) // old crap
+         return;
+
+      if(lastday!=t.day_of_year)
+      {
+         CleanUpRange(rates[0].time);
+         //ArrayResize(range,0,1000);
+         //Scan();
+         lastday=t.day_of_year;
+      }
+
+      //if(true)
+      if(WhileTestingX(t.hour==P1) /*&& t.day_of_week==2*/ ) // _TradingHours[t.hour]
+      {
+         if((t.min==20 && WhileTestingX(P2==1)) || (t.min==50 && WhileTestingX(P2==2)))
+            AddRange(rates[0].time,rates[1]);
+      }
+
+      int s=ArraySize(range);
+      for(int i=0; i<s; i++)
+      {
+         range[i].highesthigh=MathMax(range[i].highesthigh,rates[0].high);
+         range[i].lowestlow=MathMin(range[i].lowestlow,rates[0].low);
+         
+         if(range[i].buydone || range[i].selldone) continue; // ENABLE FOR NO REVERSE TRADES
+         if(range[i].symbol != CurrentSymbol()) continue; // Not this Symbol
+         if(range[i].buydone && range[i].selldone) continue; // Buy and Sell done
+         if(rates[0].close<=range[i].rangehigh && rates[0].close>=range[i].rangelow) continue; // Inside the range
+         double r=range[i].rangehigh-range[i].rangelow;
+         if(range[i].buydone && range[i].highesthigh>=range[i].rangehigh+r) continue; // Buy completed
+         if(range[i].selldone && range[i].lowestlow<=range[i].rangelow-r) continue; // Sell completed
+      
+         if(rates[0].close>range[i].rangehigh && !range[i].buydone)
+         {
+            OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_BUY);
+            range[i].buydone=true;
+         }
+
+         if(rates[0].close<range[i].rangelow && !range[i].selldone)
+         {
+            OpenTrade(range[i].rangehigh,range[i].rangelow,ORDER_TYPE_SELL);
+            range[i].selldone=true;
+         }
+      }
+   }   
    
    void AddRange(long t, MqlRates& r)
    {
