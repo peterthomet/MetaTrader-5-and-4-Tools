@@ -6238,8 +6238,8 @@ public:
          if(range[i].buydone && range[i].selldone) continue; // Buy and Sell done
          //if(rates[0].close<=range[i].rangehigh && rates[0].close>=range[i].rangelow) continue; // Inside the range
          double r=range[i].rangehigh-range[i].rangelow;
-         if(range[i].highesthigh>=range[i].rangehigh+r) continue; // One Standard deviation completed
-         if(range[i].lowestlow<=range[i].rangelow-r) continue; // One Standard deviation completed
+         //if(range[i].highesthigh>=range[i].rangehigh+r) continue; // One Standard deviation completed
+         //if(range[i].lowestlow<=range[i].rangelow-r) continue; // One Standard deviation completed
 
          double _50percent=NormalizeDouble(range[i].rangehigh-(r/2),(int)SymbolInfoInteger(CurrentSymbol(),SYMBOL_DIGITS));
          bool upbreak=range[i].highesthigh>range[i].rangehigh;
