@@ -133,7 +133,10 @@ void OnInit()
 void OnDeinit(const int reason)
 {
    if(visible)
+   {
       Disable();
+      Comment("");
+   }
 
    GlobalVariableTemp(appnamespace+Symbol()+"d_CHART_FIXED_MAX");
    GlobalVariableSet(appnamespace+Symbol()+"d_CHART_FIXED_MAX",d_CHART_FIXED_MAX);
@@ -447,9 +450,15 @@ void OnChartEvent(const int id, const long& lparam, const double& dparam, const 
       if(lparam == 90) // Key Z
       {
          if(!visible)
+         {
             Enable();
+            Comment("Seconds Enabled");
+         }
          else
+         {
             Disable();
+            Comment("Seconds Disabled");
+         }
          visible=!visible;
       }
    }
